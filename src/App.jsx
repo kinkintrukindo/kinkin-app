@@ -348,6 +348,7 @@ function KinKinApp() {
   const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm }
   const [toast, setToast] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [appLoading, setAppLoading] = useState(true);
   const globalFileRef = useRef(null);
 
   const _skipSave = useRef(true);
@@ -367,6 +368,7 @@ function KinKinApp() {
         setPettyTopups(saved.pettyTopups ?? []);
       }
       _skipSave.current = false;
+      setAppLoading(false);
     });
   }, []);
 
@@ -561,6 +563,14 @@ function KinKinApp() {
   const totalAssetsValue = assets.reduce((s, a) => s + (a.purchasePrice || 0), 0);
 
   const trucks = [...new Set([...trips.map((t) => t.nopol), ...expenses.map((e) => e.truck)])].filter(Boolean);
+
+  if (appLoading) return (
+    <div style={{ minHeight: "100vh", background: "#0d0d0d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
+      <img src="/logo.jpg" alt="Kin Kin Trukindo" style={{ height: 80, width: "auto", objectFit: "contain", opacity: 0.85 }} />
+      <div style={{ width: 40, height: 40, border: "3px solid #333", borderTopColor: "#c8a86b", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#0d0d0d", minHeight: "100vh", color: "#e8e0d0", width: "100%", overflowX: "hidden" }}>
