@@ -18,6 +18,16 @@ function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return isMobile;
+}
+
 // ── CSV parser that handles quoted values with commas ─────────────────────────
 function parseCSV(text) {
   const rows = [];
@@ -311,8 +321,19 @@ const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Ins
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
+const TABS = [
+  { key: "dashboard", label: "📊 Dashboard", short: "Dash" },
+  { key: "trips",     label: "🚛 Trips",           short: "Trips" },
+  { key: "expenses",  label: "💸 Expenses",         short: "Costs" },
+  { key: "kas",       label: "🏦 Cash",             short: "Cash" },
+  { key: "petty",     label: "👛 Petty Cash",       short: "Petty" },
+  { key: "fleet",     label: "💰 Capital & Fleet",  short: "Fleet" },
+  { key: "reports",   label: "📄 Reports",          short: "Report" },
+];
+
 function KinKinApp() {
   const [tab, setTab] = useState("dashboard");
+  const isMobile = useIsMobile();
   const [trips, setTrips] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [kas, setKas] = useState([]);
@@ -560,41 +581,28 @@ function KinKinApp() {
       <input ref={globalFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleGlobalImport} />
 
       {/* Header */}
-      <div style={{ background: "#111", borderBottom: "2px solid #c8a86b", padding: "0 24px", display: "flex", alignItems: "center", gap: 16, height: 56 }}>
+      <div style={{ background: "#111", borderBottom: "2px solid #c8a86b", padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, height: 56 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo.jpg" alt="KinKin Logo" style={{ height: 44, width: 44, objectFit: "contain" }} />
-          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 1, lineHeight: 1.1, fontWeight: 800 }}>
-            <div>Kin Kin Trukindo, Ltd.</div>
-            <div style={{ fontSize: 10, color: "#6b8c6b", letterSpacing: 1.5, fontFamily: "'Inter', sans-serif", fontWeight: 500, marginTop: 2 }}>FREIGHT & LOGISTICS</div>
-          </div>
+          <img src="/logo.jpg" alt="KinKin Logo" style={{ height: 40, width: 40, objectFit: "contain" }} />
+          {isMobile ? (
+            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#c8a86b", fontWeight: 800, letterSpacing: 0.5 }}>Kin Kin Trukindo</div>
+          ) : (
+            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 1, lineHeight: 1.1, fontWeight: 800 }}>
+              <div>Kin Kin Trukindo, Ltd.</div>
+              <div style={{ fontSize: 10, color: "#6b8c6b", letterSpacing: 1.5, fontFamily: "'Inter', sans-serif", fontWeight: 500, marginTop: 2 }}>FREIGHT & LOGISTICS</div>
+            </div>
+          )}
         </div>
-        <div style={{ flex: 1 }} />
-        {[
-          { key: "dashboard", label: "📊 Dashboard" },
-          { key: "trips", label: "🚛 Trips" },
-          { key: "expenses", label: "💸 Expenses" },
-          { key: "kas", label: "🏦 Cash" },
-          { key: "petty", label: "👛 Petty Cash" },
-          { key: "fleet", label: "💰 Capital & Fleet" },
-          { key: "reports", label: "📄 Reports" },
-        ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            style={{
-              background: tab === t.key ? "#c8a86b" : "transparent",
-              color: tab === t.key ? "#0d0d0d" : "#888",
-              border: "none",
-              padding: "6px 14px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 500,
-              transition: "all .15s",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+        {!isMobile && (
+          <>
+            <div style={{ flex: 1 }} />
+            {TABS.map((t) => (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? "#c8a86b" : "transparent", color: tab === t.key ? "#0d0d0d" : "#888", border: "none", padding: "6px 14px", borderRadius: 4, fontSize: 12, fontWeight: 500, transition: "all .15s" }}>
+                {t.label}
+              </button>
+            ))}
+          </>
+        )}
         <div style={{ flex: 1 }} />
         <button
           onClick={() => setConfirmModal({
@@ -609,6 +617,18 @@ function KinKinApp() {
           🗑 Reset
         </button>
       </div>
+
+      {/* Mobile bottom navigation */}
+      {isMobile && (
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", borderTop: "1px solid #c8a86b44", display: "flex", zIndex: 500 }}>
+          {TABS.map((t) => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", background: "transparent", border: "none", borderTop: tab === t.key ? "2px solid #c8a86b" : "2px solid transparent", color: tab === t.key ? "#c8a86b" : "#555", fontFamily: "inherit" }}>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{t.label.split(" ")[0]}</span>
+              <span style={{ fontSize: 9, marginTop: 3, letterSpacing: 0.3, fontWeight: tab === t.key ? 600 : 400 }}>{t.short}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
@@ -853,7 +873,7 @@ function KinKinApp() {
 
       
 
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? 80 : 24 }}>
         {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} />}
@@ -868,6 +888,7 @@ function KinKinApp() {
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, importLogs, undoImport, kas }) {
+  const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
   const truckStats = trucks.map((t) => {
     const tTrips = trips.filter((x) => x.nopol === t);
@@ -1072,7 +1093,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       </div>
 
       {/* Truck Performance Table */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
         <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
           <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Truck Performance</h3>
           <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
@@ -1133,7 +1154,8 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       {/* Recent Trips */}
       <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginTop: 20 }}>
         <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Recent Trips</h3>
-        <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+        <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 560 }}>
           <thead>
             <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
               {["DATE", "DESTINATION", "PLATE", "CONTAINER", "TOTAL COST", "INVOICE", "PROFIT"].map((h) => (
@@ -1155,6 +1177,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -1324,6 +1347,7 @@ function Trips({ trips, setTrips, showToast }) {
 
 // ── EXPENSES ──────────────────────────────────────────────────────────────────
 function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups, pettyTopups, setKas, kas, showToast }) {
+  const isMobile = useIsMobile();
   const [expenseType, setExpenseType] = useState("truck"); // "truck" | "overhead" | "petty"
   const [filter, setFilter] = useState("all");
   const [form, setForm] = useState({
@@ -1543,7 +1567,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
       {grandTotal > 0 && (
         <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
           <h3 style={{ fontSize: 12, color: "#c8a86b", marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>📊 Expense Breakdown by Category</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 30, alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "240px 1fr", gap: 30, alignItems: "center" }}>
             {/* Pie chart */}
             <div style={{ display: "flex", justifyContent: "center" }}>
               <svg width="220" height="220" viewBox="0 0 200 200">
@@ -1754,6 +1778,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
 // ── CASH  ────────────────────────────────────────────────────────────────
 function Kas({ kas, setKas, showToast, kasBalance }) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ date: today(), description: "", amount: "", type: "in" });
 
   const addKas = () => {
@@ -1773,7 +1798,7 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
     <div>
       <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>CASH LEDGER</h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
         <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>TOTAL CASH IN</div>
           <div style={{ fontSize: 18, color: "#10b981" }}>{fmt(kas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0))}</div>
@@ -1840,6 +1865,7 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
 
 // ── PETTY CASH ────────────────────────────────────────────────────────────────
 function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups, expenses, kas, setKas, showToast, confirmModal, setConfirmModal }) {
+  const isMobile = useIsMobile();
   const [activeHolder, setActiveHolder] = useState(null); // holderId or null = overview
   const [addingHolder, setAddingHolder] = useState(false);
   const [newHolderForm, setNewHolderForm] = useState({ name: "", notes: "" });
@@ -2162,7 +2188,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
               {/* Add top-up */}
               <div style={{ background: "#0d0d0d", borderRadius: 6, padding: 14, marginBottom: 14 }}>
                 <div style={{ fontSize: 11, color: "#888", marginBottom: 10 }}>Record a new top-up for {currentHolder.name}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr auto", gap: 10, alignItems: "end" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 2fr auto", gap: 10, alignItems: "end" }}>
                   <div>
                     <label style={{ fontSize: 10, color: "#555", display: "block", marginBottom: 3 }}>DATE</label>
                     <input type="date" value={topupForm.date} onChange={(e) => setTopupForm({ ...topupForm, date: e.target.value, holderId: currentHolder.id })} style={iStyle} />
@@ -2283,6 +2309,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
 
 // ── FLEET ─────────────────────────────────────────────────────────────────────
 function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPayments, capital, setCapital, totalCapitalInjected, showToast, confirmModal, setConfirmModal }) {
+  const isMobile = useIsMobile();
   const [editLoanId, setEditLoanId] = useState(null);
   const [editLoanForm, setEditLoanForm] = useState({});
   const [editPayId, setEditPayId] = useState(null);
@@ -2721,7 +2748,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
               {/* Add payment inline form */}
               {addPayLoanId === loan.id && (
                 <div style={{ background: "#161616", border: "1px solid #c8a86b33", borderRadius: 4, padding: 12, marginBottom: 10 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr auto", gap: 8, alignItems: "end" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 2fr auto", gap: 8, alignItems: "end" }}>
                     <div>
                       <label style={{ fontSize: 10, color: "#555", display: "block", marginBottom: 3 }}>DATE</label>
                       <input type="date" value={newPay.date} onChange={(e) => setNewPay({ ...newPay, date: e.target.value })} style={editInputStyle} />
@@ -3161,6 +3188,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
 
 // ── REPORTS ──────────────────────────────────────────────────────────────────
 function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, grossProfit, netProfit, totalRevenue, totalExpenses, truckOpsExpenses, overheadExpenses, tripCosts, totalCapitalInjected, totalLoansReceived, totalLoanPrincipalRemaining, totalLoanPaymentsMade, totalAssetsValue }) {
+  const isMobile = useIsMobile();
   // ── Date range state ───────────────────────────────────────────────────────
   const todayDate = new Date();
   const firstDayThisMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().slice(0, 10);
@@ -3691,7 +3719,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
       </div>
 
       {/* Visual P&L Preview */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
         <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 24 }}>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>📊 PROFIT & LOSS PREVIEW</h3>
           <Section title="Revenue" rows={[["Freight Revenue", fTotalRevenue]]} total={fTotalRevenue} totalLabel="GROSS REVENUE" />
