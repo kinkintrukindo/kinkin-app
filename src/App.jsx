@@ -563,10 +563,12 @@ function KinKinApp() {
   const trucks = [...new Set([...trips.map((t) => t.nopol), ...expenses.map((e) => e.truck)])].filter(Boolean);
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#0d0d0d", minHeight: "100vh", color: "#e8e0d0" }}>
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#0d0d0d", minHeight: "100vh", color: "#e8e0d0", width: "100%", overflowX: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: #0d0d0d; overflow-x: hidden; width: 100%; }
+        #root { width: 100%; }
         body, input, select, textarea, button, table { font-family: 'Inter', system-ui, sans-serif; }
         h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; font-weight: 700; }
         td, th { font-variant-numeric: tabular-nums; }
