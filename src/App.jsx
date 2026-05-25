@@ -2353,12 +2353,12 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                 const isEditing = editHolderId === h.id;
                 return (
                   <div key={h.id} style={{ background: "#FEFEFE", border: `1px solid ${h.active ? "#E0E0DC" : "#F0F0EE"}`, borderRadius: 8, padding: 20, opacity: h.active ? 1 : 0.55 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 14 }}>
+                    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "start", marginBottom: 14, gap: isMobile ? 10 : 0 }}>
                       <div style={{ flex: 1 }}>
                         {isEditing ? (
-                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                            <input value={editHolderForm.name} onChange={(e) => setEditHolderForm({ ...editHolderForm, name: e.target.value })} style={{ ...iStyle, fontSize: 14, fontWeight: 700, width: 160 }} />
-                            <input value={editHolderForm.notes} onChange={(e) => setEditHolderForm({ ...editHolderForm, notes: e.target.value })} style={{ ...iStyle, flex: 1 }} placeholder="Notes" />
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                            <input value={editHolderForm.name} onChange={(e) => setEditHolderForm({ ...editHolderForm, name: e.target.value })} style={{ ...iStyle, fontSize: 14, fontWeight: 700, width: 140 }} />
+                            <input value={editHolderForm.notes} onChange={(e) => setEditHolderForm({ ...editHolderForm, notes: e.target.value })} style={{ ...iStyle, flex: 1, minWidth: 120 }} placeholder="Notes" />
                             <button onClick={saveEditHolder} style={{ background: "#4A643C", border: "none", color: "#fff", padding: "5px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✓</button>
                             <button onClick={() => setEditHolderId(null)} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", padding: "4px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>✕</button>
                           </div>
@@ -2370,7 +2370,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                         )}
                       </div>
                       {!isEditing && (
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                           <span style={{ fontSize: 10, background: h.active ? "#4A643C22" : "#6b728022", color: h.active ? "#4A643C" : "#7C8B67", border: `1px solid ${h.active ? "#4A643C44" : "#6b728044"}`, padding: "2px 8px", borderRadius: 3 }}>
                             {h.active ? "ACTIVE" : "INACTIVE"}
                           </span>
@@ -3890,7 +3890,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: 12, alignItems: "end" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 2fr", gap: 12, alignItems: "end" }}>
           <div>
             <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>FROM DATE</label>
             <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPreset("custom"); }} />
@@ -3899,7 +3899,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
             <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>TO DATE</label>
             <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPreset("custom"); }} />
           </div>
-          <div style={{ background: "#F4F4F2", padding: 10, borderRadius: 4, fontSize: 11, color: "#7C8B67" }}>
+          <div style={{ background: "#F4F4F2", padding: 10, borderRadius: 4, fontSize: 11, color: "#7C8B67", gridColumn: isMobile ? "1 / -1" : "auto" }}>
             <strong style={{ color: "#A39159" }}>Active period:</strong> {periodLabel}<br />
             <span style={{ color: "#555" }}>{fTrips.length} trips · {fExpenses.length} expenses</span>
           </div>
