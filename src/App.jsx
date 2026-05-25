@@ -566,7 +566,7 @@ function KinKinApp() {
 
   if (appLoading) return (
     <div style={{ minHeight: "100vh", background: "#FEFEFE", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
-      <img src="/logo.jpg" alt="Kin Kin Trukindo" style={{ height: 80, width: "auto", objectFit: "contain", opacity: 0.85 }} />
+      <img src="/logo-light.png" alt="Kin Kin Trukindo" style={{ height: 80, width: "auto", objectFit: "contain", opacity: 0.85 }} />
       <div style={{ width: 40, height: 40, border: "3px solid #E0E0DC", borderTopColor: "#A39159", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -595,7 +595,7 @@ function KinKinApp() {
       {/* Header */}
       <div style={{ background: "#1B3F60", borderBottom: "2px solid #A39159", padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, height: 56 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo.jpg" alt="KinKin Logo" style={{ height: 40, width: 40, objectFit: "contain" }} />
+          <img src="/logo-light.png" alt="KinKin Logo" style={{ height: 40, width: 40, objectFit: "contain" }} />
           {isMobile ? (
             <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#FEFEFE", fontWeight: 800, letterSpacing: 0.5 }}>Kin Kin Trukindo</div>
           ) : (
@@ -632,7 +632,7 @@ function KinKinApp() {
 
       {/* Mobile bottom navigation */}
       {isMobile && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#1B3F60", borderTop: "1px solid #A39159", display: "flex", zIndex: 500 }}>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#1B3F60", borderTop: "1px solid #A39159", display: "flex", zIndex: 500, paddingBottom: "env(safe-area-inset-bottom)" }}>
           {TABS.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", background: "transparent", border: "none", borderTop: tab === t.key ? "2px solid #A39159" : "2px solid transparent", color: tab === t.key ? "#A39159" : "#FEFEFE66", fontFamily: "inherit" }}>
               <span style={{ fontSize: 9, marginTop: 3, letterSpacing: 0.3, fontWeight: tab === t.key ? 600 : 400 }}>{t.short}</span>
@@ -884,7 +884,7 @@ function KinKinApp() {
 
       
 
-      <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? 80 : 24 }}>
+      <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
         {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} />}
@@ -3790,7 +3790,7 @@ function LoginGate({ onSuccess }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F4F2", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
       <form onSubmit={submit} style={{ width: "100%", maxWidth: "360px", display: "flex", flexDirection: "column", alignItems: "center", background: "#FEFEFE", borderRadius: 12, padding: "40px 32px", boxShadow: "0 4px 24px rgba(27,63,96,0.10)", border: "1px solid #E0E0DC" }}>
-        <img src="/logo.jpg" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24 }} />
+        <img src="/logo-light.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24 }} />
         <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#1B3F60", textAlign: "center" }}>
           Kin Kin Trukindo, Ltd.
         </h1>
