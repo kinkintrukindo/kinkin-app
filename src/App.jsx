@@ -1703,6 +1703,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
             Driver costs are recorded automatically when you import a monthly CSV. They cannot be added manually.
           </div>
         ) : (
+        <>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DATE</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
           <div>
@@ -1741,6 +1742,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         <button onClick={addExpense} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
           + Record {expenseType === "truck" ? "Truck" : expenseType === "overhead" ? "Overhead" : "Petty Cash"} Expense
         </button>
+        </>
         )}
       </div>
 
