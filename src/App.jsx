@@ -531,7 +531,7 @@ function KinKinApp() {
         setTrips(trips.filter((t) => !log.tripIds.includes(t.id)));
         setExpenses(expenses.filter((e) => !log.expenseIds.includes(e.id)));
         setImportLogs(importLogs.filter((l) => l.id !== logId));
-        showToast(`🗑 Removed import: ${log.fileName}`);
+        showToast(`Removed import: ${log.fileName}`);
         setConfirmModal(null);
       },
     });
@@ -936,7 +936,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       {/* Welcome empty-state */}
       {trips.length === 0 && expenses.length === 0 && (
         <div style={{ background: "linear-gradient(135deg, #A3915915, #F0F0EE)", border: "1px solid #A3915944", borderRadius: 10, padding: 28, marginBottom: 24, textAlign: "center" }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📊</div>
+          <div style={{ fontSize: 36, marginBottom: 10, color: "#A39159", fontFamily: "'Montserrat', sans-serif", fontWeight: 800 }}>KK</div>
           <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#A39159", fontWeight: 700, marginBottom: 8 }}>Welcome — Let's get started</div>
           <div style={{ fontSize: 12, color: "#7C8B67", marginBottom: 18, maxWidth: 520, margin: "0 auto 18px" }}>
             Upload your employee&apos;s monthly Excel report to instantly populate trips, or add entries manually from the tabs above.
@@ -988,7 +988,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
                       style={{ background: "transparent", border: "1px solid #ef444466", color: "#ef4444", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}
                       title="Delete this import and all its entries"
                     >
-                      🗑 Undo
+                      Undo
                     </button>
                   </td>
                 </tr>
@@ -1002,7 +1002,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 28 }}>
         {[
           {
-            label: "Total Revenue (Invoiced)", value: fmt(totalRevenue), color: "#4A643C", icon: "💰",
+            label: "Total Revenue (Invoiced)", value: fmt(totalRevenue), color: "#4A643C", icon: "▲",
             breakdown: trips.length === 0 ? [["No trips yet", ""]] : [
               ...trips.slice().sort((a,b) => b.jual - a.jual).map((t) => [`${t.date} · ${t.destination}`, fmt(t.jual)]),
               ["─────────", ""],
@@ -1010,7 +1010,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             ],
           },
           {
-            label: "Trip Gross Profit", value: fmt(grossProfit), color: "#3b82f6", icon: "📦",
+            label: "Trip Gross Profit", value: fmt(grossProfit), color: "#1B3F60", icon: "◈",
             breakdown: trips.length === 0 ? [["No trips yet", ""]] : [
               ...trips.slice().sort((a,b) => b.profit - a.profit).map((t) => [`${t.date} · ${t.destination}`, fmt(t.profit)]),
               ["─────────", ""],
@@ -1018,7 +1018,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             ],
           },
           {
-            label: "Truck Ops Expenses", value: fmt(truckOpsExpenses), color: "#f59e0b", icon: "🚛",
+            label: "Truck Ops Expenses", value: fmt(truckOpsExpenses), color: "#A39159", icon: "▼",
             breakdown: (() => {
               const byCat = {};
               expenses.filter((e) => (e.expenseType || "truck") === "truck").forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
@@ -1027,7 +1027,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             })(),
           },
           {
-            label: "Overhead Expenses", value: fmt(overheadExpenses), color: "#ec4899", icon: "🏢",
+            label: "Overhead Expenses", value: fmt(overheadExpenses), color: "#7C8B67", icon: "▼",
             breakdown: (() => {
               const byCat = {};
               expenses.filter((e) => e.expenseType === "overhead").forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
@@ -1036,7 +1036,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             })(),
           },
           {
-            label: "Net Profit", value: fmt(netProfit), color: netProfit >= 0 ? "#4A643C" : "#ef4444", icon: "📊",
+            label: "Net Profit", value: fmt(netProfit), color: netProfit >= 0 ? "#4A643C" : "#c0392b", icon: "◉",
             breakdown: [
               ["Revenue", fmt(totalRevenue)],
               ["− Trip costs (COGS)", fmt(-tripCosts)],
@@ -1049,7 +1049,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             ],
           },
           {
-            label: "Cash Balance", value: fmt(kasBalance), color: "#A39159", icon: "🏦",
+            label: "Cash Balance", value: fmt(kasBalance), color: "#1B3F60", icon: "◈",
             breakdown: (() => {
               const totalIn = kas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0);
               const totalOut = kas.filter((k) => k.type === "out").reduce((s, k) => s + k.amount, 0);
@@ -1557,11 +1557,11 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 20 }}>
         <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 18 }}>
-          <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>🚛 TRUCK / OPERATIONAL</div>
+          <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>TRUCK / OPERATIONAL</div>
           <div style={{ fontSize: 18, color: "#f59e0b" }}>{fmt(truckTotal)}</div>
         </div>
         <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 18 }}>
-          <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>🏢 OVERHEAD</div>
+          <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>OVERHEAD</div>
           <div style={{ fontSize: 18, color: "#ec4899" }}>{fmt(overheadTotal)}</div>
         </div>
         <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 18 }}>
@@ -1634,13 +1634,13 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
       {/* Type toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <button onClick={() => switchType("truck")} style={{ background: expenseType === "truck" ? "#f59e0b" : "#F8F8F6", color: expenseType === "truck" ? "#FEFEFE" : "#7C8B67", border: `1px solid ${expenseType === "truck" ? "#f59e0b" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-          🚛 Truck Expense
+          Truck Expense
         </button>
         <button onClick={() => switchType("overhead")} style={{ background: expenseType === "overhead" ? "#ec4899" : "#F8F8F6", color: expenseType === "overhead" ? "#fff" : "#7C8B67", border: `1px solid ${expenseType === "overhead" ? "#ec4899" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-          🏢 Overhead Expense
+          Overhead Expense
         </button>
         <button onClick={() => switchType("petty")} style={{ background: expenseType === "petty" ? "#A39159" : "#F8F8F6", color: expenseType === "petty" ? "#FEFEFE" : "#7C8B67", border: `1px solid ${expenseType === "petty" ? "#A39159" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-          👛 Petty Cash Top-Up
+          Petty Cash Top-Up
         </button>
       </div>
 
@@ -1692,7 +1692,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
           <h3 style={{ fontSize: 12, color: "#555", textTransform: "uppercase", letterSpacing: 1 }}>All Expenses ({filtered.length})</h3>
           <div style={{ display: "flex", gap: 6 }}>
-            {[{ key: "all", label: "All" }, { key: "truck", label: "🚛 Truck" }, { key: "overhead", label: "🏢 Overhead" }].map((f) => (
+            {[{ key: "all", label: "All" }, { key: "truck", label: "Truck" }, { key: "overhead", label: "Overhead" }].map((f) => (
               <button key={f.key} onClick={() => setFilter(f.key)} style={{ background: filter === f.key ? "#A39159" : "transparent", color: filter === f.key ? "#FEFEFE" : "#555", border: "1px solid #E0E0DC", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>
                 {f.label}
               </button>
@@ -1719,8 +1719,8 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                     <td style={{ padding: "6px 6px" }}><input type="date" value={editForm.date} onChange={(ev) => setEditForm({ ...editForm, date: ev.target.value })} style={inputStyle} /></td>
                     <td style={{ padding: "6px 6px" }}>
                       <select value={editForm.expenseType} onChange={(ev) => setEditForm({ ...editForm, expenseType: ev.target.value, category: ev.target.value === "overhead" ? "Salary" : "Fuel" })} style={inputStyle}>
-                        <option value="truck">🚛 Truck</option>
-                        <option value="overhead">🏢 Overhead</option>
+                        <option value="truck">Truck</option>
+                        <option value="overhead">Overhead</option>
                       </select>
                     </td>
                     <td style={{ padding: "6px 6px" }}>
@@ -1754,9 +1754,9 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                   <td style={{ padding: "8px 8px" }}>
                     {(() => {
                       const isPetty = e.expenseType === "petty";
-                      const bg = isPetty ? "#A3915922" : isOverhead ? "#ec489922" : "#f59e0b22";
-                      const col = isPetty ? "#A39159" : isOverhead ? "#ec4899" : "#f59e0b";
-                      const label = isPetty ? "👛 Petty Cash" : isOverhead ? "🏢 Overhead" : "🚛 Truck";
+                      const bg = isPetty ? "#A3915922" : isOverhead ? "#7C8B6722" : "#1B3F6022";
+                      const col = isPetty ? "#A39159" : isOverhead ? "#7C8B67" : "#1B3F60";
+                      const label = isPetty ? "Petty Cash" : isOverhead ? "Overhead" : "Truck";
                       return <span className="tag" style={{ background: bg, color: col, border: `1px solid ${col}44` }}>{label}</span>;
                     })()}
                   </td>
@@ -2561,8 +2561,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                       <tr key={c.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                         <td style={{ padding: "8px 8px" }}>{c.date}</td>
                         <td style={{ padding: "8px 8px" }}>
-                          <span className="tag" style={{ background: c.type === "capital" ? "#4A643C22" : "#3b82f622", color: c.type === "capital" ? "#4A643C" : "#3b82f6", border: `1px solid ${c.type === "capital" ? "#4A643C44" : "#3b82f644"}` }}>
-                            {c.type === "capital" ? "💰 Capital" : "🏦 Loan"}
+                          <span className="tag" style={{ background: c.type === "capital" ? "#4A643C22" : "#1B3F6022", color: c.type === "capital" ? "#4A643C" : "#1B3F60", border: `1px solid ${c.type === "capital" ? "#4A643C44" : "#1B3F6044"}` }}>
+                            {c.type === "capital" ? "Capital" : "Loan"}
                           </span>
                         </td>
                         <td style={{ padding: "8px 8px", color: "#A39159" }}>{c.source}</td>
@@ -3720,12 +3720,12 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-          <ReportCard icon="📊" title="Profit & Loss" description="GAAP-structured P&L with revenue, COGS, expenses, net profit" color="#4A643C" buildFn={buildPL} downloadFn={() => downloadSingle("P&L", buildPL, "P&L")} />
-          <ReportCard icon="💰" title="Income Statement" description="Revenue detail from trips + summary" color="#3b82f6" buildFn={buildIncomeStatement} downloadFn={() => downloadSingle("Income_Statement", buildIncomeStatement, "Income Statement")} />
-          <ReportCard icon="💸" title="Cash Flow Statement" description="Operating, Investing & Financing activities" color="#f59e0b" buildFn={buildCashFlow} downloadFn={() => downloadSingle("Cash_Flow", buildCashFlow, "Cash Flow")} />
-          <ReportCard icon="⚖️" title="Balance Sheet" description="Assets, liabilities & equity snapshot" color="#a78bfa" buildFn={buildBalanceSheet} downloadFn={() => downloadSingle("Balance_Sheet", buildBalanceSheet, "Balance Sheet")} />
-          <ReportCard icon="🚛" title="Trip Log" description="Detailed trip-by-trip breakdown" color="#ec4899" buildFn={buildTripLog} downloadFn={() => downloadSingle("Trip_Log", buildTripLog, "Trip Log")} />
-          <ReportCard icon="🧾" title="Expense Log" description="All truck & overhead expenses itemized" color="#ef4444" buildFn={buildExpenseLog} downloadFn={() => downloadSingle("Expense_Log", buildExpenseLog, "Expense Log")} />
+          <ReportCard icon="P&L" title="Profit & Loss" description="GAAP-structured P&L with revenue, COGS, expenses, net profit" color="#4A643C" buildFn={buildPL} downloadFn={() => downloadSingle("P&L", buildPL, "P&L")} />
+          <ReportCard icon="INC" title="Income Statement" description="Revenue detail from trips + summary" color="#1B3F60" buildFn={buildIncomeStatement} downloadFn={() => downloadSingle("Income_Statement", buildIncomeStatement, "Income Statement")} />
+          <ReportCard icon="CF" title="Cash Flow Statement" description="Operating, Investing & Financing activities" color="#A39159" buildFn={buildCashFlow} downloadFn={() => downloadSingle("Cash_Flow", buildCashFlow, "Cash Flow")} />
+          <ReportCard icon="BS" title="Balance Sheet" description="Assets, liabilities & equity snapshot" color="#7C8B67" buildFn={buildBalanceSheet} downloadFn={() => downloadSingle("Balance_Sheet", buildBalanceSheet, "Balance Sheet")} />
+          <ReportCard icon="TRP" title="Trip Log" description="Detailed trip-by-trip breakdown" color="#1B3F60" buildFn={buildTripLog} downloadFn={() => downloadSingle("Trip_Log", buildTripLog, "Trip Log")} />
+          <ReportCard icon="EXP" title="Expense Log" description="All truck & overhead expenses itemized" color="#c0392b" buildFn={buildExpenseLog} downloadFn={() => downloadSingle("Expense_Log", buildExpenseLog, "Expense Log")} />
         </div>
       </div>
 
@@ -3738,11 +3738,11 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#3b82f6", borderTop: "2px solid #D0D0CC", marginTop: 8 }}>
             <span>GROSS PROFIT</span><span>{fmt(fGrossProfit)}</span>
           </div>
-          <Section title="🚛 Truck Operating Expenses" rows={Object.entries(fTruckExpByCategory).length ? Object.entries(fTruckExpByCategory) : [["No truck expenses", 0]]} total={fTruckOpsExpenses} totalLabel="TOTAL TRUCK OPS" color="#f59e0b" />
+          <Section title="Truck Operating Expenses" rows={Object.entries(fTruckExpByCategory).length ? Object.entries(fTruckExpByCategory) : [["No truck expenses", 0]]} total={fTruckOpsExpenses} totalLabel="TOTAL TRUCK OPS" color="#A39159" />
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#3b82f6", borderTop: "1px solid #D0D0CC", marginTop: 8 }}>
             <span>OPERATING PROFIT</span><span>{fmt(operatingProfit)}</span>
           </div>
-          <Section title="🏢 Overhead (SG&A)" rows={Object.entries(fOverheadExpByCategory).length ? Object.entries(fOverheadExpByCategory) : [["No overhead", 0]]} total={fOverheadExpenses} totalLabel="TOTAL OVERHEAD" color="#ec4899" />
+          <Section title="Overhead (SG&A)" rows={Object.entries(fOverheadExpByCategory).length ? Object.entries(fOverheadExpByCategory) : [["No overhead", 0]]} total={fOverheadExpenses} totalLabel="TOTAL OVERHEAD" color="#7C8B67" />
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 16, fontWeight: 700, color: fNetProfit >= 0 ? "#4A643C" : "#ef4444", borderTop: "2px solid #A3915955", marginTop: 8 }}>
             <span>NET PROFIT / (LOSS)</span><span>{fmt(fNetProfit)}</span>
           </div>
