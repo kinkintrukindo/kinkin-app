@@ -304,7 +304,7 @@ const CAT_COLOR = {
   Toll: "#3b82f6",
   Repair: "#ef4444",
   "Spare Parts": "#8b5cf6",
-  Garage: "#10b981",
+  Garage: "#4A643C",
   // Overhead
   Salary: "#ec4899",
   "Office Rent": "#06b6d4",
@@ -322,13 +322,13 @@ const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Ins
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
 const TABS = [
-  { key: "dashboard", label: "📊 Dashboard", short: "Dash" },
-  { key: "trips",     label: "🚛 Trips",           short: "Trips" },
-  { key: "expenses",  label: "💸 Expenses",         short: "Costs" },
-  { key: "kas",       label: "🏦 Cash",             short: "Cash" },
-  { key: "petty",     label: "👛 Petty Cash",       short: "Petty" },
-  { key: "fleet",     label: "💰 Capital & Fleet",  short: "Fleet" },
-  { key: "reports",   label: "📄 Reports",          short: "Report" },
+  { key: "dashboard", label: "Dashboard",       short: "Dash" },
+  { key: "trips",     label: "Trips",           short: "Trips" },
+  { key: "expenses",  label: "Expenses",        short: "Costs" },
+  { key: "kas",       label: "Cash",            short: "Cash" },
+  { key: "petty",     label: "Petty Cash",      short: "Petty" },
+  { key: "fleet",     label: "Fleet",           short: "Fleet" },
+  { key: "reports",   label: "Reports",         short: "Report" },
 ];
 
 function KinKinApp() {
@@ -565,26 +565,26 @@ function KinKinApp() {
   const trucks = [...new Set([...trips.map((t) => t.nopol), ...expenses.map((e) => e.truck)])].filter(Boolean);
 
   if (appLoading) return (
-    <div style={{ minHeight: "100vh", background: "#0d0d0d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
+    <div style={{ minHeight: "100vh", background: "#FEFEFE", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
       <img src="/logo.jpg" alt="Kin Kin Trukindo" style={{ height: 80, width: "auto", objectFit: "contain", opacity: 0.85 }} />
-      <div style={{ width: 40, height: 40, border: "3px solid #333", borderTopColor: "#c8a86b", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <div style={{ width: 40, height: 40, border: "3px solid #E0E0DC", borderTopColor: "#A39159", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#0d0d0d", minHeight: "100vh", color: "#e8e0d0", width: "100%", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#F4F4F2", minHeight: "100vh", color: "#2d2d2d", width: "100%", overflowX: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #0d0d0d; overflow-x: hidden; width: 100%; }
+        html, body { background: #F4F4F2; overflow-x: hidden; width: 100%; }
         #root { width: 100%; }
         body, input, select, textarea, button, table { font-family: 'Inter', system-ui, sans-serif; }
         h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; font-weight: 700; }
         td, th { font-variant-numeric: tabular-nums; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #111; } ::-webkit-scrollbar-thumb { background: #c8a86b; }
-        input, select, textarea { background: #1a1a1a; border: 1px solid #333; color: #e8e0d0; padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 13px; width: 100%; outline: none; }
-        input:focus, select:focus { border-color: #c8a86b; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #F0F0EE; } ::-webkit-scrollbar-thumb { background: #A39159; }
+        input, select, textarea { background: #F8F8F6; border: 1px solid #D0D0CC; color: #2d2d2d; padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 13px; width: 100%; outline: none; }
+        input:focus, select:focus { border-color: #A39159; }
         button { cursor: pointer; font-family: inherit; }
         .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 500; }
       `}</style>
@@ -593,15 +593,15 @@ function KinKinApp() {
       <input ref={globalFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleGlobalImport} />
 
       {/* Header */}
-      <div style={{ background: "#111", borderBottom: "2px solid #c8a86b", padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, height: 56 }}>
+      <div style={{ background: "#1B3F60", borderBottom: "2px solid #A39159", padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, height: 56 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <img src="/logo.jpg" alt="KinKin Logo" style={{ height: 40, width: 40, objectFit: "contain" }} />
           {isMobile ? (
-            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#c8a86b", fontWeight: 800, letterSpacing: 0.5 }}>Kin Kin Trukindo</div>
+            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#FEFEFE", fontWeight: 800, letterSpacing: 0.5 }}>Kin Kin Trukindo</div>
           ) : (
-            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 1, lineHeight: 1.1, fontWeight: 800 }}>
+            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#FEFEFE", letterSpacing: 1, lineHeight: 1.1, fontWeight: 800 }}>
               <div>Kin Kin Trukindo, Ltd.</div>
-              <div style={{ fontSize: 10, color: "#6b8c6b", letterSpacing: 1.5, fontFamily: "'Inter', sans-serif", fontWeight: 500, marginTop: 2 }}>FREIGHT & LOGISTICS</div>
+              <div style={{ fontSize: 10, color: "#A39159", letterSpacing: 1.5, fontFamily: "'Inter', sans-serif", fontWeight: 500, marginTop: 2 }}>FREIGHT & LOGISTICS</div>
             </div>
           )}
         </div>
@@ -609,7 +609,7 @@ function KinKinApp() {
           <>
             <div style={{ flex: 1 }} />
             {TABS.map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? "#c8a86b" : "transparent", color: tab === t.key ? "#0d0d0d" : "#888", border: "none", padding: "6px 14px", borderRadius: 4, fontSize: 12, fontWeight: 500, transition: "all .15s" }}>
+              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: "transparent", color: tab === t.key ? "#FEFEFE" : "#A3915988", border: "none", borderBottom: tab === t.key ? "2px solid #A39159" : "2px solid transparent", padding: "6px 14px", fontSize: 12, fontWeight: tab === t.key ? 600 : 500, transition: "all .15s", height: 56, borderRadius: 0 }}>
                 {t.label}
               </button>
             ))}
@@ -623,19 +623,18 @@ function KinKinApp() {
             warning: "This cannot be undone.",
             onConfirm: async () => { await supabase.from("kinkin_state").delete().eq("key", STORE_KEY); window.location.reload(); },
           })}
-          style={{ background: "transparent", border: "1px solid #ef444433", color: "#ef444488", padding: "5px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer" }}
+          style={{ background: "transparent", border: "1px solid #FEFEFE44", color: "#FEFEFE88", padding: "5px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer" }}
           title="Clear all data"
         >
-          🗑 Reset
+          Reset
         </button>
       </div>
 
       {/* Mobile bottom navigation */}
       {isMobile && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", borderTop: "1px solid #c8a86b44", display: "flex", zIndex: 500 }}>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#1B3F60", borderTop: "1px solid #A39159", display: "flex", zIndex: 500 }}>
           {TABS.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", background: "transparent", border: "none", borderTop: tab === t.key ? "2px solid #c8a86b" : "2px solid transparent", color: tab === t.key ? "#c8a86b" : "#555", fontFamily: "inherit" }}>
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{t.label.split(" ")[0]}</span>
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", background: "transparent", border: "none", borderTop: tab === t.key ? "2px solid #A39159" : "2px solid transparent", color: tab === t.key ? "#A39159" : "#FEFEFE66", fontFamily: "inherit" }}>
               <span style={{ fontSize: 9, marginTop: 3, letterSpacing: 0.3, fontWeight: tab === t.key ? 600 : 400 }}>{t.short}</span>
             </button>
           ))}
@@ -644,41 +643,41 @@ function KinKinApp() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: "fixed", top: 70, right: 24, background: toast.type === "success" ? "#10b981" : "#ef4444", color: "#fff", padding: "10px 18px", borderRadius: 6, zIndex: 999, fontSize: 13 }}>
+        <div style={{ position: "fixed", top: 70, right: 24, background: toast.type === "success" ? "#4A643C" : "#c0392b", color: "#fff", padding: "10px 18px", borderRadius: 6, zIndex: 999, fontSize: 13, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
           {toast.msg}
         </div>
       )}
 
       {/* Upload Modal — 2-step flow: pick month/year → preview → confirm */}
       {uploadModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#0d0d0d", border: "1px solid #c8a86b", borderRadius: 10, padding: 24, maxWidth: 700, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "#FEFEFE", border: "1px solid #A39159", borderRadius: 10, padding: 24, maxWidth: 700, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 20 }}>
               <div>
-                <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700 }}>
-                  {uploadModal.previewReady ? "📋 Preview Import" : "📥 Import Monthly Report"}
+                <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700 }}>
+                  {uploadModal.previewReady ? "Preview Import" : "Import Monthly Report"}
                 </h3>
-                <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
-                  File: <span style={{ color: "#c8a86b" }}>{uploadModal.fileName}</span>
+                <div style={{ fontSize: 11, color: "#7C8B67", marginTop: 4 }}>
+                  File: <span style={{ color: "#A39159" }}>{uploadModal.fileName}</span>
                 </div>
               </div>
-              <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "#666", border: "1px solid #333", padding: "6px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
-                ✕ Cancel
+              <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "#7C8B67", border: "1px solid #E0E0DC", padding: "6px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+                Cancel
               </button>
             </div>
 
             {!uploadModal.previewReady ? (
               <>
                 {/* Step 1: Confirm month/year */}
-                <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 6, padding: 20, marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: "#c8a86b", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>📅 Which month is this report for?</div>
+                <div style={{ background: "#F4F4F2", border: "1px solid #E0E0DC", borderRadius: 6, padding: 20, marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: "#1B3F60", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Which month is this report for?</div>
                   <input
                     type="month"
                     value={uploadModal.monthYear}
                     onChange={(e) => setUploadModal({ ...uploadModal, monthYear: e.target.value })}
                     style={{ fontSize: 15, padding: "10px 14px" }}
                   />
-                  <div style={{ fontSize: 11, color: "#666", marginTop: 10, lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 11, color: "#7C8B67", marginTop: 10, lineHeight: 1.6 }}>
                     The system will use this period to:<br />
                     • Fill in dates for entries that don&apos;t have one<br />
                     • Date the additional expenses (PENGELUARAN TAMBAHAN)<br />
@@ -686,43 +685,43 @@ function KinKinApp() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #222" }}>
-                  <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "#888", border: "1px solid #333", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #E0E0DC" }}>
+                  <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "#7C8B67", border: "1px solid #E0E0DC", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                     Cancel
                   </button>
-                  <button onClick={proceedWithUpload} disabled={importing} style={{ background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: importing ? 0.5 : 1 }}>
-                    {importing ? "⏳ Parsing..." : "📋 Parse & Preview →"}
+                  <button onClick={proceedWithUpload} disabled={importing} style={{ background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: importing ? 0.5 : 1 }}>
+                    {importing ? "Parsing..." : "Parse & Preview"}
                   </button>
                 </div>
               </>
             ) : (
               <>
                 {/* Step 2: Preview parsed data */}
-                <div style={{ background: "#10b98115", border: "1px solid #10b98144", borderRadius: 6, padding: 16, marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: "#10b981", fontWeight: 600, marginBottom: 8 }}>✓ PARSED SUCCESSFULLY</div>
+                <div style={{ background: "#4A643C15", border: "1px solid #4A643C44", borderRadius: 6, padding: 16, marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: "#4A643C", fontWeight: 600, marginBottom: 8 }}>PARSED SUCCESSFULLY</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14 }}>
                     <div>
-                      <div style={{ fontSize: 10, color: "#666" }}>PERIOD</div>
-                      <div style={{ fontSize: 14, color: "#c8a86b", fontWeight: 600 }}>{uploadModal.monthYear}</div>
+                      <div style={{ fontSize: 10, color: "#7C8B67" }}>PERIOD</div>
+                      <div style={{ fontSize: 14, color: "#A39159", fontWeight: 600 }}>{uploadModal.monthYear}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#666" }}>FILE</div>
-                      <div style={{ fontSize: 12, color: "#888" }} title={uploadModal.fileName}>{uploadModal.fileName.length > 24 ? uploadModal.fileName.slice(0, 22) + "…" : uploadModal.fileName}</div>
+                      <div style={{ fontSize: 10, color: "#7C8B67" }}>FILE</div>
+                      <div style={{ fontSize: 12, color: "#555" }} title={uploadModal.fileName}>{uploadModal.fileName.length > 24 ? uploadModal.fileName.slice(0, 22) + "…" : uploadModal.fileName}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#666" }}>TRIPS FOUND</div>
-                      <div style={{ fontSize: 14, color: "#10b981", fontWeight: 600 }}>{uploadModal.parsed.trips.length}</div>
+                      <div style={{ fontSize: 10, color: "#7C8B67" }}>TRIPS FOUND</div>
+                      <div style={{ fontSize: 14, color: "#4A643C", fontWeight: 600 }}>{uploadModal.parsed.trips.length}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#666" }}>TOTAL INVOICED</div>
-                      <div style={{ fontSize: 14, color: "#10b981", fontWeight: 600 }}>{fmt(uploadModal.parsed.trips.reduce((s, t) => s + (Number(t.jual) || 0), 0))}</div>
+                      <div style={{ fontSize: 10, color: "#7C8B67" }}>TOTAL INVOICED</div>
+                      <div style={{ fontSize: 14, color: "#4A643C", fontWeight: 600 }}>{fmt(uploadModal.parsed.trips.reduce((s, t) => s + (Number(t.jual) || 0), 0))}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#666" }}>EXPENSES FOUND</div>
+                      <div style={{ fontSize: 10, color: "#7C8B67" }}>EXPENSES FOUND</div>
                       <div style={{ fontSize: 14, color: "#f59e0b", fontWeight: 600 }}>{uploadModal.parsed.expenses.length}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#666" }}>TOTAL EXPENSES</div>
+                      <div style={{ fontSize: 10, color: "#7C8B67" }}>TOTAL EXPENSES</div>
                       <div style={{ fontSize: 14, color: "#f59e0b", fontWeight: 600 }}>{fmt(uploadModal.parsed.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0))}</div>
                     </div>
                   </div>
@@ -731,13 +730,13 @@ function KinKinApp() {
                 {/* Trips preview — editable (functional state updates to avoid stale closure) */}
                 {uploadModal.parsed.trips.length > 0 && (
                   <details open style={{ marginBottom: 14 }}>
-                    <summary style={{ cursor: "pointer", color: "#10b981", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
-                      🚛 Trips ({uploadModal.parsed.trips.length}) — <span style={{ color: "#c8a86b", fontWeight: 400 }}>all fields editable below</span>
+                    <summary style={{ cursor: "pointer", color: "#4A643C", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
+                      Trips ({uploadModal.parsed.trips.length}) — <span style={{ color: "#A39159", fontWeight: 400 }}>all fields editable below</span>
                     </summary>
-                    <div style={{ background: "#161616", borderRadius: 4, maxHeight: 300, overflowY: "auto", marginTop: 6 }}>
+                    <div style={{ background: "#F4F4F2", borderRadius: 4, maxHeight: 300, overflowY: "auto", marginTop: 6 }}>
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
                         <thead>
-                          <tr style={{ color: "#555", background: "#1a1a1a", position: "sticky", top: 0 }}>
+                          <tr style={{ color: "#1B3F60", background: "#E0E0DC", position: "sticky", top: 0 }}>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>DATE</th>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>INV NO</th>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>DESTINATION</th>
@@ -749,7 +748,7 @@ function KinKinApp() {
                         </thead>
                         <tbody>
                           {uploadModal.parsed.trips.map((t, i) => {
-                            const iStyle = { padding: "4px 6px", background: "#0d0d0d", border: "1px solid #333", color: "#e8e0d0", fontSize: 11, fontFamily: "inherit", width: "100%", borderRadius: 3, outline: "none" };
+                            const iStyle = { padding: "4px 6px", background: "#F8F8F6", border: "1px solid #E0E0DC", color: "#2d2d2d", fontSize: 11, fontFamily: "inherit", width: "100%", borderRadius: 3, outline: "none" };
                             const updateTrip = (field, val) => {
                               setUploadModal((prev) => {
                                 const updated = prev.parsed.trips.map((trip, idx) => {
@@ -763,14 +762,14 @@ function KinKinApp() {
                               });
                             };
                             return (
-                              <tr key={i} style={{ borderBottom: "1px solid #222" }}>
+                              <tr key={i} style={{ borderBottom: "1px solid #E0E0DC" }}>
                                 <td style={{ padding: "4px 4px" }}><input type="date" value={t.date || ""} onChange={(e) => updateTrip("date", e.target.value)} style={iStyle} /></td>
                                 <td style={{ padding: "4px 4px" }}><input value={t.invNo || ""} placeholder="Inv #" onChange={(e) => updateTrip("invNo", e.target.value)} style={iStyle} /></td>
                                 <td style={{ padding: "4px 4px" }}><input value={t.destination || ""} onChange={(e) => updateTrip("destination", e.target.value)} style={iStyle} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.nopol || ""} onChange={(e) => updateTrip("nopol", e.target.value)} style={{ ...iStyle, color: "#c8a86b" }} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.contNo || ""} onChange={(e) => updateTrip("contNo", e.target.value)} style={{ ...iStyle, color: "#aaa" }} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.nopol || ""} onChange={(e) => updateTrip("nopol", e.target.value)} style={{ ...iStyle, color: "#A39159" }} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.contNo || ""} onChange={(e) => updateTrip("contNo", e.target.value)} style={{ ...iStyle, color: "#7C8B67" }} /></td>
                                 <td style={{ padding: "4px 4px" }}><input type="number" value={t.jual ?? ""} onChange={(e) => updateTrip("jual", e.target.value)} style={{ ...iStyle, textAlign: "right" }} /></td>
-                                <td style={{ padding: "4px 8px", textAlign: "right", color: (t.profit || 0) >= 0 ? "#10b981" : "#ef4444", whiteSpace: "nowrap" }}>{fmt(t.profit || 0)}</td>
+                                <td style={{ padding: "4px 8px", textAlign: "right", color: (t.profit || 0) >= 0 ? "#4A643C" : "#c0392b", whiteSpace: "nowrap" }}>{fmt(t.profit || 0)}</td>
                               </tr>
                             );
                           })}
@@ -784,12 +783,12 @@ function KinKinApp() {
                 {uploadModal.parsed.expenses.length > 0 && (
                   <details style={{ marginBottom: 14 }}>
                     <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
-                      💸 Additional Expenses ({uploadModal.parsed.expenses.length}) — <span style={{ color: "#c8a86b", fontWeight: 400 }}>all fields editable</span>
+                      Additional Expenses ({uploadModal.parsed.expenses.length}) — <span style={{ color: "#A39159", fontWeight: 400 }}>all fields editable</span>
                     </summary>
-                    <div style={{ background: "#161616", borderRadius: 4, maxHeight: 260, overflowY: "auto", marginTop: 6 }}>
+                    <div style={{ background: "#F4F4F2", borderRadius: 4, maxHeight: 260, overflowY: "auto", marginTop: 6 }}>
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
                         <thead>
-                          <tr style={{ color: "#555", background: "#1a1a1a", position: "sticky", top: 0 }}>
+                          <tr style={{ color: "#1B3F60", background: "#E0E0DC", position: "sticky", top: 0 }}>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>DESCRIPTION</th>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>CATEGORY</th>
                             <th style={{ textAlign: "right", padding: "6px 8px" }}>AMOUNT</th>
@@ -798,7 +797,7 @@ function KinKinApp() {
                         </thead>
                         <tbody>
                           {uploadModal.parsed.expenses.map((e, i) => {
-                            const iStyle = { padding: "4px 6px", background: "#0d0d0d", border: "1px solid #333", color: "#e8e0d0", fontSize: 11, fontFamily: "inherit", width: "100%", borderRadius: 3, outline: "none" };
+                            const iStyle = { padding: "4px 6px", background: "#F8F8F6", border: "1px solid #E0E0DC", color: "#2d2d2d", fontSize: 11, fontFamily: "inherit", width: "100%", borderRadius: 3, outline: "none" };
                             const updateExp = (field, val) => {
                               setUploadModal((prev) => {
                                 const updated = prev.parsed.expenses.map((exp, idx) => idx === i ? { ...exp, [field]: val } : exp);
@@ -812,15 +811,15 @@ function KinKinApp() {
                               }));
                             };
                             return (
-                              <tr key={i} style={{ borderBottom: "1px solid #222" }}>
+                              <tr key={i} style={{ borderBottom: "1px solid #E0E0DC" }}>
                                 <td style={{ padding: "4px 4px" }}><input value={e.description} onChange={(ev) => updateExp("description", ev.target.value)} style={iStyle} /></td>
                                 <td style={{ padding: "4px 4px" }}>
                                   <select value={e.category} onChange={(ev) => updateExp("category", ev.target.value)} style={{ ...iStyle, cursor: "pointer" }}>
                                     {["Fuel","Toll","Repair","Spare Parts","Garage","Salary","Office Rent","Utilities","Admin","Insurance","Marketing","Other"].map((c) => <option key={c}>{c}</option>)}
                                   </select>
                                 </td>
-                                <td style={{ padding: "4px 4px" }}><input type="number" value={e.amount} onChange={(ev) => updateExp("amount", Number(ev.target.value))} style={{ ...iStyle, textAlign: "right", color: "#ef4444" }} /></td>
-                                <td style={{ padding: "4px 4px", textAlign: "center" }}><button onClick={removeExp} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "2px 6px", borderRadius: 3, cursor: "pointer" }}>✕</button></td>
+                                <td style={{ padding: "4px 4px" }}><input type="number" value={e.amount} onChange={(ev) => updateExp("amount", Number(ev.target.value))} style={{ ...iStyle, textAlign: "right", color: "#c0392b" }} /></td>
+                                <td style={{ padding: "4px 4px", textAlign: "center" }}><button onClick={removeExp} style={{ background: "transparent", border: "1px solid #c0392b44", color: "#c0392b", fontSize: 11, padding: "2px 6px", borderRadius: 3, cursor: "pointer" }}>✕</button></td>
                               </tr>
                             );
                           })}
@@ -830,19 +829,19 @@ function KinKinApp() {
                   </details>
                 )}
 
-                <div style={{ background: "#1a1a2e", border: "1px solid #3b82f644", borderRadius: 4, padding: 12, fontSize: 11, color: "#aab", marginBottom: 14 }}>
-                  💡 This import will be saved as a log entry. You can delete the whole batch later if uploaded wrongly — from the Dashboard → Import History.
+                <div style={{ background: "#E8EFF8", border: "1px solid #1B3F6044", borderRadius: 4, padding: 12, fontSize: 11, color: "#1B3F60", marginBottom: 14 }}>
+                  This import will be saved as a log entry. You can delete the whole batch later if uploaded wrongly — from the Dashboard → Import History.
                 </div>
 
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #222" }}>
-                  <button onClick={() => setUploadModal({ ...uploadModal, previewReady: false, parsed: null })} style={{ background: "transparent", color: "#888", border: "1px solid #333", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
-                    ← Back
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #E0E0DC" }}>
+                  <button onClick={() => setUploadModal({ ...uploadModal, previewReady: false, parsed: null })} style={{ background: "transparent", color: "#7C8B67", border: "1px solid #E0E0DC", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+                    Back
                   </button>
-                  <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "#888", border: "1px solid #333", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+                  <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "#7C8B67", border: "1px solid #E0E0DC", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                     Cancel
                   </button>
-                  <button onClick={confirmGlobalImport} style={{ background: "#10b981", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                    ✓ Confirm Import ({uploadModal.parsed.trips.length + uploadModal.parsed.expenses.length} entries)
+                  <button onClick={confirmGlobalImport} style={{ background: "#4A643C", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    Confirm Import ({uploadModal.parsed.trips.length + uploadModal.parsed.expenses.length} entries)
                   </button>
                 </div>
               </>
@@ -853,30 +852,30 @@ function KinKinApp() {
 
       {/* Confirmation Modal — replaces window.confirm */}
       {confirmModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#0d0d0d", border: "1px solid #ef4444", borderRadius: 10, padding: 24, maxWidth: 480, width: "100%" }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#ef4444", fontWeight: 700, marginBottom: 12 }}>
-              ⚠️ {confirmModal.title}
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.75)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "#FEFEFE", border: "1px solid #c0392b", borderRadius: 10, padding: 24, maxWidth: 480, width: "100%", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#c0392b", fontWeight: 700, marginBottom: 12 }}>
+              {confirmModal.title}
             </h3>
-            <p style={{ fontSize: 13, color: "#bbb", marginBottom: 14, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 13, color: "#555", marginBottom: 14, lineHeight: 1.5 }}>
               {confirmModal.message}
             </p>
             {confirmModal.details && (
-              <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 4, padding: 12, marginBottom: 14, fontSize: 12, color: "#888", whiteSpace: "pre-line", fontFamily: "monospace" }}>
+              <div style={{ background: "#F4F4F2", border: "1px solid #E0E0DC", borderRadius: 4, padding: 12, marginBottom: 14, fontSize: 12, color: "#7C8B67", whiteSpace: "pre-line", fontFamily: "monospace" }}>
                 {confirmModal.details}
               </div>
             )}
             {confirmModal.warning && (
-              <div style={{ color: "#ef4444", fontSize: 12, fontWeight: 600, marginBottom: 16 }}>
+              <div style={{ color: "#c0392b", fontSize: 12, fontWeight: 600, marginBottom: 16 }}>
                 {confirmModal.warning}
               </div>
             )}
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmModal(null)} style={{ background: "transparent", color: "#888", border: "1px solid #333", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => setConfirmModal(null)} style={{ background: "transparent", color: "#7C8B67", border: "1px solid #E0E0DC", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                 Cancel
               </button>
-              <button onClick={confirmModal.onConfirm} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                🗑 Yes, Delete
+              <button onClick={confirmModal.onConfirm} style={{ background: "#c0392b", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                Yes, Delete
               </button>
             </div>
           </div>
@@ -924,43 +923,43 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       {kpiPopup && <div onClick={() => setKpiPopup(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 199 }} />}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700 }}>DASHBOARD OVERVIEW</h2>
+        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700 }}>DASHBOARD OVERVIEW</h2>
         <button
           onClick={() => globalFileRef.current.click()}
-          style={{ background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 22px", borderRadius: 6, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 2px 8px rgba(200,168,107,0.25)", cursor: "pointer" }}
+          style={{ background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 22px", borderRadius: 6, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 2px 8px rgba(200,168,107,0.25)", cursor: "pointer" }}
           title="Upload your employee's monthly Excel report"
         >
-          {importing ? "⏳ Importing..." : "📥 Import Excel Sheet"}
+          {importing ? "Importing..." : "Import Excel Sheet"}
         </button>
       </div>
 
       {/* Welcome empty-state */}
       {trips.length === 0 && expenses.length === 0 && (
-        <div style={{ background: "linear-gradient(135deg, #c8a86b15, #1a1a1a)", border: "1px solid #c8a86b44", borderRadius: 10, padding: 28, marginBottom: 24, textAlign: "center" }}>
+        <div style={{ background: "linear-gradient(135deg, #A3915915, #F0F0EE)", border: "1px solid #A3915944", borderRadius: 10, padding: 28, marginBottom: 24, textAlign: "center" }}>
           <div style={{ fontSize: 36, marginBottom: 10 }}>📊</div>
-          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#c8a86b", fontWeight: 700, marginBottom: 8 }}>Welcome — Let's get started</div>
-          <div style={{ fontSize: 12, color: "#888", marginBottom: 18, maxWidth: 520, margin: "0 auto 18px" }}>
+          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#A39159", fontWeight: 700, marginBottom: 8 }}>Welcome — Let's get started</div>
+          <div style={{ fontSize: 12, color: "#7C8B67", marginBottom: 18, maxWidth: 520, margin: "0 auto 18px" }}>
             Upload your employee&apos;s monthly Excel report to instantly populate trips, or add entries manually from the tabs above.
           </div>
           <button
             onClick={() => globalFileRef.current.click()}
-            style={{ background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "12px 32px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+            style={{ background: "#A39159", color: "#FEFEFE", border: "none", padding: "12px 32px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
           >
-            {importing ? "⏳ Importing..." : "📥 Upload Excel Sheet"}
+            {importing ? "Importing..." : "Upload Excel Sheet"}
           </button>
         </div>
       )}
 
       {/* Import History */}
       {importLogs && importLogs.length > 0 && (
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 24 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 13, color: "#c8a86b", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700 }}>📜 Import History</h3>
-            <span style={{ fontSize: 11, color: "#666" }}>{importLogs.length} import{importLogs.length !== 1 ? "s" : ""}</span>
+            <h3 style={{ fontSize: 13, color: "#A39159", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700 }}>Import History</h3>
+            <span style={{ fontSize: 11, color: "#555" }}>{importLogs.length} import{importLogs.length !== 1 ? "s" : ""}</span>
           </div>
           <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+              <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
                 <th style={{ textAlign: "left", padding: "6px 8px" }}>IMPORTED AT</th>
                 <th style={{ textAlign: "left", padding: "6px 8px" }}>PERIOD</th>
                 <th style={{ textAlign: "left", padding: "6px 8px" }}>FILE</th>
@@ -972,17 +971,17 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             </thead>
             <tbody>
               {importLogs.map((log) => (
-                <tr key={log.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                  <td style={{ padding: "8px 8px", color: "#888", fontSize: 11 }}>
+                <tr key={log.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                  <td style={{ padding: "8px 8px", color: "#7C8B67", fontSize: 11 }}>
                     {new Date(log.importedAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
                   </td>
-                  <td style={{ padding: "8px 8px", color: "#c8a86b", fontWeight: 600 }}>{log.monthYear}</td>
-                  <td style={{ padding: "8px 8px", color: "#888", fontSize: 11 }} title={log.fileName}>
+                  <td style={{ padding: "8px 8px", color: "#A39159", fontWeight: 600 }}>{log.monthYear}</td>
+                  <td style={{ padding: "8px 8px", color: "#7C8B67", fontSize: 11 }} title={log.fileName}>
                     {log.fileName.length > 30 ? log.fileName.slice(0, 27) + "..." : log.fileName}
                   </td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#10b981" }}>{log.summary.tripCount}</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{log.summary.tripCount}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right", color: "#f59e0b" }}>{log.summary.expenseCount}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#10b981" }}>{fmt(log.summary.totalRevenue)}</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{fmt(log.summary.totalRevenue)}</td>
                   <td style={{ padding: "8px 8px", textAlign: "center" }}>
                     <button
                       onClick={() => undoImport(log.id)}
@@ -1003,7 +1002,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 28 }}>
         {[
           {
-            label: "Total Revenue (Invoiced)", value: fmt(totalRevenue), color: "#10b981", icon: "💰",
+            label: "Total Revenue (Invoiced)", value: fmt(totalRevenue), color: "#4A643C", icon: "💰",
             breakdown: trips.length === 0 ? [["No trips yet", ""]] : [
               ...trips.slice().sort((a,b) => b.jual - a.jual).map((t) => [`${t.date} · ${t.destination}`, fmt(t.jual)]),
               ["─────────", ""],
@@ -1037,7 +1036,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             })(),
           },
           {
-            label: "Net Profit", value: fmt(netProfit), color: netProfit >= 0 ? "#10b981" : "#ef4444", icon: "📊",
+            label: "Net Profit", value: fmt(netProfit), color: netProfit >= 0 ? "#4A643C" : "#ef4444", icon: "📊",
             breakdown: [
               ["Revenue", fmt(totalRevenue)],
               ["− Trip costs (COGS)", fmt(-tripCosts)],
@@ -1050,7 +1049,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             ],
           },
           {
-            label: "Cash Balance", value: fmt(kasBalance), color: "#c8a86b", icon: "🏦",
+            label: "Cash Balance", value: fmt(kasBalance), color: "#A39159", icon: "🏦",
             breakdown: (() => {
               const totalIn = kas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0);
               const totalOut = kas.filter((k) => k.type === "out").reduce((s, k) => s + k.amount, 0);
@@ -1066,21 +1065,21 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
           <div
             key={k.label}
             onClick={(e) => { e.stopPropagation(); setKpiPopup(kpiPopup === k.label ? null : k.label); }}
-            style={{ background: "#161616", border: `1px solid ${kpiPopup === k.label ? k.color + "88" : "#222"}`, borderRadius: 8, padding: "18px 20px", cursor: "pointer", transition: "border-color .15s", position: "relative" }}
+            style={{ background: "#FEFEFE", border: `1px solid ${kpiPopup === k.label ? k.color + "88" : "#E0E0DC"}`, borderRadius: 8, padding: "18px 20px", cursor: "pointer", transition: "border-color .15s", position: "relative" }}
             title="Click to see breakdown"
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
               <div style={{ fontSize: 20 }}>{k.icon}</div>
               <div style={{ fontSize: 10, color: kpiPopup === k.label ? k.color : "#555" }}>{kpiPopup === k.label ? "▲" : "▼"}</div>
             </div>
-            <div style={{ fontSize: 11, color: "#666", marginBottom: 4, marginTop: 6, textTransform: "uppercase", letterSpacing: 1 }}>{k.label}</div>
+            <div style={{ fontSize: 11, color: "#555", marginBottom: 4, marginTop: 6, textTransform: "uppercase", letterSpacing: 1 }}>{k.label}</div>
             <div style={{ fontSize: 18, fontWeight: 500, color: k.color }}>{k.value}</div>
 
             {/* Breakdown popup */}
             {kpiPopup === k.label && (
               <div
                 onClick={(e) => e.stopPropagation()}
-                style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#111", border: `1px solid ${k.color}66`, borderRadius: 8, padding: "14px 16px", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.7)" }}
+                style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, background: "#1B3F60", border: `1px solid ${k.color}66`, borderRadius: 8, padding: "14px 16px", minWidth: 280, boxShadow: "0 8px 32px rgba(0,0,0,0.7)" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <div style={{ fontSize: 11, color: k.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{k.icon} {k.label}</div>
@@ -1090,8 +1089,8 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
                   <div key={i} style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                     padding: "4px 0",
-                    borderBottom: label === "─────────" ? "1px solid #222" : "none",
-                    color: (label.startsWith("TOTAL") || label.startsWith("NET") || label.startsWith("=") || label.startsWith("BALANCE")) ? k.color : "#aaa",
+                    borderBottom: label === "─────────" ? "1px solid #E0E0DC" : "none",
+                    color: (label.startsWith("TOTAL") || label.startsWith("NET") || label.startsWith("=") || label.startsWith("BALANCE")) ? k.color : "#7C8B67",
                     fontWeight: (label.startsWith("TOTAL") || label.startsWith("NET") || label.startsWith("=") || label.startsWith("BALANCE")) ? 700 : 400,
                     fontSize: (label.startsWith("TOTAL") || label.startsWith("NET") || label.startsWith("BALANCE")) ? 13 : 12,
                   }}>
@@ -1106,11 +1105,11 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
 
       {/* Truck Performance Table */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
-          <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Truck Performance</h3>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
+          <h3 style={{ fontSize: 13, color: "#A39159", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Truck Performance</h3>
           <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+              <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
                 <th style={{ textAlign: "left", padding: "6px 0" }}>PLATE</th>
                 <th style={{ textAlign: "right", padding: "6px 0" }}>TRIPS</th>
                 <th style={{ textAlign: "right", padding: "6px 0" }}>REVENUE</th>
@@ -1119,29 +1118,29 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             </thead>
             <tbody>
               {truckStats.map((t) => (
-                <tr key={t.nopol} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                  <td style={{ padding: "8px 0", color: "#c8a86b", fontWeight: 500 }}>{t.nopol}</td>
+                <tr key={t.nopol} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                  <td style={{ padding: "8px 0", color: "#A39159", fontWeight: 500 }}>{t.nopol}</td>
                   <td style={{ textAlign: "right", padding: "8px 0" }}>{t.trips}</td>
                   <td style={{ textAlign: "right", padding: "8px 0" }}>{fmt(t.revenue)}</td>
-                  <td style={{ textAlign: "right", padding: "8px 0", color: t.profit >= 0 ? "#10b981" : "#ef4444" }}>{fmt(t.profit)}</td>
+                  <td style={{ textAlign: "right", padding: "8px 0", color: t.profit >= 0 ? "#4A643C" : "#ef4444" }}>{fmt(t.profit)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
-          <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Expense Breakdown</h3>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
+          <h3 style={{ fontSize: 13, color: "#A39159", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Expense Breakdown</h3>
           {Object.entries(expByCategory).map(([cat, amt]) => {
             const pct = totalExpenses > 0 ? (amt / totalExpenses) * 100 : 0;
             return (
               <div key={cat} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                  <span style={{ color: CAT_COLOR[cat] || "#888" }}>{cat}</span>
+                  <span style={{ color: CAT_COLOR[cat] || "#7C8B67" }}>{cat}</span>
                   <span>{fmt(amt)}</span>
                 </div>
-                <div style={{ background: "#222", borderRadius: 2, height: 4 }}>
-                  <div style={{ width: `${pct}%`, background: CAT_COLOR[cat] || "#888", height: 4, borderRadius: 2, transition: "width .5s" }} />
+                <div style={{ background: "#E8E8E4", borderRadius: 2, height: 4 }}>
+                  <div style={{ width: `${pct}%`, background: CAT_COLOR[cat] || "#7C8B67", height: 4, borderRadius: 2, transition: "width .5s" }} />
                 </div>
               </div>
             );
@@ -1151,25 +1150,25 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
 
       {/* Financing Summary */}
       {(totalCapitalInjected > 0 || totalAssetsValue > 0) && (
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginTop: 20 }}>
-          <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>💰 Capital & Fleet Position</h3>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginTop: 20 }}>
+          <h3 style={{ fontSize: 13, color: "#A39159", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Capital & Fleet Position</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-            <div><div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>OWNER CAPITAL</div><div style={{ fontSize: 15, color: "#10b981" }}>{fmt(totalCapitalInjected)}</div></div>
+            <div><div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>OWNER CAPITAL</div><div style={{ fontSize: 15, color: "#4A643C" }}>{fmt(totalCapitalInjected)}</div></div>
             
-            <div><div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>LOAN PRINCIPAL REMAINING</div><div style={{ fontSize: 15, color: "#ef4444" }}>{fmt(totalLoanPrincipalRemaining)}</div></div>
-            <div><div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL ASSETS</div><div style={{ fontSize: 15, color: "#c8a86b" }}>{fmt(totalAssetsValue)}</div></div>
-            <div><div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>ACTIVE LOANS</div><div style={{ fontSize: 15, color: "#a78bfa" }}>{loans.filter((l) => { const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0); return paid < l.principal; }).length} / {loans.length}</div></div>
+            <div><div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>LOAN PRINCIPAL REMAINING</div><div style={{ fontSize: 15, color: "#ef4444" }}>{fmt(totalLoanPrincipalRemaining)}</div></div>
+            <div><div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL ASSETS</div><div style={{ fontSize: 15, color: "#A39159" }}>{fmt(totalAssetsValue)}</div></div>
+            <div><div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>ACTIVE LOANS</div><div style={{ fontSize: 15, color: "#a78bfa" }}>{loans.filter((l) => { const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0); return paid < l.principal; }).length} / {loans.length}</div></div>
           </div>
         </div>
       )}
 
       {/* Recent Trips */}
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginTop: 20 }}>
-        <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Recent Trips</h3>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginTop: 20 }}>
+        <h3 style={{ fontSize: 13, color: "#A39159", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Recent Trips</h3>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 560 }}>
           <thead>
-            <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+            <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
               {["DATE", "DESTINATION", "PLATE", "CONTAINER", "TOTAL COST", "INVOICE", "PROFIT"].map((h) => (
                 <th key={h} style={{ textAlign: h === "DATE" || h === "DESTINATION" || h === "PLATE" || h === "CONTAINER" ? "left" : "right", padding: "6px 8px" }}>{h}</th>
               ))}
@@ -1177,14 +1176,14 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
           </thead>
           <tbody>
             {trips.slice(-6).reverse().map((t) => (
-              <tr key={t.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+              <tr key={t.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                 <td style={{ padding: "8px 8px" }}>{t.date}</td>
-                <td style={{ padding: "8px 8px", color: "#e8e0d0" }}>{t.destination}</td>
-                <td style={{ padding: "8px 8px", color: "#c8a86b" }}>{t.nopol}</td>
-                <td style={{ padding: "8px 8px", color: "#666" }}>{t.contNo}</td>
+                <td style={{ padding: "8px 8px", color: "#2d2d2d" }}>{t.destination}</td>
+                <td style={{ padding: "8px 8px", color: "#A39159" }}>{t.nopol}</td>
+                <td style={{ padding: "8px 8px", color: "#555" }}>{t.contNo}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmt(t.total)}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmt(t.jual)}</td>
-                <td style={{ padding: "8px 8px", textAlign: "right", color: "#10b981" }}>{fmt(t.profit)}</td>
+                <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{fmt(t.profit)}</td>
               </tr>
             ))}
           </tbody>
@@ -1256,11 +1255,11 @@ function Trips({ trips, setTrips, showToast }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700 }}>TRIPS</h2>
-        <div style={{ fontSize: 11, color: "#666" }}>💡 Use <strong style={{ color: "#c8a86b" }}>📥 Import Excel</strong> at the top to upload your monthly sheet</div>
+        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700 }}>TRIPS</h2>
+        <div style={{ fontSize: 11, color: "#555" }}>Tip: Use <strong style={{ color: "#A39159" }}>Import Excel</strong> at the top to upload your monthly sheet</div>
       </div>
       {/* Add Trip Form */}
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Add New Trip</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DATE</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
@@ -1273,27 +1272,27 @@ function Trips({ trips, setTrips, showToast }) {
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>MISC AMOUNT</label><input type="number" placeholder="5000" value={form.lainAmt} onChange={(e) => setForm({ ...form, lainAmt: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>INVOICE AMOUNT *</label><input type="number" placeholder="1050000" value={form.jual} onChange={(e) => setForm({ ...form, jual: e.target.value })} /></div>
         </div>
-        <div style={{ display: "flex", gap: 20, marginTop: 14, fontSize: 12, color: "#666" }}>
-          <span>Total Cost: <strong style={{ color: "#e8e0d0" }}>{fmt(total)}</strong></span>
-          <span>Profit: <strong style={{ color: profit >= 0 ? "#10b981" : "#ef4444" }}>{fmt(profit)}</strong></span>
+        <div style={{ display: "flex", gap: 20, marginTop: 14, fontSize: 12, color: "#555" }}>
+          <span>Total Cost: <strong style={{ color: "#2d2d2d" }}>{fmt(total)}</strong></span>
+          <span>Profit: <strong style={{ color: profit >= 0 ? "#4A643C" : "#ef4444" }}>{fmt(profit)}</strong></span>
         </div>
-        <button onClick={addTrip} style={{ marginTop: 14, background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13 }}>
+        <button onClick={addTrip} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13 }}>
           + Add Trip
         </button>
       </div>
 
       {/* Trips Table */}
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, overflowX: "auto" }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, overflowX: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
           <div>
             <h3 style={{ fontSize: 12, color: "#555", textTransform: "uppercase", letterSpacing: 1 }}>All Trips ({trips.length})</h3>
-            <div style={{ fontSize: 10, color: "#444", marginTop: 2 }}>Duplicates detected by Container # — re-uploads safe</div>
+            <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>Duplicates detected by Container # — re-uploads safe</div>
           </div>
-          <span style={{ fontSize: 12, color: "#666" }}>Total Profit: <span style={{ color: "#10b981" }}>{fmt(trips.reduce((s, t) => s + t.profit, 0))}</span></span>
+          <span style={{ fontSize: 12, color: "#555" }}>Total Profit: <span style={{ color: "#4A643C" }}>{fmt(trips.reduce((s, t) => s + t.profit, 0))}</span></span>
         </div>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 800 }}>
           <thead>
-            <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+            <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
               {["DATE", "INV NO", "DESTINATION", "PLATE", "CONTAINER", "DRIVER ALLOW.", "MISC", "TOTAL", "INVOICED", "PROFIT", ""].map((h) => (
                 <th key={h} style={{ textAlign: ["DRIVER ALLOW.", "MISC", "TOTAL", "INVOICED", "PROFIT"].includes(h) ? "right" : "left", padding: "6px 8px", whiteSpace: "nowrap" }}>{h}</th>
               ))}
@@ -1305,46 +1304,46 @@ function Trips({ trips, setTrips, showToast }) {
               if (isEditing) {
                 const editTotal = (Number(editForm.sangu) || 0) + (Number(editForm.lainAmt) || 0);
                 const editProfit = (Number(editForm.jual) || 0) - editTotal;
-                const inputStyle = { width: "100%", padding: "4px 6px", fontSize: 11, background: "#0d0d0d", border: "1px solid #c8a86b66", borderRadius: 3, color: "#e8e0d0" };
+                const inputStyle = { width: "100%", padding: "4px 6px", fontSize: 11, background: "#F8F8F6", border: "1px solid #A3915966", borderRadius: 3, color: "#2d2d2d" };
                 return (
-                  <tr key={t.id} style={{ borderBottom: "1px solid #1a1a1a", background: "#0d0d1a" }}>
+                  <tr key={t.id} style={{ borderBottom: "1px solid #E8E8E4", background: "#F0F4F8" }}>
                     <td style={{ padding: "6px 6px" }}><input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} style={inputStyle} /></td>
                     <td style={{ padding: "6px 6px" }}><input placeholder="Inv #" value={editForm.invNo} onChange={(e) => setEditForm({ ...editForm, invNo: e.target.value })} style={inputStyle} /></td>
                     <td style={{ padding: "6px 6px" }}><input placeholder="Destination" value={editForm.destination} onChange={(e) => setEditForm({ ...editForm, destination: e.target.value })} style={inputStyle} /></td>
-                    <td style={{ padding: "6px 6px" }}><input placeholder="Plate" value={editForm.nopol} onChange={(e) => setEditForm({ ...editForm, nopol: e.target.value })} style={{ ...inputStyle, color: "#c8a86b" }} /></td>
+                    <td style={{ padding: "6px 6px" }}><input placeholder="Plate" value={editForm.nopol} onChange={(e) => setEditForm({ ...editForm, nopol: e.target.value })} style={{ ...inputStyle, color: "#A39159" }} /></td>
                     <td style={{ padding: "6px 6px" }}><input placeholder="Container" value={editForm.contNo} onChange={(e) => setEditForm({ ...editForm, contNo: e.target.value })} style={inputStyle} /></td>
                     <td style={{ padding: "6px 6px" }}><input type="number" value={editForm.sangu} onChange={(e) => setEditForm({ ...editForm, sangu: e.target.value })} style={{ ...inputStyle, textAlign: "right" }} /></td>
                     <td style={{ padding: "6px 6px" }}>
                       <input placeholder="Label" value={editForm.lainLabel} onChange={(e) => setEditForm({ ...editForm, lainLabel: e.target.value })} style={{ ...inputStyle, marginBottom: 2 }} />
                       <input type="number" placeholder="Amount" value={editForm.lainAmt} onChange={(e) => setEditForm({ ...editForm, lainAmt: e.target.value })} style={{ ...inputStyle, textAlign: "right" }} />
                     </td>
-                    <td style={{ padding: "6px 6px", textAlign: "right", color: "#888", fontSize: 11 }}>{fmt(editTotal)}</td>
+                    <td style={{ padding: "6px 6px", textAlign: "right", color: "#7C8B67", fontSize: 11 }}>{fmt(editTotal)}</td>
                     <td style={{ padding: "6px 6px" }}><input type="number" value={editForm.jual} onChange={(e) => setEditForm({ ...editForm, jual: e.target.value })} style={{ ...inputStyle, textAlign: "right" }} /></td>
-                    <td style={{ padding: "6px 6px", textAlign: "right", color: editProfit >= 0 ? "#10b981" : "#ef4444", fontSize: 11 }}>{fmt(editProfit)}</td>
+                    <td style={{ padding: "6px 6px", textAlign: "right", color: editProfit >= 0 ? "#4A643C" : "#ef4444", fontSize: 11 }}>{fmt(editProfit)}</td>
                     <td style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>
-                      <button onClick={() => saveEdit(t.id)} style={{ background: "#10b981", border: "none", color: "#fff", fontSize: 11, padding: "4px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer", fontWeight: 600 }} title="Save">✓</button>
-                      <button onClick={cancelEdit} style={{ background: "transparent", border: "1px solid #444", color: "#888", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Cancel">✕</button>
+                      <button onClick={() => saveEdit(t.id)} style={{ background: "#4A643C", border: "none", color: "#fff", fontSize: 11, padding: "4px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer", fontWeight: 600 }} title="Save">✓</button>
+                      <button onClick={cancelEdit} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Cancel">✕</button>
                     </td>
                   </tr>
                 );
               }
               return (
-                <tr key={t.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                <tr key={t.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                   <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>{t.date}</td>
-                  <td style={{ padding: "8px 8px", color: t.invNo ? "#888" : "#444", fontSize: 11, fontStyle: t.invNo ? "normal" : "italic" }}>{t.invNo || "—"}</td>
+                  <td style={{ padding: "8px 8px", color: t.invNo ? "#7C8B67" : "#999", fontSize: 11, fontStyle: t.invNo ? "normal" : "italic" }}>{t.invNo || "—"}</td>
                   <td style={{ padding: "8px 8px" }}>{t.destination}</td>
-                  <td style={{ padding: "8px 8px", color: "#c8a86b" }}>{t.nopol}</td>
+                  <td style={{ padding: "8px 8px", color: "#A39159" }}>{t.nopol}</td>
                   <td style={{ padding: "8px 8px", color: "#555", fontSize: 11 }}>{t.contNo}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmt(t.sangu)}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right" }}>
-                    {t.lainLabel && <span style={{ color: "#666", marginRight: 4, fontSize: 10 }}>{t.lainLabel}:</span>}
+                    {t.lainLabel && <span style={{ color: "#555", marginRight: 4, fontSize: 10 }}>{t.lainLabel}:</span>}
                     {fmt(t.lainAmt)}
                   </td>
                   <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmt(t.total)}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmt(t.jual)}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", color: t.profit >= 0 ? "#10b981" : "#ef4444" }}>{fmt(t.profit)}</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", color: t.profit >= 0 ? "#4A643C" : "#ef4444" }}>{fmt(t.profit)}</td>
                   <td style={{ padding: "8px 4px", whiteSpace: "nowrap" }}>
-                    <button onClick={() => startEdit(t)} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
+                    <button onClick={() => startEdit(t)} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
                     <button onClick={() => deleteTrip(t.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
                   </td>
                 </tr>
@@ -1524,13 +1523,13 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>EXPENSES</h2>
+      <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>EXPENSES</h2>
 
       {/* Date Range Filter */}
-      <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ fontSize: 12, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>📅 Period Filter</div>
-          <div style={{ fontSize: 11, color: "#888" }}>{periodLabel} · {dateFiltered.length} entries</div>
+          <div style={{ fontSize: 12, color: "#A39159", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Period Filter</div>
+          <div style={{ fontSize: 11, color: "#7C8B67" }}>{periodLabel} · {dateFiltered.length} entries</div>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
           {[
@@ -1541,9 +1540,9 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
             { key: "custom", label: "Custom" },
           ].map((p) => (
             <button key={p.key} onClick={() => applyDatePreset(p.key)} style={{
-              background: datePreset === p.key ? "#c8a86b" : "#1a1a1a",
-              color: datePreset === p.key ? "#0d0d0d" : "#888",
-              border: `1px solid ${datePreset === p.key ? "#c8a86b" : "#333"}`,
+              background: datePreset === p.key ? "#A39159" : "#F8F8F6",
+              color: datePreset === p.key ? "#FEFEFE" : "#7C8B67",
+              border: `1px solid ${datePreset === p.key ? "#A39159" : "#D0D0CC"}`,
               padding: "5px 10px", borderRadius: 3, fontSize: 11, fontWeight: 600, cursor: "pointer"
             }}>
               {p.label}
@@ -1557,19 +1556,19 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 20 }}>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 18 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>🚛 TRUCK / OPERATIONAL</div>
           <div style={{ fontSize: 18, color: "#f59e0b" }}>{fmt(truckTotal)}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 18 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>🏢 OVERHEAD</div>
           <div style={{ fontSize: 18, color: "#ec4899" }}>{fmt(overheadTotal)}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 18 }}>
-          <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>👛 PETTY CASH TOP-UPS</div>
-          <div style={{ fontSize: 18, color: "#c8a86b" }}>{fmt(dateFiltered.filter(e => e.expenseType === "petty").reduce((s, e) => s + e.amount, 0))}</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 18 }}>
+          <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>PETTY CASH TOP-UPS</div>
+          <div style={{ fontSize: 18, color: "#A39159" }}>{fmt(dateFiltered.filter(e => e.expenseType === "petty").reduce((s, e) => s + e.amount, 0))}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #ef444444", borderRadius: 8, padding: 18 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #ef444444", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>TOTAL EXPENSES</div>
           <div style={{ fontSize: 18, color: "#ef4444", fontWeight: 600 }}>{fmt(grandTotal)}</div>
         </div>
@@ -1577,8 +1576,8 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
       {/* Pie Chart + Breakdown */}
       {grandTotal > 0 && (
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
-          <h3 style={{ fontSize: 12, color: "#c8a86b", marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>📊 Expense Breakdown by Category</h3>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 12, color: "#A39159", marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Expense Breakdown by Category</h3>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "240px 1fr", gap: 30, alignItems: "center" }}>
             {/* Pie chart */}
             <div style={{ display: "flex", justifyContent: "center" }}>
@@ -1591,7 +1590,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                       key={i}
                       d={arcPath(slice.startAngle, slice.endAngle)}
                       fill={slice.color}
-                      stroke="#0d0d0d"
+                      stroke="#FEFEFE"
                       strokeWidth="1.5"
                     >
                       <title>{slice.category}: {fmt(slice.amount)} ({(slice.pct * 100).toFixed(1)}%)</title>
@@ -1599,9 +1598,9 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                   ))
                 )}
                 {/* Donut hole */}
-                <circle cx="100" cy="100" r="38" fill="#161616" />
-                <text x="100" y="95" textAnchor="middle" fontSize="9" fill="#666" fontFamily="Inter">TOTAL</text>
-                <text x="100" y="110" textAnchor="middle" fontSize="11" fill="#c8a86b" fontWeight="600" fontFamily="Inter">
+                <circle cx="100" cy="100" r="38" fill="#FEFEFE" />
+                <text x="100" y="95" textAnchor="middle" fontSize="9" fill="#7C8B67" fontFamily="Inter">TOTAL</text>
+                <text x="100" y="110" textAnchor="middle" fontSize="11" fill="#A39159" fontWeight="600" fontFamily="Inter">
                   {grandTotal >= 1000000 ? `${(grandTotal / 1000000).toFixed(1)}M` : `${(grandTotal / 1000).toFixed(0)}K`}
                 </text>
               </svg>
@@ -1617,10 +1616,10 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                     <div style={{ width: 14, height: 14, background: color, borderRadius: 2, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                        <span style={{ color: "#ddd" }}>{cat}</span>
-                        <span style={{ color, fontWeight: 600 }}>{fmt(amt)} <span style={{ color: "#666", fontWeight: 400 }}>({pct.toFixed(1)}%)</span></span>
+                        <span style={{ color: "#2d2d2d" }}>{cat}</span>
+                        <span style={{ color, fontWeight: 600 }}>{fmt(amt)} <span style={{ color: "#555", fontWeight: 400 }}>({pct.toFixed(1)}%)</span></span>
                       </div>
-                      <div style={{ background: "#222", height: 4, borderRadius: 2 }}>
+                      <div style={{ background: "#E8E8E4", height: 4, borderRadius: 2 }}>
                         <div style={{ width: `${pct}%`, background: color, height: 4, borderRadius: 2, transition: "width .4s" }} />
                       </div>
                     </div>
@@ -1634,18 +1633,18 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
       {/* Type toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <button onClick={() => switchType("truck")} style={{ background: expenseType === "truck" ? "#f59e0b" : "#1a1a1a", color: expenseType === "truck" ? "#0d0d0d" : "#888", border: `1px solid ${expenseType === "truck" ? "#f59e0b" : "#333"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => switchType("truck")} style={{ background: expenseType === "truck" ? "#f59e0b" : "#F8F8F6", color: expenseType === "truck" ? "#FEFEFE" : "#7C8B67", border: `1px solid ${expenseType === "truck" ? "#f59e0b" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           🚛 Truck Expense
         </button>
-        <button onClick={() => switchType("overhead")} style={{ background: expenseType === "overhead" ? "#ec4899" : "#1a1a1a", color: expenseType === "overhead" ? "#fff" : "#888", border: `1px solid ${expenseType === "overhead" ? "#ec4899" : "#333"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => switchType("overhead")} style={{ background: expenseType === "overhead" ? "#ec4899" : "#F8F8F6", color: expenseType === "overhead" ? "#fff" : "#7C8B67", border: `1px solid ${expenseType === "overhead" ? "#ec4899" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           🏢 Overhead Expense
         </button>
-        <button onClick={() => switchType("petty")} style={{ background: expenseType === "petty" ? "#c8a86b" : "#1a1a1a", color: expenseType === "petty" ? "#0d0d0d" : "#888", border: `1px solid ${expenseType === "petty" ? "#c8a86b" : "#333"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => switchType("petty")} style={{ background: expenseType === "petty" ? "#A39159" : "#F8F8F6", color: expenseType === "petty" ? "#FEFEFE" : "#7C8B67", border: `1px solid ${expenseType === "petty" ? "#A39159" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           👛 Petty Cash Top-Up
         </button>
       </div>
 
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>
           Add {expenseType === "truck" ? "Truck" : expenseType === "overhead" ? "Overhead" : "Petty Cash Top-Up"}
         </h3>
@@ -1684,17 +1683,17 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
             </div>
           )}
         </div>
-        <button onClick={addExpense} style={{ marginTop: 14, background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+        <button onClick={addExpense} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
           + Record {expenseType === "truck" ? "Truck" : expenseType === "overhead" ? "Overhead" : "Petty Cash"} Expense
         </button>
       </div>
 
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
           <h3 style={{ fontSize: 12, color: "#555", textTransform: "uppercase", letterSpacing: 1 }}>All Expenses ({filtered.length})</h3>
           <div style={{ display: "flex", gap: 6 }}>
             {[{ key: "all", label: "All" }, { key: "truck", label: "🚛 Truck" }, { key: "overhead", label: "🏢 Overhead" }].map((f) => (
-              <button key={f.key} onClick={() => setFilter(f.key)} style={{ background: filter === f.key ? "#c8a86b" : "transparent", color: filter === f.key ? "#0d0d0d" : "#666", border: "1px solid #333", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>
+              <button key={f.key} onClick={() => setFilter(f.key)} style={{ background: filter === f.key ? "#A39159" : "transparent", color: filter === f.key ? "#FEFEFE" : "#555", border: "1px solid #E0E0DC", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>
                 {f.label}
               </button>
             ))}
@@ -1702,7 +1701,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         </div>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+            <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
               {["DATE", "TYPE", "CATEGORY", "DESCRIPTION", "TRUCK / VENDOR / HOLDER", "AMOUNT", ""].map((h) => (
                 <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "6px 8px" }}>{h}</th>
               ))}
@@ -1714,9 +1713,9 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
               if (isEditing) {
                 const isOverheadEdit = editForm.expenseType === "overhead";
                 const editCategories = isOverheadEdit ? OVERHEAD_CATEGORIES : TRUCK_CATEGORIES;
-                const inputStyle = { width: "100%", padding: "4px 6px", fontSize: 11, background: "#0d0d0d", border: "1px solid #c8a86b66", borderRadius: 3, color: "#e8e0d0" };
+                const inputStyle = { width: "100%", padding: "4px 6px", fontSize: 11, background: "#F8F8F6", border: "1px solid #A3915966", borderRadius: 3, color: "#2d2d2d" };
                 return (
-                  <tr key={e.id} style={{ borderBottom: "1px solid #1a1a1a", background: "#0d0d1a" }}>
+                  <tr key={e.id} style={{ borderBottom: "1px solid #E8E8E4", background: "#F0F4F8" }}>
                     <td style={{ padding: "6px 6px" }}><input type="date" value={editForm.date} onChange={(ev) => setEditForm({ ...editForm, date: ev.target.value })} style={inputStyle} /></td>
                     <td style={{ padding: "6px 6px" }}>
                       <select value={editForm.expenseType} onChange={(ev) => setEditForm({ ...editForm, expenseType: ev.target.value, category: ev.target.value === "overhead" ? "Salary" : "Fuel" })} style={inputStyle}>
@@ -1742,39 +1741,39 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                     </td>
                     <td style={{ padding: "6px 6px" }}><input type="number" value={editForm.amount} onChange={(ev) => setEditForm({ ...editForm, amount: ev.target.value })} style={{ ...inputStyle, textAlign: "right" }} /></td>
                     <td style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>
-                      <button onClick={() => saveEdit(e.id)} style={{ background: "#10b981", border: "none", color: "#fff", fontSize: 11, padding: "4px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer", fontWeight: 600 }} title="Save">✓</button>
-                      <button onClick={cancelEdit} style={{ background: "transparent", border: "1px solid #444", color: "#888", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Cancel">✕</button>
+                      <button onClick={() => saveEdit(e.id)} style={{ background: "#4A643C", border: "none", color: "#fff", fontSize: 11, padding: "4px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer", fontWeight: 600 }} title="Save">✓</button>
+                      <button onClick={cancelEdit} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Cancel">✕</button>
                     </td>
                   </tr>
                 );
               }
               const isOverhead = e.expenseType === "overhead";
               return (
-                <tr key={e.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                <tr key={e.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                   <td style={{ padding: "8px 8px" }}>{e.date}</td>
                   <td style={{ padding: "8px 8px" }}>
                     {(() => {
                       const isPetty = e.expenseType === "petty";
-                      const bg = isPetty ? "#c8a86b22" : isOverhead ? "#ec489922" : "#f59e0b22";
-                      const col = isPetty ? "#c8a86b" : isOverhead ? "#ec4899" : "#f59e0b";
+                      const bg = isPetty ? "#A3915922" : isOverhead ? "#ec489922" : "#f59e0b22";
+                      const col = isPetty ? "#A39159" : isOverhead ? "#ec4899" : "#f59e0b";
                       const label = isPetty ? "👛 Petty Cash" : isOverhead ? "🏢 Overhead" : "🚛 Truck";
                       return <span className="tag" style={{ background: bg, color: col, border: `1px solid ${col}44` }}>{label}</span>;
                     })()}
                   </td>
                   <td style={{ padding: "8px 8px" }}>
-                    <span className="tag" style={{ background: (CAT_COLOR[e.category] || "#333") + "22", color: CAT_COLOR[e.category] || "#888", border: `1px solid ${(CAT_COLOR[e.category] || "#333")}44` }}>
+                    <span className="tag" style={{ background: (CAT_COLOR[e.category] || "#6b7280") + "22", color: CAT_COLOR[e.category] || "#7C8B67", border: `1px solid ${(CAT_COLOR[e.category] || "#6b7280")}44` }}>
                       {e.category}
                     </span>
                   </td>
                   <td style={{ padding: "8px 8px" }}>{e.description}</td>
-                  <td style={{ padding: "8px 8px", color: "#c8a86b" }}>
+                  <td style={{ padding: "8px 8px", color: "#A39159" }}>
                     {e.expenseType === "petty"
                       ? (pettyHolders.find(h => h.id === e.holderId)?.name || "—")
                       : isOverhead ? (e.vendor || "—") : (e.truck || "—")}
                   </td>
                   <td style={{ padding: "8px 8px", textAlign: "right", color: "#ef4444" }}>{fmt(e.amount)}</td>
                   <td style={{ padding: "8px 4px", whiteSpace: "nowrap" }}>
-                    <button onClick={() => startEdit(e)} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
+                    <button onClick={() => startEdit(e)} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
                     <button onClick={() => deleteExpense(e.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
                   </td>
                 </tr>
@@ -1808,24 +1807,24 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>CASH LEDGER</h2>
+      <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>CASH LEDGER</h2>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 18 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>TOTAL CASH IN</div>
-          <div style={{ fontSize: 18, color: "#10b981" }}>{fmt(kas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0))}</div>
+          <div style={{ fontSize: 18, color: "#4A643C" }}>{fmt(kas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0))}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 18 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>TOTAL CASH OUT</div>
           <div style={{ fontSize: 18, color: "#ef4444" }}>{fmt(kas.filter((k) => k.type === "out").reduce((s, k) => s + k.amount, 0))}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 18 }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "#555", marginBottom: 4 }}>CURRENT BALANCE</div>
-          <div style={{ fontSize: 18, color: "#c8a86b", fontWeight: 600 }}>{fmt(kasBalance)}</div>
+          <div style={{ fontSize: 18, color: "#A39159", fontWeight: 600 }}>{fmt(kasBalance)}</div>
         </div>
       </div>
 
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Add Cash Entry</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DATE</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
@@ -1839,16 +1838,16 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DESCRIPTION *</label><input placeholder="KAS IN / EXPENSE..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>AMOUNT (Rp) *</label><input type="number" placeholder="3000000" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
         </div>
-        <button onClick={addKas} style={{ marginTop: 14, background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13 }}>
+        <button onClick={addKas} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13 }}>
           + Add Entry
         </button>
       </div>
 
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
         <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Cash Ledger</h3>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+            <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
               {["DATE", "DESCRIPTION", "CASH IN", "CASH OUT", "BALANCE", ""].map((h) => (
                 <th key={h} style={{ textAlign: ["CASH IN", "CASH OUT", "BALANCE"].includes(h) ? "right" : "left", padding: "6px 8px" }}>{h}</th>
               ))}
@@ -1856,13 +1855,13 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
           </thead>
           <tbody>
             {rows.map((k) => (
-              <tr key={k.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+              <tr key={k.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                 <td style={{ padding: "8px 8px" }}>{k.date}</td>
                 <td style={{ padding: "8px 8px" }}>{k.description}</td>
-                <td style={{ padding: "8px 8px", textAlign: "right", color: "#10b981" }}>{k.type === "in" ? fmt(k.amount) : "—"}</td>
+                <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{k.type === "in" ? fmt(k.amount) : "—"}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right", color: "#ef4444" }}>{k.type === "out" ? fmt(k.amount) : "—"}</td>
-                <td style={{ padding: "8px 8px", textAlign: "right", color: "#c8a86b" }}>{fmt(k.balance)}</td>
-                <td><button onClick={() => { setKas(kas.filter((x) => x.id !== k.id)); showToast("Entry deleted"); }} style={{ background: "none", border: "none", color: "#444", fontSize: 14, padding: "2px 6px" }}>✕</button></td>
+                <td style={{ padding: "8px 8px", textAlign: "right", color: "#A39159" }}>{fmt(k.balance)}</td>
+                <td><button onClick={() => { setKas(kas.filter((x) => x.id !== k.id)); showToast("Entry deleted"); }} style={{ background: "none", border: "none", color: "#999", fontSize: 14, padding: "2px 6px" }}>✕</button></td>
               </tr>
             ))}
           </tbody>
@@ -1985,8 +1984,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
     });
   };
 
-  const iStyle = { background: "#0d0d0d", border: "1px solid #c8a86b66", color: "#e8e0d0", padding: "5px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 11, width: "100%" };
-  const inputStyle = { background: "#1a1a1a", border: "1px solid #333", color: "#e8e0d0", padding: "8px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 12, width: "100%", outline: "none" };
+  const iStyle = { background: "#F8F8F6", border: "1px solid #A3915966", color: "#2d2d2d", padding: "5px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 11, width: "100%" };
+  const inputStyle = { background: "#F8F8F6", border: "1px solid #E0E0DC", color: "#2d2d2d", padding: "8px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 12, width: "100%", outline: "none" };
 
   const currentHolder = activeHolder ? pettyHolders.find((h) => h.id === activeHolder) : null;
 
@@ -1995,16 +1994,16 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {activeHolder && (
-            <button onClick={() => setActiveHolder(null)} style={{ background: "transparent", border: "1px solid #333", color: "#888", padding: "5px 10px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+            <button onClick={() => setActiveHolder(null)} style={{ background: "transparent", border: "1px solid #E0E0DC", color: "#7C8B67", padding: "5px 10px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
               ← Back
             </button>
           )}
-          <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700 }}>
-            👛 PETTY CASH {currentHolder ? `— ${currentHolder.name}` : ""}
+          <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700 }}>
+            PETTY CASH {currentHolder ? `— ${currentHolder.name}` : ""}
           </h2>
         </div>
         {!activeHolder && (
-          <button onClick={() => setAddingHolder(!addingHolder)} style={{ background: addingHolder ? "#444" : "#c8a86b", color: addingHolder ? "#aaa" : "#0d0d0d", border: "none", padding: "8px 16px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+          <button onClick={() => setAddingHolder(!addingHolder)} style={{ background: addingHolder ? "#999" : "#A39159", color: addingHolder ? "#7C8B67" : "#FEFEFE", border: "none", padding: "8px 16px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             {addingHolder ? "✕ Cancel" : "+ Add Holder"}
           </button>
         )}
@@ -2015,8 +2014,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
         <>
           {/* Add holder form */}
           {addingHolder && (
-            <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 20, marginBottom: 20 }}>
-              <h3 style={{ fontSize: 12, color: "#c8a86b", marginBottom: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>New Petty Cash Holder</h3>
+            <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+              <h3 style={{ fontSize: 12, color: "#A39159", marginBottom: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>New Petty Cash Holder</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>NAME *</label>
@@ -2027,7 +2026,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                   <input placeholder="e.g. Handles daily operational expenses" value={newHolderForm.notes} onChange={(e) => setNewHolderForm({ ...newHolderForm, notes: e.target.value })} style={inputStyle} />
                 </div>
               </div>
-              <button onClick={addHolder} style={{ marginTop: 12, background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "9px 22px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={addHolder} style={{ marginTop: 12, background: "#A39159", color: "#FEFEFE", border: "none", padding: "9px 22px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 + Add Holder
               </button>
             </div>
@@ -2035,13 +2034,13 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
 
           {/* Summary cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
-            <div style={{ background: "#161616", border: "1px solid #3b82f644", borderRadius: 8, padding: 16 }}>
-              <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL TOPPED UP</div>
+            <div style={{ background: "#FEFEFE", border: "1px solid #3b82f644", borderRadius: 8, padding: 16 }}>
+              <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL TOPPED UP</div>
               <div style={{ fontSize: 18, color: "#3b82f6", fontWeight: 600 }}>{fmt(grandTopup)}</div>
             </div>
-            <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 16 }}>
-              <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL OUTSTANDING BALANCE</div>
-              <div style={{ fontSize: 18, color: "#c8a86b", fontWeight: 600 }}>{fmt(grandBalance)}</div>
+            <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 16 }}>
+              <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL OUTSTANDING BALANCE</div>
+              <div style={{ fontSize: 18, color: "#A39159", fontWeight: 600 }}>{fmt(grandBalance)}</div>
               <div style={{ fontSize: 10, color: "#555", marginTop: 4 }}>across {pettyHolders.filter(h=>h.active).length} active holder{pettyHolders.filter(h=>h.active).length !== 1 ? "s" : ""}</div>
             </div>
           </div>
@@ -2049,18 +2048,18 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
           {/* Holder cards */}
           {/* Unassigned imported expenses */}
           {unassignedExpenses.length > 0 && (
-            <div style={{ background: "#1a1a0d", border: "1px solid #f59e0b66", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <div style={{ background: "#FFF8E8", border: "1px solid #f59e0b66", borderRadius: 8, padding: 16, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>⚠ {unassignedExpenses.length} Unassigned Expense{unassignedExpenses.length !== 1 ? "s" : ""}</div>
-                  <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>These were imported but could not be auto-assigned (multiple active holders). Assign them to a holder below.</div>
+                  <div style={{ fontSize: 11, color: "#7C8B67", marginTop: 2 }}>These were imported but could not be auto-assigned (multiple active holders). Assign them to a holder below.</div>
                 </div>
                 <div style={{ fontSize: 14, color: "#f59e0b", fontWeight: 700 }}>{fmt(unassignedExpenses.reduce((s,e) => s + e.amount, 0))}</div>
               </div>
               <div style={{ maxHeight: 160, overflowY: "auto" }}>
                 {unassignedExpenses.map((e) => (
-                  <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #2a2a1a", fontSize: 12 }}>
-                    <span style={{ color: "#aaa" }}>{e.date} · {e.description}</span>
+                  <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #E0E0DC", fontSize: 12 }}>
+                    <span style={{ color: "#7C8B67" }}>{e.date} · {e.description}</span>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={{ color: "#f59e0b" }}>{fmt(e.amount)}</span>
                       <select
@@ -2069,7 +2068,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                           if (!ev.target.value) return;
                           setExpenses(expenses.map((x) => x.id === e.id ? { ...x, holderId: ev.target.value } : x));
                         }}
-                        style={{ background: "#1a1a1a", border: "1px solid #f59e0b66", color: "#f59e0b", padding: "3px 6px", borderRadius: 3, fontSize: 11, fontFamily: "inherit" }}
+                        style={{ background: "#F8F8F6", border: "1px solid #f59e0b66", color: "#f59e0b", padding: "3px 6px", borderRadius: 3, fontSize: 11, fontFamily: "inherit" }}
                       >
                         <option value="">Assign to…</option>
                         {pettyHolders.filter((h) => h.active).map((h) => (
@@ -2087,7 +2086,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                     setExpenses(expenses.map((e) => e.holderId === "unassigned" ? { ...e, holderId: firstHolder.id } : e));
                     showToast(`All assigned to ${firstHolder.name}`);
                   }}
-                  style={{ marginTop: 10, background: "#f59e0b", color: "#0d0d0d", border: "none", padding: "6px 14px", borderRadius: 3, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                  style={{ marginTop: 10, background: "#f59e0b", color: "#FEFEFE", border: "none", padding: "6px 14px", borderRadius: 3, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                 >
                   Assign all to {pettyHolders.filter((h) => h.active)[0]?.name}
                 </button>
@@ -2096,7 +2095,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
           )}
 
           {pettyHolders.length === 0 ? (
-            <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 40, textAlign: "center", color: "#555" }}>
+            <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 40, textAlign: "center", color: "#555" }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>👛</div>
               <div style={{ fontSize: 14, marginBottom: 6 }}>No petty cash holders yet</div>
               <div style={{ fontSize: 12 }}>Click "+ Add Holder" to get started</div>
@@ -2107,41 +2106,41 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                 const { totalTopup, spending, balance, topups } = getHolderStats(h);
                 const isEditing = editHolderId === h.id;
                 return (
-                  <div key={h.id} style={{ background: "#161616", border: `1px solid ${h.active ? "#222" : "#1a1a1a"}`, borderRadius: 8, padding: 20, opacity: h.active ? 1 : 0.55 }}>
+                  <div key={h.id} style={{ background: "#FEFEFE", border: `1px solid ${h.active ? "#E0E0DC" : "#F0F0EE"}`, borderRadius: 8, padding: 20, opacity: h.active ? 1 : 0.55 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 14 }}>
                       <div style={{ flex: 1 }}>
                         {isEditing ? (
                           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                             <input value={editHolderForm.name} onChange={(e) => setEditHolderForm({ ...editHolderForm, name: e.target.value })} style={{ ...iStyle, fontSize: 14, fontWeight: 700, width: 160 }} />
                             <input value={editHolderForm.notes} onChange={(e) => setEditHolderForm({ ...editHolderForm, notes: e.target.value })} style={{ ...iStyle, flex: 1 }} placeholder="Notes" />
-                            <button onClick={saveEditHolder} style={{ background: "#10b981", border: "none", color: "#fff", padding: "5px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✓</button>
-                            <button onClick={() => setEditHolderId(null)} style={{ background: "transparent", border: "1px solid #444", color: "#888", padding: "4px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>✕</button>
+                            <button onClick={saveEditHolder} style={{ background: "#4A643C", border: "none", color: "#fff", padding: "5px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✓</button>
+                            <button onClick={() => setEditHolderId(null)} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", padding: "4px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>✕</button>
                           </div>
                         ) : (
                           <>
-                            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", fontWeight: 700 }}>{h.name}</div>
-                            {h.notes && <div style={{ fontSize: 11, color: "#666", marginTop: 3 }}>{h.notes}</div>}
+                            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#A39159", fontWeight: 700 }}>{h.name}</div>
+                            {h.notes && <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{h.notes}</div>}
                           </>
                         )}
                       </div>
                       {!isEditing && (
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <span style={{ fontSize: 10, background: h.active ? "#10b98122" : "#6b728022", color: h.active ? "#10b981" : "#888", border: `1px solid ${h.active ? "#10b98144" : "#6b728044"}`, padding: "2px 8px", borderRadius: 3 }}>
+                          <span style={{ fontSize: 10, background: h.active ? "#4A643C22" : "#6b728022", color: h.active ? "#4A643C" : "#7C8B67", border: `1px solid ${h.active ? "#4A643C44" : "#6b728044"}`, padding: "2px 8px", borderRadius: 3 }}>
                             {h.active ? "ACTIVE" : "INACTIVE"}
                           </span>
-                          <button onClick={() => setActiveHolder(h.id)} style={{ background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "5px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                          <button onClick={() => setActiveHolder(h.id)} style={{ background: "#A39159", color: "#FEFEFE", border: "none", padding: "5px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
                             View Details →
                           </button>
-                          <button onClick={() => { setEditHolderId(h.id); setEditHolderForm({ name: h.name, notes: h.notes || "" }); }} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>✏️</button>
+                          <button onClick={() => { setEditHolderId(h.id); setEditHolderForm({ name: h.name, notes: h.notes || "" }); }} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>✏️</button>
                           {h.active && <button onClick={() => deactivateHolder(h.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Deactivate">⊗</button>}
-                          {!h.active && <button onClick={() => setPettyHolders(pettyHolders.map((x) => x.id === h.id ? { ...x, active: true } : x))} style={{ background: "transparent", border: "1px solid #10b98144", color: "#10b981", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Reactivate">↺</button>}
+                          {!h.active && <button onClick={() => setPettyHolders(pettyHolders.map((x) => x.id === h.id ? { ...x, active: true } : x))} style={{ background: "transparent", border: "1px solid #4A643C44", color: "#4A643C", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Reactivate">↺</button>}
                           <button onClick={() => deleteHolder(h.id)} style={{ background: "transparent", border: "1px solid #ef444488", color: "#ef444488", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Delete permanently">🗑</button>
                         </div>
                       )}
                     </div>
 
                     {/* Stats row */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, background: "#0d0d0d", borderRadius: 6, padding: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, background: "#F4F4F2", borderRadius: 6, padding: 12 }}>
                       <div>
                         <div style={{ fontSize: 10, color: "#555" }}>TOTAL TOPPED UP</div>
                         <div style={{ fontSize: 15, color: "#3b82f6", fontWeight: 600 }}>{fmt(totalTopup)}</div>
@@ -2154,7 +2153,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: "#555" }}>BALANCE OUTSTANDING</div>
-                        <div style={{ fontSize: 15, color: balance > 0 ? "#c8a86b" : "#10b981", fontWeight: 600 }}>{fmt(balance)}</div>
+                        <div style={{ fontSize: 15, color: balance > 0 ? "#A39159" : "#4A643C", fontWeight: 600 }}>{fmt(balance)}</div>
                         <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{balance > 0 ? "still with holder" : "fully accounted"}</div>
                       </div>
                     </div>
@@ -2174,32 +2173,32 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
           <div>
             {/* Summary */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
-              <div style={{ background: "#161616", border: "1px solid #3b82f644", borderRadius: 8, padding: 16 }}>
-                <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL TOPPED UP</div>
+              <div style={{ background: "#FEFEFE", border: "1px solid #3b82f644", borderRadius: 8, padding: 16 }}>
+                <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL TOPPED UP</div>
                 <div style={{ fontSize: 18, color: "#3b82f6", fontWeight: 600 }}>{fmt(totalTopup)}</div>
               </div>
-              <div style={{ background: "#161616", border: "1px solid #ef444444", borderRadius: 8, padding: 16 }}>
-                <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>REPORTED SPENDING</div>
+              <div style={{ background: "#FEFEFE", border: "1px solid #ef444444", borderRadius: 8, padding: 16 }}>
+                <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>REPORTED SPENDING</div>
                 <div style={{ fontSize: 18, color: "#ef4444", fontWeight: 600 }}>{fmt(spending)}</div>
               </div>
-              <div style={{ background: "#161616", border: `1px solid ${balance > 0 ? "#c8a86b44" : "#10b98144"}`, borderRadius: 8, padding: 16 }}>
-                <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>BALANCE OUTSTANDING</div>
-                <div style={{ fontSize: 18, color: balance > 0 ? "#c8a86b" : "#10b981", fontWeight: 700 }}>{fmt(balance)}</div>
+              <div style={{ background: "#FEFEFE", border: `1px solid ${balance > 0 ? "#A3915944" : "#4A643C44"}`, borderRadius: 8, padding: 16 }}>
+                <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>BALANCE OUTSTANDING</div>
+                <div style={{ fontSize: 18, color: balance > 0 ? "#A39159" : "#4A643C", fontWeight: 700 }}>{fmt(balance)}</div>
                 <div style={{ fontSize: 10, color: "#555", marginTop: 4 }}>{balance > 0 ? `${currentHolder.name} still holds this amount` : "Fully accounted ✓"}</div>
               </div>
             </div>
 
             {/* Top-up history */}
-            <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 16 }}>
+            <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <h3 style={{ fontSize: 12, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                  💵 Top-up History ({topups.length})
+                <h3 style={{ fontSize: 12, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Top-up History ({topups.length})
                 </h3>
               </div>
 
               {/* Add top-up */}
-              <div style={{ background: "#0d0d0d", borderRadius: 6, padding: 14, marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: "#888", marginBottom: 10 }}>Record a new top-up for {currentHolder.name}</div>
+              <div style={{ background: "#F4F4F2", borderRadius: 6, padding: 14, marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: "#7C8B67", marginBottom: 10 }}>Record a new top-up for {currentHolder.name}</div>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 2fr auto", gap: 10, alignItems: "end" }}>
                   <div>
                     <label style={{ fontSize: 10, color: "#555", display: "block", marginBottom: 3 }}>DATE</label>
@@ -2213,7 +2212,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                     <label style={{ fontSize: 10, color: "#555", display: "block", marginBottom: 3 }}>NOTE</label>
                     <input placeholder="e.g. Operating cash May (3)" value={topupForm.note} onChange={(e) => setTopupForm({ ...topupForm, note: e.target.value, holderId: currentHolder.id })} style={iStyle} />
                   </div>
-                  <button onClick={() => { setTopupForm({ ...topupForm, holderId: currentHolder.id }); addTopup(); }} style={{ background: "#c8a86b", border: "none", color: "#0d0d0d", padding: "7px 16px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ Top Up</button>
+                  <button onClick={() => { setTopupForm({ ...topupForm, holderId: currentHolder.id }); addTopup(); }} style={{ background: "#A39159", border: "none", color: "#FEFEFE", padding: "7px 16px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ Top Up</button>
                 </div>
               </div>
 
@@ -2222,7 +2221,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
               ) : (
                 <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+                    <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
                       {["DATE", "NOTE", "AMOUNT", ""].map((h) => (
                         <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "5px 8px" }}>{h}</th>
                       ))}
@@ -2232,23 +2231,23 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                     {topups.slice().sort((a, b) => b.date.localeCompare(a.date)).map((t) => {
                       const isEdit = editTopupId === t.id;
                       if (isEdit) return (
-                        <tr key={t.id} style={{ borderBottom: "1px solid #1a1a1a", background: "#0d0d1a" }}>
+                        <tr key={t.id} style={{ borderBottom: "1px solid #E8E8E4", background: "#F0F4F8" }}>
                           <td style={{ padding: "5px 6px" }}><input type="date" value={editTopupForm.date} onChange={(e) => setEditTopupForm({ ...editTopupForm, date: e.target.value })} style={iStyle} /></td>
                           <td style={{ padding: "5px 6px" }}><input value={editTopupForm.note} onChange={(e) => setEditTopupForm({ ...editTopupForm, note: e.target.value })} style={iStyle} /></td>
                           <td style={{ padding: "5px 6px" }}><input type="number" value={editTopupForm.amount} onChange={(e) => setEditTopupForm({ ...editTopupForm, amount: e.target.value })} style={{ ...iStyle, textAlign: "right" }} /></td>
                           <td style={{ padding: "5px 4px", whiteSpace: "nowrap" }}>
-                            <button onClick={saveEditTopup} style={{ background: "#10b981", border: "none", color: "#fff", padding: "3px 8px", borderRadius: 3, fontSize: 11, cursor: "pointer", fontWeight: 600, marginRight: 4 }}>✓</button>
-                            <button onClick={() => setEditTopupId(null)} style={{ background: "transparent", border: "1px solid #444", color: "#888", padding: "2px 7px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>✕</button>
+                            <button onClick={saveEditTopup} style={{ background: "#4A643C", border: "none", color: "#fff", padding: "3px 8px", borderRadius: 3, fontSize: 11, cursor: "pointer", fontWeight: 600, marginRight: 4 }}>✓</button>
+                            <button onClick={() => setEditTopupId(null)} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", padding: "2px 7px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>✕</button>
                           </td>
                         </tr>
                       );
                       return (
-                        <tr key={t.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                        <tr key={t.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                           <td style={{ padding: "7px 8px" }}>{t.date}</td>
-                          <td style={{ padding: "7px 8px", color: "#888" }}>{t.note || "—"}</td>
+                          <td style={{ padding: "7px 8px", color: "#7C8B67" }}>{t.note || "—"}</td>
                           <td style={{ padding: "7px 8px", textAlign: "right", color: "#3b82f6", fontWeight: 600 }}>{fmt(t.amount)}</td>
                           <td style={{ padding: "7px 4px", whiteSpace: "nowrap" }}>
-                            <button onClick={() => { setEditTopupId(t.id); setEditTopupForm({ date: t.date, amount: t.amount, note: t.note || "" }); }} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
+                            <button onClick={() => { setEditTopupId(t.id); setEditTopupForm({ date: t.date, amount: t.amount, note: t.note || "" }); }} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
                             <button onClick={() => deleteTopup(t.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "2px 7px", borderRadius: 3, cursor: "pointer" }}>🗑</button>
                           </td>
                         </tr>
@@ -2256,7 +2255,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: "2px solid #222" }}>
+                    <tr style={{ borderTop: "2px solid #E0E0DC" }}>
                       <td colSpan={2} style={{ padding: "6px 8px", fontSize: 11, color: "#555" }}>Total</td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: "#3b82f6", fontWeight: 700 }}>{fmt(totalTopup)}</td>
                       <td></td>
@@ -2267,15 +2266,15 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
             </div>
 
             {/* Reported spending from expenses */}
-            <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
-              <h3 style={{ fontSize: 12, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>
-                🧾 Reported Spending ({holderExpenses.length} entries)
+            <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
+              <h3 style={{ fontSize: 12, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>
+                Reported Spending ({holderExpenses.length} entries)
               </h3>
               {holderExpenses.length === 0 ? (
-                <div style={{ background: "#0d0d0d", borderRadius: 6, padding: 16, fontSize: 12, color: "#555", lineHeight: 1.7 }}>
+                <div style={{ background: "#F4F4F2", borderRadius: 6, padding: 16, fontSize: 12, color: "#555", lineHeight: 1.7 }}>
                   <div style={{ marginBottom: 6 }}>No spending reported yet for {currentHolder.name}.</div>
                   <div>Spending is recorded when:</div>
-                  <div style={{ paddingLeft: 12, color: "#666" }}>
+                  <div style={{ paddingLeft: 12, color: "#555" }}>
                     • You import a monthly CSV — expenses in the sheet are linked here<br />
                     • You manually add an expense and tag it to this petty cash holder
                   </div>
@@ -2283,7 +2282,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
               ) : (
                 <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+                    <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
                       {["DATE", "DESCRIPTION", "CATEGORY", "AMOUNT"].map((h) => (
                         <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "5px 8px" }}>{h}</th>
                       ))}
@@ -2291,11 +2290,11 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                   </thead>
                   <tbody>
                     {holderExpenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
-                      <tr key={e.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                      <tr key={e.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                         <td style={{ padding: "7px 8px" }}>{e.date}</td>
                         <td style={{ padding: "7px 8px" }}>{e.description}</td>
                         <td style={{ padding: "7px 8px" }}>
-                          <span className="tag" style={{ background: (CAT_COLOR[e.category] || "#333") + "22", color: CAT_COLOR[e.category] || "#888", border: `1px solid ${(CAT_COLOR[e.category] || "#333")}44` }}>
+                          <span className="tag" style={{ background: (CAT_COLOR[e.category] || "#6b7280") + "22", color: CAT_COLOR[e.category] || "#7C8B67", border: `1px solid ${(CAT_COLOR[e.category] || "#6b7280")}44` }}>
                             {e.category}
                           </span>
                         </td>
@@ -2304,7 +2303,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: "2px solid #222" }}>
+                    <tr style={{ borderTop: "2px solid #E0E0DC" }}>
                       <td colSpan={3} style={{ padding: "6px 8px", fontSize: 11, color: "#555" }}>Total Spending</td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: "#ef4444", fontWeight: 700 }}>{fmt(spending)}</td>
                     </tr>
@@ -2449,29 +2448,29 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
     showToast("Truck & contract added!");
   };
 
-  const inputStyle = { background: "#1a1a1a", border: "1px solid #333", color: "#e8e0d0", padding: "7px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 12, width: "100%", outline: "none" };
-  const editInputStyle = { background: "#0d0d0d", border: "1px solid #c8a86b66", color: "#e8e0d0", padding: "5px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 11, width: "100%" };
+  const inputStyle = { background: "#F8F8F6", border: "1px solid #E0E0DC", color: "#2d2d2d", padding: "7px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 12, width: "100%", outline: "none" };
+  const editInputStyle = { background: "#F8F8F6", border: "1px solid #A3915966", color: "#2d2d2d", padding: "5px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 11, width: "100%" };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700 }}>💰 CAPITAL & FLEET</h2>
+        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700 }}>CAPITAL & FLEET</h2>
         {activeSection === "fleet" && (
-          <button onClick={() => setAddingTruck(!addingTruck)} style={{ background: addingTruck ? "#444" : "#c8a86b", color: addingTruck ? "#aaa" : "#0d0d0d", border: "none", padding: "9px 18px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+          <button onClick={() => setAddingTruck(!addingTruck)} style={{ background: addingTruck ? "#999" : "#A39159", color: addingTruck ? "#7C8B67" : "#FEFEFE", border: "none", padding: "9px 18px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             {addingTruck ? "✕ Cancel" : "+ Add Truck"}
           </button>
         )}
       </div>
 
       {/* Section tabs */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #E0E0DC" }}>
         {[
-          { key: "fleet", label: "🚚 Fleet & Loans", sub: `${loans.length} truck${loans.length !== 1 ? "s" : ""}` },
-          { key: "capital", label: "💰 Capital Injections", sub: `${capital.length} entr${capital.length !== 1 ? "ies" : "y"}` },
+          { key: "fleet", label: "Fleet & Loans", sub: `${loans.length} truck${loans.length !== 1 ? "s" : ""}` },
+          { key: "capital", label: "Capital Injections", sub: `${capital.length} entr${capital.length !== 1 ? "ies" : "y"}` },
         ].map((s) => (
           <button key={s.key} onClick={() => setActiveSection(s.key)} style={{
             background: "transparent", border: "none", borderBottom: activeSection === s.key ? "2px solid #c8a86b" : "2px solid transparent",
-            color: activeSection === s.key ? "#c8a86b" : "#666", padding: "10px 20px", fontSize: 13, fontWeight: 600,
+            color: activeSection === s.key ? "#A39159" : "#555", padding: "10px 20px", fontSize: 13, fontWeight: 600,
             cursor: "pointer", marginBottom: -1, fontFamily: "inherit",
           }}>
             {s.label} <span style={{ fontSize: 11, color: "#555", marginLeft: 6 }}>({s.sub})</span>
@@ -2483,33 +2482,33 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
         <div>
           {/* Capital summary */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
-            <div style={{ background: "#161616", border: "1px solid #10b98144", borderRadius: 8, padding: 16 }}>
-              <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL OWNER CAPITAL</div>
-              <div style={{ fontSize: 18, color: "#10b981", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0))}</div>
+            <div style={{ background: "#FEFEFE", border: "1px solid #4A643C44", borderRadius: 8, padding: 16 }}>
+              <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL OWNER CAPITAL</div>
+              <div style={{ fontSize: 18, color: "#4A643C", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0))}</div>
             </div>
-            <div style={{ background: "#161616", border: "1px solid #3b82f644", borderRadius: 8, padding: 16 }}>
-              <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>OTHER LOANS RECEIVED</div>
+            <div style={{ background: "#FEFEFE", border: "1px solid #3b82f644", borderRadius: 8, padding: 16 }}>
+              <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>OTHER LOANS RECEIVED</div>
               <div style={{ fontSize: 18, color: "#3b82f6", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "loan").reduce((s, c) => s + c.amount, 0))}</div>
             </div>
-            <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 16 }}>
-              <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL INJECTED</div>
-              <div style={{ fontSize: 18, color: "#c8a86b", fontWeight: 600 }}>{fmt(totalCapitalInjected)}</div>
+            <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 16 }}>
+              <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL INJECTED</div>
+              <div style={{ fontSize: 18, color: "#A39159", fontWeight: 600 }}>{fmt(totalCapitalInjected)}</div>
             </div>
           </div>
 
           {/* Add capital form */}
-          <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+          <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
             <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Add Capital Entry</h3>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              <button onClick={() => setCapForm({ ...capForm, type: "capital" })} style={{ background: capForm.type === "capital" ? "#10b981" : "#1a1a1a", color: capForm.type === "capital" ? "#fff" : "#888", border: `1px solid ${capForm.type === "capital" ? "#10b981" : "#333"}`, padding: "7px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={() => setCapForm({ ...capForm, type: "capital" })} style={{ background: capForm.type === "capital" ? "#4A643C" : "#F8F8F6", color: capForm.type === "capital" ? "#fff" : "#7C8B67", border: `1px solid ${capForm.type === "capital" ? "#4A643C" : "#D0D0CC"}`, padding: "7px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                 💰 Owner Capital (Modal Sendiri)
               </button>
-              <button onClick={() => setCapForm({ ...capForm, type: "loan" })} style={{ background: capForm.type === "loan" ? "#3b82f6" : "#1a1a1a", color: capForm.type === "loan" ? "#fff" : "#888", border: `1px solid ${capForm.type === "loan" ? "#3b82f6" : "#333"}`, padding: "7px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={() => setCapForm({ ...capForm, type: "loan" })} style={{ background: capForm.type === "loan" ? "#3b82f6" : "#F8F8F6", color: capForm.type === "loan" ? "#fff" : "#7C8B67", border: `1px solid ${capForm.type === "loan" ? "#3b82f6" : "#D0D0CC"}`, padding: "7px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                 🏦 Loan / Other Financing
               </button>
             </div>
-            <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 4, padding: 10, fontSize: 11, color: "#666", marginBottom: 14 }}>
-              {capForm.type === "capital" ? "💡 Money you or other owners put into the business. Does not need to be repaid." : "💡 Money from a bank or lender (not a truck installment). For truck loans, use the Fleet tab."}
+            <div style={{ background: "#F4F4F2", border: "1px solid #E8E8E4", borderRadius: 4, padding: 10, fontSize: 11, color: "#555", marginBottom: 14 }}>
+              {capForm.type === "capital" ? "Money you or other owners put into the business. Does not need to be repaid." : "Money from a bank or lender (not a truck installment). For truck loans, use the Fleet tab."}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
               <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DATE</label><input type="date" value={capForm.date} onChange={(e) => setCapForm({ ...capForm, date: e.target.value })} /></div>
@@ -2517,20 +2516,20 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
               <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DESCRIPTION</label><input placeholder="e.g. Initial capital, working capital" value={capForm.description} onChange={(e) => setCapForm({ ...capForm, description: e.target.value })} /></div>
               <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>AMOUNT (Rp) *</label><input type="number" placeholder="500000000" value={capForm.amount} onChange={(e) => setCapForm({ ...capForm, amount: e.target.value })} /></div>
             </div>
-            <button onClick={addCapital} style={{ marginTop: 14, background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            <button onClick={addCapital} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
               + Record {capForm.type === "capital" ? "Capital" : "Loan"}
             </button>
           </div>
 
           {/* Capital table */}
-          <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20 }}>
+          <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
             <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>All Capital & Financing Entries ({capital.length})</h3>
             {capital.length === 0 ? (
               <div style={{ color: "#555", fontSize: 13, textAlign: "center", padding: 30 }}>No entries yet.</div>
             ) : (
               <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ color: "#555", borderBottom: "1px solid #222" }}>
+                  <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
                     {["DATE", "TYPE", "FROM / LENDER", "DESCRIPTION", "AMOUNT", ""].map((h) => (
                       <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "6px 8px" }}>{h}</th>
                     ))}
@@ -2539,9 +2538,9 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                 <tbody>
                   {capital.map((c) => {
                     const isEditing = editCapId === c.id;
-                    const iStyle = { background: "#0d0d0d", border: "1px solid #c8a86b66", color: "#e8e0d0", padding: "4px 6px", borderRadius: 3, fontSize: 11, fontFamily: "inherit", width: "100%" };
+                    const iStyle = { background: "#F8F8F6", border: "1px solid #A3915966", color: "#2d2d2d", padding: "4px 6px", borderRadius: 3, fontSize: 11, fontFamily: "inherit", width: "100%" };
                     if (isEditing) return (
-                      <tr key={c.id} style={{ borderBottom: "1px solid #1a1a1a", background: "#0d0d1a" }}>
+                      <tr key={c.id} style={{ borderBottom: "1px solid #E8E8E4", background: "#F0F4F8" }}>
                         <td style={{ padding: "5px 6px" }}><input type="date" value={editCapForm.date} onChange={(e) => setEditCapForm({ ...editCapForm, date: e.target.value })} style={iStyle} /></td>
                         <td style={{ padding: "5px 6px" }}>
                           <select value={editCapForm.type} onChange={(e) => setEditCapForm({ ...editCapForm, type: e.target.value })} style={iStyle}>
@@ -2553,24 +2552,24 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                         <td style={{ padding: "5px 6px" }}><input value={editCapForm.description} onChange={(e) => setEditCapForm({ ...editCapForm, description: e.target.value })} style={iStyle} /></td>
                         <td style={{ padding: "5px 6px" }}><input type="number" value={editCapForm.amount} onChange={(e) => setEditCapForm({ ...editCapForm, amount: e.target.value })} style={{ ...iStyle, textAlign: "right" }} /></td>
                         <td style={{ padding: "5px 4px", whiteSpace: "nowrap" }}>
-                          <button onClick={saveEditCap} style={{ background: "#10b981", border: "none", color: "#fff", fontSize: 11, padding: "4px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer", fontWeight: 600 }}>✓</button>
-                          <button onClick={() => setEditCapId(null)} style={{ background: "transparent", border: "1px solid #444", color: "#888", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>✕</button>
+                          <button onClick={saveEditCap} style={{ background: "#4A643C", border: "none", color: "#fff", fontSize: 11, padding: "4px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer", fontWeight: 600 }}>✓</button>
+                          <button onClick={() => setEditCapId(null)} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>✕</button>
                         </td>
                       </tr>
                     );
                     return (
-                      <tr key={c.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                      <tr key={c.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                         <td style={{ padding: "8px 8px" }}>{c.date}</td>
                         <td style={{ padding: "8px 8px" }}>
-                          <span className="tag" style={{ background: c.type === "capital" ? "#10b98122" : "#3b82f622", color: c.type === "capital" ? "#10b981" : "#3b82f6", border: `1px solid ${c.type === "capital" ? "#10b98144" : "#3b82f644"}` }}>
+                          <span className="tag" style={{ background: c.type === "capital" ? "#4A643C22" : "#3b82f622", color: c.type === "capital" ? "#4A643C" : "#3b82f6", border: `1px solid ${c.type === "capital" ? "#4A643C44" : "#3b82f644"}` }}>
                             {c.type === "capital" ? "💰 Capital" : "🏦 Loan"}
                           </span>
                         </td>
-                        <td style={{ padding: "8px 8px", color: "#c8a86b" }}>{c.source}</td>
-                        <td style={{ padding: "8px 8px", color: "#888" }}>{c.description}</td>
-                        <td style={{ padding: "8px 8px", textAlign: "right", color: c.type === "capital" ? "#10b981" : "#3b82f6", fontWeight: 600 }}>{fmt(c.amount)}</td>
+                        <td style={{ padding: "8px 8px", color: "#A39159" }}>{c.source}</td>
+                        <td style={{ padding: "8px 8px", color: "#7C8B67" }}>{c.description}</td>
+                        <td style={{ padding: "8px 8px", textAlign: "right", color: c.type === "capital" ? "#4A643C" : "#3b82f6", fontWeight: 600 }}>{fmt(c.amount)}</td>
                         <td style={{ padding: "8px 4px", whiteSpace: "nowrap" }}>
-                          <button onClick={() => { setEditCapId(c.id); setEditCapForm({ ...c }); }} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
+                          <button onClick={() => { setEditCapId(c.id); setEditCapForm({ ...c }); }} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
                           <button onClick={() => deleteCapital(c.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>🗑</button>
                         </td>
                       </tr>
@@ -2578,9 +2577,9 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                   })}
                 </tbody>
                 <tfoot>
-                  <tr style={{ borderTop: "2px solid #222" }}>
-                    <td colSpan={4} style={{ padding: "8px 8px", fontSize: 12, color: "#888" }}>Total</td>
-                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#c8a86b", fontWeight: 700, fontSize: 13 }}>{fmt(capital.reduce((s, c) => s + c.amount, 0))}</td>
+                  <tr style={{ borderTop: "2px solid #E0E0DC" }}>
+                    <td colSpan={4} style={{ padding: "8px 8px", fontSize: 12, color: "#7C8B67" }}>Total</td>
+                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#A39159", fontWeight: 700, fontSize: 13 }}>{fmt(capital.reduce((s, c) => s + c.amount, 0))}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -2595,8 +2594,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
       {/* Add New Truck Form */}
       {addingTruck && (
-        <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 20, marginBottom: 24 }}>
-          <h3 style={{ fontSize: 12, color: "#c8a86b", marginBottom: 14, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>New Truck & Contract</h3>
+        <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 20, marginBottom: 24 }}>
+          <h3 style={{ fontSize: 12, color: "#A39159", marginBottom: 14, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>New Truck & Contract</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             {[
               ["PLATE NUMBER *", "nopol", "text", "e.g. B9674UEJ"],
@@ -2618,7 +2617,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
               <input placeholder="Any additional notes about this truck or contract" value={newTruckForm.notes} onChange={(e) => setNewTruckForm({ ...newTruckForm, notes: e.target.value })} style={inputStyle} />
             </div>
           </div>
-          <button onClick={addTruck} style={{ marginTop: 14, background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <button onClick={addTruck} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             + Add Truck & Contract
           </button>
         </div>
@@ -2626,24 +2625,24 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
       {/* Fleet Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL TRUCKS</div>
-          <div style={{ fontSize: 18, color: "#c8a86b", fontWeight: 700 }}>{loans.length}</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL TRUCKS</div>
+          <div style={{ fontSize: 18, color: "#A39159", fontWeight: 700 }}>{loans.length}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL FLEET VALUE</div>
-          <div style={{ fontSize: 16, color: "#10b981" }}>{fmt(loans.reduce((s, l) => s + (l.vehicleValue || 0), 0))}</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL FLEET VALUE</div>
+          <div style={{ fontSize: 16, color: "#4A643C" }}>{fmt(loans.reduce((s, l) => s + (l.vehicleValue || 0), 0))}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOTAL PAID SO FAR</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>TOTAL PAID SO FAR</div>
           <div style={{ fontSize: 16, color: "#3b82f6" }}>{fmt(loanPayments.reduce((s, p) => s + p.amount, 0))}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>MONTHLY OBLIGATIONS</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>MONTHLY OBLIGATIONS</div>
           <div style={{ fontSize: 16, color: "#ec4899" }}>{fmt(loans.reduce((s, l) => s + (l.monthlyPayment || 0), 0))}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #ef444444", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>REMAINING BALANCE</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #ef444444", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>REMAINING BALANCE</div>
           <div style={{ fontSize: 16, color: "#ef4444" }}>{fmt(loans.reduce((s, l) => {
             const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((a, p) => a + p.amount, 0);
             return s + Math.max(0, (l.vehicleValue || l.principal) - paid);
@@ -2658,20 +2657,20 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
         const isEditingContract = editLoanId === loan.id;
 
         return (
-          <div key={loan.id} style={{ background: "#161616", border: "1px solid #222", borderRadius: 10, padding: 24, marginBottom: 20 }}>
+          <div key={loan.id} style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 10, padding: 24, marginBottom: 20 }}>
             {/* Truck Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 18 }}>
               <div>
-                <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#c8a86b", fontWeight: 700 }}>{loan.purpose || asset?.name || "Truck"}</div>
-                <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>Lender: <span style={{ color: "#aaa" }}>{loan.lender || "—"}</span></div>
+                <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#A39159", fontWeight: 700 }}>{loan.purpose || asset?.name || "Truck"}</div>
+                <div style={{ fontSize: 12, color: "#7C8B67", marginTop: 4 }}>Lender: <span style={{ color: "#7C8B67" }}>{loan.lender || "—"}</span></div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ background: "#10b98122", color: "#10b981", border: "1px solid #10b98144", padding: "3px 10px", borderRadius: 3, fontSize: 11, fontWeight: 600 }}>
+                <span style={{ background: "#4A643C22", color: "#4A643C", border: "1px solid #4A643C44", padding: "3px 10px", borderRadius: 3, fontSize: 11, fontWeight: 600 }}>
                   ACTIVE
                 </span>
                 {!isEditingContract && (
-                  <button onClick={() => startEditLoan(loan)} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", fontSize: 11, padding: "4px 10px", borderRadius: 3, cursor: "pointer" }}>
-                    ✏️ Edit Contract
+                  <button onClick={() => startEditLoan(loan)} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "4px 10px", borderRadius: 3, cursor: "pointer" }}>
+                    Edit Contract
                   </button>
                 )}
               </div>
@@ -2679,8 +2678,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
             {/* Contract Details — view or edit mode */}
             {isEditingContract ? (
-              <div style={{ background: "#0d0d1a", border: "1px solid #c8a86b44", borderRadius: 6, padding: 16, marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: "#c8a86b", marginBottom: 12, fontWeight: 600 }}>✏️ Editing Contract</div>
+              <div style={{ background: "#F0F4F8", border: "1px solid #A3915944", borderRadius: 6, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: "#A39159", marginBottom: 12, fontWeight: 600 }}>✏️ Editing Contract</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
                   {[
                     ["Purpose / Name", "purpose"], ["Lender", "lender"], ["Vehicle Value (Rp)", "vehicleValue"],
@@ -2702,12 +2701,12 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button onClick={saveEditLoan} style={{ background: "#10b981", border: "none", color: "#fff", padding: "8px 18px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>✓ Save Contract</button>
-                  <button onClick={cancelEditLoan} style={{ background: "transparent", border: "1px solid #444", color: "#888", padding: "7px 16px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                  <button onClick={saveEditLoan} style={{ background: "#4A643C", border: "none", color: "#fff", padding: "8px 18px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>✓ Save Contract</button>
+                  <button onClick={cancelEditLoan} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", padding: "7px 16px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14, marginBottom: 16, background: "#0d0d0d", borderRadius: 6, padding: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14, marginBottom: 16, background: "#F4F4F2", borderRadius: 6, padding: 14 }}>
                 {[
                   ["Vehicle Value", fmt(loan.vehicleValue || loan.principal)],
                   ["Monthly Payment", fmt(loan.monthlyPayment)],
@@ -2720,13 +2719,13 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                 ].map(([label, val]) => (
                   <div key={label}>
                     <div style={{ fontSize: 10, color: "#555", marginBottom: 3 }}>{label}</div>
-                    <div style={{ fontSize: 13, color: label === "Remaining" ? "#ef4444" : label === "Total Paid" ? "#10b981" : "#ddd" }}>{val}</div>
+                    <div style={{ fontSize: 13, color: label === "Remaining" ? "#ef4444" : label === "Total Paid" ? "#4A643C" : "#2d2d2d" }}>{val}</div>
                   </div>
                 ))}
                 {loan.notes && (
                   <div style={{ gridColumn: "1 / -1" }}>
                     <div style={{ fontSize: 10, color: "#555", marginBottom: 3 }}>NOTES</div>
-                    <div style={{ fontSize: 11, color: "#777" }}>{loan.notes}</div>
+                    <div style={{ fontSize: 11, color: "#7C8B67" }}>{loan.notes}</div>
                   </div>
                 )}
               </div>
@@ -2734,24 +2733,24 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
             {/* Progress Bar */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#666", marginBottom: 6 }}>
-                <span style={{ color: "#10b981" }}>{stats.pct.toFixed(1)}% paid</span>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#555", marginBottom: 6 }}>
+                <span style={{ color: "#4A643C" }}>{stats.pct.toFixed(1)}% paid</span>
                 <span>{fmt(stats.totalPaid)} / {fmt(loan.vehicleValue || loan.principal)}</span>
               </div>
-              <div style={{ background: "#222", borderRadius: 4, height: 10, overflow: "hidden" }}>
-                <div style={{ width: `${stats.pct}%`, background: stats.pct >= 100 ? "#10b981" : "#c8a86b", height: 10, borderRadius: 4, transition: "width .5s" }} />
+              <div style={{ background: "#E8E8E4", borderRadius: 4, height: 10, overflow: "hidden" }}>
+                <div style={{ width: `${stats.pct}%`, background: stats.pct >= 100 ? "#4A643C" : "#A39159", height: 10, borderRadius: 4, transition: "width .5s" }} />
               </div>
             </div>
 
             {/* Payment History */}
-            <div style={{ background: "#0d0d0d", borderRadius: 6, padding: 14 }}>
+            <div style={{ background: "#F4F4F2", borderRadius: 6, padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 11, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Payment History ({stats.payments.length})
                 </div>
                 <button
                   onClick={() => { setAddPayLoanId(addPayLoanId === loan.id ? null : loan.id); setNewPay({ date: today(), amount: String(loan.monthlyPayment || ""), note: "" }); }}
-                  style={{ background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "5px 12px", borderRadius: 3, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                  style={{ background: "#A39159", color: "#FEFEFE", border: "none", padding: "5px 12px", borderRadius: 3, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                 >
                   + Add Payment
                 </button>
@@ -2759,7 +2758,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
               {/* Add payment inline form */}
               {addPayLoanId === loan.id && (
-                <div style={{ background: "#161616", border: "1px solid #c8a86b33", borderRadius: 4, padding: 12, marginBottom: 10 }}>
+                <div style={{ background: "#FEFEFE", border: "1px solid #A3915933", borderRadius: 4, padding: 12, marginBottom: 10 }}>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 2fr auto", gap: 8, alignItems: "end" }}>
                     <div>
                       <label style={{ fontSize: 10, color: "#555", display: "block", marginBottom: 3 }}>DATE</label>
@@ -2773,7 +2772,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                       <label style={{ fontSize: 10, color: "#555", display: "block", marginBottom: 3 }}>NOTE</label>
                       <input placeholder="e.g. Installment #2" value={newPay.note} onChange={(e) => setNewPay({ ...newPay, note: e.target.value })} style={editInputStyle} />
                     </div>
-                    <button onClick={() => addPayment(loan.id)} style={{ background: "#10b981", border: "none", color: "#fff", padding: "6px 14px", borderRadius: 3, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>✓</button>
+                    <button onClick={() => addPayment(loan.id)} style={{ background: "#4A643C", border: "none", color: "#fff", padding: "6px 14px", borderRadius: 3, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>✓</button>
                   </div>
                 </div>
               )}
@@ -2783,7 +2782,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
               ) : (
                 <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ color: "#444" }}>
+                    <tr style={{ color: "#999" }}>
                       <th style={{ textAlign: "left", padding: "5px 6px" }}>#</th>
                       <th style={{ textAlign: "left", padding: "5px 6px" }}>DATE</th>
                       <th style={{ textAlign: "left", padding: "5px 6px" }}>NOTE</th>
@@ -2795,25 +2794,25 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                     {stats.payments.map((p, idx) => {
                       const isEditingPay = editPayId === p.id;
                       if (isEditingPay) return (
-                        <tr key={p.id} style={{ borderTop: "1px solid #1a1a1a", background: "#0d0d1a" }}>
+                        <tr key={p.id} style={{ borderTop: "1px solid #E8E8E4", background: "#F0F4F8" }}>
                           <td style={{ padding: "5px 6px", color: "#555" }}>{idx + 1}</td>
                           <td style={{ padding: "5px 6px" }}><input type="date" value={editPayForm.date} onChange={(e) => setEditPayForm({ ...editPayForm, date: e.target.value })} style={{ ...editInputStyle, width: 130 }} /></td>
                           <td style={{ padding: "5px 6px" }}><input value={editPayForm.note} onChange={(e) => setEditPayForm({ ...editPayForm, note: e.target.value })} style={editInputStyle} /></td>
                           <td style={{ padding: "5px 6px" }}><input type="number" value={editPayForm.amount} onChange={(e) => setEditPayForm({ ...editPayForm, amount: e.target.value })} style={{ ...editInputStyle, textAlign: "right", width: 120 }} /></td>
                           <td style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>
-                            <button onClick={saveEditPay} style={{ background: "#10b981", border: "none", color: "#fff", padding: "3px 8px", borderRadius: 3, fontSize: 11, cursor: "pointer", marginRight: 4 }}>✓</button>
-                            <button onClick={cancelEditPay} style={{ background: "transparent", border: "1px solid #444", color: "#888", padding: "2px 7px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>✕</button>
+                            <button onClick={saveEditPay} style={{ background: "#4A643C", border: "none", color: "#fff", padding: "3px 8px", borderRadius: 3, fontSize: 11, cursor: "pointer", marginRight: 4 }}>✓</button>
+                            <button onClick={cancelEditPay} style={{ background: "transparent", border: "1px solid #C0C0BC", color: "#7C8B67", padding: "2px 7px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>✕</button>
                           </td>
                         </tr>
                       );
                       return (
-                        <tr key={p.id} style={{ borderTop: "1px solid #1a1a1a" }}>
+                        <tr key={p.id} style={{ borderTop: "1px solid #E8E8E4" }}>
                           <td style={{ padding: "6px 6px", color: "#555" }}>{idx + 1}</td>
                           <td style={{ padding: "6px 6px" }}>{p.date}</td>
-                          <td style={{ padding: "6px 6px", color: "#888" }}>{p.note || "—"}</td>
-                          <td style={{ padding: "6px 6px", textAlign: "right", color: "#10b981", fontWeight: 600 }}>{fmt(p.amount)}</td>
+                          <td style={{ padding: "6px 6px", color: "#7C8B67" }}>{p.note || "—"}</td>
+                          <td style={{ padding: "6px 6px", textAlign: "right", color: "#4A643C", fontWeight: 600 }}>{fmt(p.amount)}</td>
                           <td style={{ padding: "6px 6px", whiteSpace: "nowrap" }}>
-                            <button onClick={() => startEditPay(p)} style={{ background: "transparent", border: "1px solid #c8a86b44", color: "#c8a86b", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
+                            <button onClick={() => startEditPay(p)} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
                             <button onClick={() => deletePay(p.id, loan.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "2px 7px", borderRadius: 3, cursor: "pointer" }}>🗑</button>
                           </td>
                         </tr>
@@ -2821,9 +2820,9 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: "2px solid #222" }}>
-                      <td colSpan={3} style={{ padding: "6px 6px", fontSize: 11, color: "#888" }}>Total paid</td>
-                      <td style={{ padding: "6px 6px", textAlign: "right", color: "#10b981", fontWeight: 700 }}>{fmt(stats.totalPaid)}</td>
+                    <tr style={{ borderTop: "2px solid #E0E0DC" }}>
+                      <td colSpan={3} style={{ padding: "6px 6px", fontSize: 11, color: "#7C8B67" }}>Total paid</td>
+                      <td style={{ padding: "6px 6px", textAlign: "right", color: "#4A643C", fontWeight: 700 }}>{fmt(stats.totalPaid)}</td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -2835,7 +2834,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
       })}
 
       {loans.length === 0 && (
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 40, textAlign: "center", color: "#555" }}>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 40, textAlign: "center", color: "#555" }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🚚</div>
           <div style={{ fontSize: 14, marginBottom: 8 }}>No trucks added yet</div>
           <div style={{ fontSize: 12 }}>Click "+ Add Truck" to register your first truck and contract</div>
@@ -2935,7 +2934,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
 
   // ── Metric config ─────────────────────────────────────────────────────────
   const METRIC_CONFIG = [
-    { key: "gpPct",    label: "Gross Profit %",    color: "#10b981", unit: "%", ideal: "> 30%",  good: v => v >= 30 },
+    { key: "gpPct",    label: "Gross Profit %",    color: "#4A643C", unit: "%", ideal: "> 30%",  good: v => v >= 30 },
     { key: "opPct",    label: "Operating Margin %", color: "#3b82f6", unit: "%", ideal: "> 20%",  good: v => v >= 20 },
     { key: "netPct",   label: "Net Margin %",       color: "#a78bfa", unit: "%", ideal: "> 15%",  good: v => v >= 15 },
     { key: "opexPct",  label: "OpEx / Revenue %",   color: "#f59e0b", unit: "%", ideal: "< 50%",  good: v => v <= 50 },
@@ -2948,7 +2947,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
       unit: "%",
       ideal: "> 30%",
       good: v => v >= 30,
-      color: "#10b981",
+      color: "#4A643C",
       desc: "Revenue kept after paying drivers & direct trip costs",
       formula: "Gross Profit / Revenue",
     },
@@ -3021,7 +3020,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
       unit: "Rp",
       ideal: "maximise",
       good: () => true,
-      color: "#c8a86b",
+      color: "#A39159",
       desc: "Average invoiced amount per delivery",
       formula: "Total Revenue / # Trips",
     },
@@ -3031,7 +3030,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
       unit: "Rp",
       ideal: "maximise",
       good: v => v > 0,
-      color: "#10b981",
+      color: "#4A643C",
       desc: "Average net profit per delivery",
       formula: "Net Profit / # Trips",
     },
@@ -3050,13 +3049,13 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
     );
   };
 
-  const COLORS = { "#10b981": "#10b981", "#3b82f6": "#3b82f6", "#a78bfa": "#a78bfa", "#f59e0b": "#f59e0b" };
+  const COLORS = { "#4A643C": "#4A643C", "#3b82f6": "#3b82f6", "#a78bfa": "#a78bfa", "#f59e0b": "#f59e0b" };
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
-      <div style={{ background: "#111", border: "1px solid #333", borderRadius: 6, padding: "10px 14px", fontSize: 11 }}>
-        <div style={{ color: "#c8a86b", fontWeight: 700, marginBottom: 6 }}>{label}</div>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 6, padding: "10px 14px", fontSize: 11 }}>
+        <div style={{ color: "#A39159", fontWeight: 700, marginBottom: 6 }}>{label}</div>
         {payload.map((p, i) => (
           <div key={i} style={{ color: p.color, marginBottom: 2 }}>
             {p.name}: <strong>{p.value?.toFixed(1)}{p.unit || "%"}</strong>
@@ -3068,13 +3067,13 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 20 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
           <div>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-              📈 Business Metrics
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Business Metrics
             </h3>
-            <div style={{ fontSize: 11, color: "#666", marginTop: 3 }}>Ratios for {periodLabel} · Balance sheet ratios always cumulative</div>
+            <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>Ratios for {periodLabel} · Balance sheet ratios always cumulative</div>
           </div>
         </div>
 
@@ -3084,13 +3083,13 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
             const val = m.value;
             const isGood = val !== null && !isNaN(val) && m.good(val);
             const na = val === null || isNaN(val);
-            const statusColor = na ? "#555" : isGood ? "#10b981" : "#ef4444";
+            const statusColor = na ? "#555" : isGood ? "#4A643C" : "#ef4444";
             return (
-              <div key={m.label} style={{ background: "#0d0d0d", border: `1px solid ${statusColor}33`, borderRadius: 8, padding: 16, position: "relative" }}>
+              <div key={m.label} style={{ background: "#F4F4F2", border: `1px solid ${statusColor}33`, borderRadius: 8, padding: 16, position: "relative" }}>
                 {m.cumulative && (
-                  <div style={{ position: "absolute", top: 8, right: 8, fontSize: 9, color: "#555", background: "#1a1a1a", padding: "1px 5px", borderRadius: 2 }}>ALL-TIME</div>
+                  <div style={{ position: "absolute", top: 8, right: 8, fontSize: 9, color: "#555", background: "#F8F8F6", padding: "1px 5px", borderRadius: 2 }}>ALL-TIME</div>
                 )}
-                <div style={{ fontSize: 10, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{m.label}</div>
+                <div style={{ fontSize: 10, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{m.label}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: statusColor, marginBottom: 4 }}>
                   {na ? "—" : fmtVal(val, m.unit)}
                 </div>
@@ -3103,16 +3102,16 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
                   )}
                 </div>
                 <div style={{ fontSize: 10, color: "#555", marginBottom: 3 }}>{m.desc}</div>
-                <div style={{ fontSize: 9, color: "#444", fontFamily: "monospace" }}>{m.formula}</div>
+                <div style={{ fontSize: 9, color: "#999", fontFamily: "monospace" }}>{m.formula}</div>
               </div>
             );
           })}
         </div>
 
         {/* Trend Chart */}
-        <div style={{ background: "#0d0d0d", borderRadius: 6, padding: 16 }}>
+        <div style={{ background: "#F4F4F2", borderRadius: 6, padding: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-            <div style={{ fontSize: 12, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 12, color: "#A39159", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
               Margin Trends Over Time
             </div>
             <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
@@ -3120,9 +3119,9 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
               <div style={{ display: "flex", gap: 4 }}>
                 {["weekly", "monthly", "quarterly", "yearly"].map((g) => (
                   <button key={g} onClick={() => setChartGranularity(g)} style={{
-                    background: chartGranularity === g ? "#c8a86b" : "transparent",
-                    color: chartGranularity === g ? "#0d0d0d" : "#666",
-                    border: `1px solid ${chartGranularity === g ? "#c8a86b" : "#333"}`,
+                    background: chartGranularity === g ? "#A39159" : "transparent",
+                    color: chartGranularity === g ? "#F4F4F2" : "#555",
+                    border: `1px solid ${chartGranularity === g ? "#A39159" : "#D0D0CC"}`,
                     padding: "4px 10px", borderRadius: 3, fontSize: 11, fontWeight: 600, cursor: "pointer", textTransform: "capitalize",
                   }}>
                     {g === "weekly" ? "Wk" : g === "monthly" ? "Mo" : g === "quarterly" ? "Qtr" : "Yr"}
@@ -3135,7 +3134,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
                   <button key={m.key} onClick={() => toggleMetric(m.key)} style={{
                     background: activeMetrics.includes(m.key) ? m.color + "22" : "transparent",
                     color: activeMetrics.includes(m.key) ? m.color : "#555",
-                    border: `1px solid ${activeMetrics.includes(m.key) ? m.color + "66" : "#333"}`,
+                    border: `1px solid ${activeMetrics.includes(m.key) ? m.color + "66" : "#D0D0CC"}`,
                     padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer", fontWeight: activeMetrics.includes(m.key) ? 600 : 400,
                   }}>
                     {m.label}
@@ -3152,12 +3151,12 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-                <XAxis dataKey="period" tick={{ fill: "#666", fontSize: 10 }} />
-                <YAxis tick={{ fill: "#666", fontSize: 10 }} unit="%" domain={["auto", "auto"]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F8F8F6" />
+                <XAxis dataKey="period" tick={{ fill: "#7C8B67", fontSize: 10 }} />
+                <YAxis tick={{ fill: "#7C8B67", fontSize: 10 }} unit="%" domain={["auto", "auto"]} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: "#888" }} />
-                <ReferenceLine y={0} stroke="#444" strokeDasharray="4 2" />
+                <Legend wrapperStyle={{ fontSize: 11, color: "#7C8B67" }} />
+                <ReferenceLine y={0} stroke="#999" strokeDasharray="4 2" />
                 {METRIC_CONFIG.filter(m => activeMetrics.includes(m.key)).map((m) => (
                   <Line
                     key={m.key}
@@ -3176,15 +3175,15 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
 
           {/* Revenue vs Cost bars */}
           <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 11, color: "#888", marginBottom: 10 }}>Revenue vs Costs (Rp)</div>
+            <div style={{ fontSize: 11, color: "#7C8B67", marginBottom: 10 }}>Revenue vs Costs (Rp)</div>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={timeSeries} margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-                <XAxis dataKey="period" tick={{ fill: "#666", fontSize: 10 }} />
-                <YAxis tick={{ fill: "#666", fontSize: 10 }} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : `${(v/1000).toFixed(0)}K`} />
-                <Tooltip formatter={(v) => fmt(v)} contentStyle={{ background: "#111", border: "1px solid #333", fontSize: 11 }} />
-                <Legend wrapperStyle={{ fontSize: 11, color: "#888" }} />
-                <Bar dataKey="revenue"     name="Revenue"      fill="#10b981" radius={[3,3,0,0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F8F8F6" />
+                <XAxis dataKey="period" tick={{ fill: "#7C8B67", fontSize: 10 }} />
+                <YAxis tick={{ fill: "#7C8B67", fontSize: 10 }} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : `${(v/1000).toFixed(0)}K`} />
+                <Tooltip formatter={(v) => fmt(v)} contentStyle={{ background: "#1B3F60", border: "1px solid #E0E0DC", fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 11, color: "#7C8B67" }} />
+                <Bar dataKey="revenue"     name="Revenue"      fill="#4A643C" radius={[3,3,0,0]} />
                 <Bar dataKey="cogs"        name="Trip Costs"   fill="#ef4444" radius={[3,3,0,0]} />
                 <Bar dataKey="truckOps"    name="Truck Ops"    fill="#f59e0b" radius={[3,3,0,0]} />
                 <Bar dataKey="overhead"    name="Overhead"     fill="#ec4899" radius={[3,3,0,0]} />
@@ -3464,34 +3463,34 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
     XLSX.writeFile(wb, `KinKin_Full_Reports_${fileLabel}.xlsx`);
   };
 
-  const Section = ({ title, rows, total, totalLabel = "TOTAL", color = "#10b981" }) => (
+  const Section = ({ title, rows, total, totalLabel = "TOTAL", color = "#4A643C" }) => (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ fontSize: 11, color: "#c8a86b", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #222", paddingBottom: 4, fontWeight: 600 }}>{title}</div>
+      <div style={{ fontSize: 11, color: "#A39159", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #E0E0DC", paddingBottom: 4, fontWeight: 600 }}>{title}</div>
       {rows.map(([label, amt], i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: "#888" }}>
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: "#7C8B67" }}>
           <span>{label}</span><span>{fmt(amt)}</span>
         </div>
       ))}
-      <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, fontWeight: 600, color, borderTop: "1px solid #222", marginTop: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, fontWeight: 600, color, borderTop: "1px solid #E0E0DC", marginTop: 4 }}>
         <span>{totalLabel}</span><span>{fmt(total)}</span>
       </div>
     </div>
   );
 
   const ReportCard = ({ icon, title, description, color, buildFn, downloadFn }) => (
-    <div style={{ background: "#161616", border: `1px solid ${color}33`, borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ background: "#FEFEFE", border: `1px solid ${color}33`, borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ fontSize: 24 }}>{icon}</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, color, fontWeight: 700, fontFamily: "'Montserrat', sans-serif" }}>{title}</div>
-          <div style={{ fontSize: 11, color: "#777", marginTop: 2 }}>{description}</div>
+          <div style={{ fontSize: 11, color: "#7C8B67", marginTop: 2 }}>{description}</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={() => openPreview(title, icon, color, buildFn, downloadFn)} style={{ flex: 1, background: "transparent", color, border: `1px solid ${color}66`, padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
           👁 Preview
         </button>
-        <button onClick={downloadFn} style={{ flex: 1, background: color, color: "#0d0d0d", border: "none", padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+        <button onClick={downloadFn} style={{ flex: 1, background: color, color: "#FEFEFE", border: "none", padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
           📥 Download
         </button>
       </div>
@@ -3510,22 +3509,22 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
     return (
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.88)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-        <div style={{ background: "#0d0d0d", border: `1px solid ${color}88`, borderRadius: 10, width: "100%", maxWidth: 900, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ background: "#F4F4F2", border: `1px solid ${color}88`, borderRadius: 10, width: "100%", maxWidth: 900, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
 
           {/* Modal header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #222" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #E0E0DC" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 26 }}>{icon}</span>
               <div>
                 <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color, fontWeight: 700 }}>{title}</div>
-                <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>Period: {periodLabel}</div>
+                <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>Period: {periodLabel}</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={downloadFn} style={{ background: color, color: "#0d0d0d", border: "none", padding: "9px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={downloadFn} style={{ background: color, color: "#FEFEFE", border: "none", padding: "9px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                 📥 Download Excel
               </button>
-              <button onClick={() => setReportPreview(null)} style={{ background: "transparent", color: "#888", border: "1px solid #333", padding: "8px 14px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => setReportPreview(null)} style={{ background: "transparent", color: "#7C8B67", border: "1px solid #E0E0DC", padding: "8px 14px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                 ✕ Close
               </button>
             </div>
@@ -3551,7 +3550,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
                   if (isHeader) return (
                     <tr key={i}>
-                      <td colSpan={6} style={{ padding: "14px 8px 4px", fontSize: 11, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #222" }}>
+                      <td colSpan={6} style={{ padding: "14px 8px 4px", fontSize: 11, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #E0E0DC" }}>
                         {row[0]}
                       </td>
                     </tr>
@@ -3564,8 +3563,8 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
                   return (
                     <tr key={i} style={{
-                      borderBottom: isTotal ? "2px solid #333" : "1px solid #1a1a1a",
-                      background: isTotal ? "#161616" : "transparent",
+                      borderBottom: isTotal ? "2px solid #D0D0CC" : "1px solid #E8E8E4",
+                      background: isTotal ? "#F4F4F2" : "transparent",
                     }}>
                       {cells.map((cell, j) => {
                         const isNum = typeof cell === "number";
@@ -3575,10 +3574,10 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
                             padding: isTotal ? "8px 8px" : "5px 8px",
                             textAlign: isNum ? "right" : "left",
                             color: isTotal && isAmtCol
-                              ? (cell < 0 ? "#ef4444" : "#10b981")
+                              ? (cell < 0 ? "#ef4444" : "#4A643C")
                               : isNum
-                              ? (cell < 0 ? "#ef444499" : "#bbb")
-                              : isSubLabel && j === 0 ? "#aaa" : "#ddd",
+                              ? (cell < 0 ? "#ef444499" : "#555")
+                              : isSubLabel && j === 0 ? "#7C8B67" : "#2d2d2d",
                             fontWeight: isTotal ? 700 : 400,
                             fontSize: isTotal ? 13 : 12,
                             paddingLeft: isSubLabel && j === 0 ? 20 : undefined,
@@ -3600,7 +3599,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
           </div>
 
           {/* Footer */}
-          <div style={{ padding: "12px 24px", borderTop: "1px solid #222", fontSize: 11, color: "#555", display: "flex", justifyContent: "space-between" }}>
+          <div style={{ padding: "12px 24px", borderTop: "1px solid #E0E0DC", fontSize: 11, color: "#555", display: "flex", justifyContent: "space-between" }}>
             <span>{rows.filter((r) => !r.every((c) => c === "" || c == null)).length} rows</span>
             <span>Generated {new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</span>
           </div>
@@ -3617,12 +3616,12 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
       {/* Report Preview Modal */}
       <ReportPreviewModal />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700 }}>FINANCIAL REPORTS</h2>
+        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700 }}>FINANCIAL REPORTS</h2>
       </div>
 
       {/* Date Range Picker */}
-      <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 20, marginBottom: 24 }}>
-        <div style={{ fontSize: 12, color: "#c8a86b", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>📅 Report Period</div>
+      <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 20, marginBottom: 24 }}>
+        <div style={{ fontSize: 12, color: "#A39159", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Report Period</div>
 
         <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
           {[
@@ -3635,9 +3634,9 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
             { key: "custom", label: "Custom" },
           ].map((p) => (
             <button key={p.key} onClick={() => applyPreset(p.key)} style={{
-              background: preset === p.key ? "#c8a86b" : "#1a1a1a",
-              color: preset === p.key ? "#0d0d0d" : "#888",
-              border: `1px solid ${preset === p.key ? "#c8a86b" : "#333"}`,
+              background: preset === p.key ? "#A39159" : "#F8F8F6",
+              color: preset === p.key ? "#F4F4F2" : "#7C8B67",
+              border: `1px solid ${preset === p.key ? "#A39159" : "#D0D0CC"}`,
               padding: "6px 12px", borderRadius: 4, fontSize: 11, fontWeight: 600
             }}>
               {p.label}
@@ -3654,8 +3653,8 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
             <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>TO DATE</label>
             <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPreset("custom"); }} />
           </div>
-          <div style={{ background: "#0d0d0d", padding: 10, borderRadius: 4, fontSize: 11, color: "#888" }}>
-            <strong style={{ color: "#c8a86b" }}>Active period:</strong> {periodLabel}<br />
+          <div style={{ background: "#F4F4F2", padding: 10, borderRadius: 4, fontSize: 11, color: "#7C8B67" }}>
+            <strong style={{ color: "#A39159" }}>Active period:</strong> {periodLabel}<br />
             <span style={{ color: "#555" }}>{fTrips.length} trips · {fExpenses.length} expenses</span>
           </div>
         </div>
@@ -3663,25 +3662,25 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
       {/* KPI Summary for filtered period */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>REVENUE</div>
-          <div style={{ fontSize: 15, color: "#10b981" }}>{fmt(fTotalRevenue)}</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 14 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>REVENUE</div>
+          <div style={{ fontSize: 15, color: "#4A643C" }}>{fmt(fTotalRevenue)}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>GROSS PROFIT</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 14 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>GROSS PROFIT</div>
           <div style={{ fontSize: 15, color: "#3b82f6" }}>{fmt(fGrossProfit)}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>OPERATING PROFIT</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 14 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>OPERATING PROFIT</div>
           <div style={{ fontSize: 15, color: "#3b82f6" }}>{fmt(operatingProfit)}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #c8a86b44", borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>NET PROFIT</div>
-          <div style={{ fontSize: 15, color: fNetProfit >= 0 ? "#10b981" : "#ef4444", fontWeight: 600 }}>{fmt(fNetProfit)}</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #A3915944", borderRadius: 8, padding: 14 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>NET PROFIT</div>
+          <div style={{ fontSize: 15, color: fNetProfit >= 0 ? "#4A643C" : "#ef4444", fontWeight: 600 }}>{fmt(fNetProfit)}</div>
         </div>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 14 }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>NET MARGIN</div>
-          <div style={{ fontSize: 15, color: "#c8a86b" }}>{fTotalRevenue > 0 ? `${((fNetProfit / fTotalRevenue) * 100).toFixed(1)}%` : "—"}</div>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 14 }}>
+          <div style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>NET MARGIN</div>
+          <div style={{ fontSize: 15, color: "#A39159" }}>{fTotalRevenue > 0 ? `${((fNetProfit / fTotalRevenue) * 100).toFixed(1)}%` : "—"}</div>
         </div>
       </div>
 
@@ -3709,19 +3708,19 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
       />
 
       {/* Individual Report Download Cards */}
-      <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 20, marginBottom: 24 }}>
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>📄 Downloadable Reports</h3>
-            <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>All reports use the date range above</div>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Downloadable Reports</h3>
+            <div style={{ fontSize: 11, color: "#555", marginTop: 4 }}>All reports use the date range above</div>
           </div>
-          <button onClick={downloadAll} style={{ background: "#c8a86b", color: "#0d0d0d", border: "none", padding: "10px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12 }}>
+          <button onClick={downloadAll} style={{ background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12 }}>
             📦 Download All as One File
           </button>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-          <ReportCard icon="📊" title="Profit & Loss" description="GAAP-structured P&L with revenue, COGS, expenses, net profit" color="#10b981" buildFn={buildPL} downloadFn={() => downloadSingle("P&L", buildPL, "P&L")} />
+          <ReportCard icon="📊" title="Profit & Loss" description="GAAP-structured P&L with revenue, COGS, expenses, net profit" color="#4A643C" buildFn={buildPL} downloadFn={() => downloadSingle("P&L", buildPL, "P&L")} />
           <ReportCard icon="💰" title="Income Statement" description="Revenue detail from trips + summary" color="#3b82f6" buildFn={buildIncomeStatement} downloadFn={() => downloadSingle("Income_Statement", buildIncomeStatement, "Income Statement")} />
           <ReportCard icon="💸" title="Cash Flow Statement" description="Operating, Investing & Financing activities" color="#f59e0b" buildFn={buildCashFlow} downloadFn={() => downloadSingle("Cash_Flow", buildCashFlow, "Cash Flow")} />
           <ReportCard icon="⚖️" title="Balance Sheet" description="Assets, liabilities & equity snapshot" color="#a78bfa" buildFn={buildBalanceSheet} downloadFn={() => downloadSingle("Balance_Sheet", buildBalanceSheet, "Balance Sheet")} />
@@ -3732,35 +3731,35 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
       {/* Visual P&L Preview */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
-        <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 24 }}>
-          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>📊 PROFIT & LOSS PREVIEW</h3>
+        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#A39159", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>📊 PROFIT & LOSS PREVIEW</h3>
           <Section title="Revenue" rows={[["Freight Revenue", fTotalRevenue]]} total={fTotalRevenue} totalLabel="GROSS REVENUE" />
           <Section title="Cost of Services" rows={[["Driver Allowances", fTrips.reduce((s, t) => s + t.sangu, 0)], ["Misc Trip Costs", fTrips.reduce((s, t) => s + t.lainAmt, 0)]]} total={fTripCosts} totalLabel="TOTAL COGS" color="#ef4444" />
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#3b82f6", borderTop: "2px solid #333", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#3b82f6", borderTop: "2px solid #D0D0CC", marginTop: 8 }}>
             <span>GROSS PROFIT</span><span>{fmt(fGrossProfit)}</span>
           </div>
           <Section title="🚛 Truck Operating Expenses" rows={Object.entries(fTruckExpByCategory).length ? Object.entries(fTruckExpByCategory) : [["No truck expenses", 0]]} total={fTruckOpsExpenses} totalLabel="TOTAL TRUCK OPS" color="#f59e0b" />
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#3b82f6", borderTop: "1px solid #333", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#3b82f6", borderTop: "1px solid #D0D0CC", marginTop: 8 }}>
             <span>OPERATING PROFIT</span><span>{fmt(operatingProfit)}</span>
           </div>
           <Section title="🏢 Overhead (SG&A)" rows={Object.entries(fOverheadExpByCategory).length ? Object.entries(fOverheadExpByCategory) : [["No overhead", 0]]} total={fOverheadExpenses} totalLabel="TOTAL OVERHEAD" color="#ec4899" />
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 16, fontWeight: 700, color: fNetProfit >= 0 ? "#10b981" : "#ef4444", borderTop: "2px solid #c8a86b55", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 16, fontWeight: 700, color: fNetProfit >= 0 ? "#4A643C" : "#ef4444", borderTop: "2px solid #A3915955", marginTop: 8 }}>
             <span>NET PROFIT / (LOSS)</span><span>{fmt(fNetProfit)}</span>
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 24 }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>💸 CASH FLOW PREVIEW</h3>
+          <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 24 }}>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#A39159", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>💸 CASH FLOW PREVIEW</h3>
             <Section title="Operating Activities" rows={[["Revenue collected", fTotalRevenue], ["Trip costs paid", -fTripCosts], ["Truck ops paid", -fTruckOpsExpenses], ["Overhead paid", -fOverheadExpenses]]} total={fTotalRevenue - fTripCosts - fTruckOpsExpenses - fOverheadExpenses} totalLabel="NET OPERATING" color="#3b82f6" />
-            <Section title="Investing Activities" rows={[["Asset purchases", -fAssetsValue]]} total={-fAssetsValue} totalLabel="NET INVESTING" color="#c8a86b" />
+            <Section title="Investing Activities" rows={[["Asset purchases", -fAssetsValue]]} total={-fAssetsValue} totalLabel="NET INVESTING" color="#A39159" />
             <Section title="Financing Activities" rows={[["Capital injection", fCapitalInjected], ["Loans received", fLoansReceived], ["Loan repayments", -fLoanPaymentsMade]]} total={fCapitalInjected + fLoansReceived - fLoanPaymentsMade} totalLabel="NET FINANCING" color="#ec4899" />
           </div>
 
-          <div style={{ background: "#161616", border: "1px solid #222", borderRadius: 8, padding: 24 }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>⚖️ BALANCE SHEET SNAPSHOT</h3>
-            <div style={{ fontSize: 11, color: "#666", marginBottom: 10 }}>Cumulative position (not period-filtered)</div>
-            <Section title="Assets" rows={[["Cash", kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)], ["Trucks & Equipment", totalAssetsValue]]} total={totalAssetsValue + kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)} totalLabel="TOTAL ASSETS" color="#10b981" />
+          <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 24 }}>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#A39159", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>⚖️ BALANCE SHEET SNAPSHOT</h3>
+            <div style={{ fontSize: 11, color: "#555", marginBottom: 10 }}>Cumulative position (not period-filtered)</div>
+            <Section title="Assets" rows={[["Cash", kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)], ["Trucks & Equipment", totalAssetsValue]]} total={totalAssetsValue + kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)} totalLabel="TOTAL ASSETS" color="#4A643C" />
             <Section title="Liabilities" rows={[["Loans Outstanding", totalLoanPrincipalRemaining]]} total={totalLoanPrincipalRemaining} totalLabel="TOTAL LIABILITIES" color="#ef4444" />
             <Section title="Equity" rows={[["Owner Capital", capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0)]]} total={capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0)} totalLabel="TOTAL EQUITY" color="#3b82f6" />
           </div>
@@ -3789,13 +3788,13 @@ function LoginGate({ onSuccess }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d0d0d", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
-      <form onSubmit={submit} style={{ width: "100%", maxWidth: "320px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F4F2", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: "360px", display: "flex", flexDirection: "column", alignItems: "center", background: "#FEFEFE", borderRadius: 12, padding: "40px 32px", boxShadow: "0 4px 24px rgba(27,63,96,0.10)", border: "1px solid #E0E0DC" }}>
         <img src="/logo.jpg" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24 }} />
-        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#c8a86b", textAlign: "center" }}>
+        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#1B3F60", textAlign: "center" }}>
           Kin Kin Trukindo, Ltd.
         </h1>
-        <p style={{ margin: "12px 0 28px 0", color: "#888", fontSize: 13, letterSpacing: 0.5, textAlign: "center" }}>
+        <p style={{ margin: "12px 0 28px 0", color: "#7C8B67", fontSize: 13, letterSpacing: 0.5, textAlign: "center" }}>
           Enter Authorization Code
         </p>
         <input
@@ -3808,10 +3807,10 @@ function LoginGate({ onSuccess }) {
           style={{
             width: "100%",
             padding: "12px 14px",
-            background: "#161616",
-            border: `1px solid ${focused ? "#c8a86b" : "#333"}`,
+            background: "#F8F8F6",
+            border: `1px solid ${focused ? "#A39159" : "#D0D0CC"}`,
             borderRadius: 6,
-            color: "white",
+            color: "#2d2d2d",
             fontSize: 15,
             textAlign: "center",
             letterSpacing: 2,
@@ -3820,15 +3819,15 @@ function LoginGate({ onSuccess }) {
             transition: "border-color 0.15s ease",
           }}
         />
-        {err && <div style={{ color: "#ef4444", fontSize: 13, marginTop: 10, textAlign: "center" }}>{err}</div>}
+        {err && <div style={{ color: "#c0392b", fontSize: 13, marginTop: 10, textAlign: "center" }}>{err}</div>}
         <button
           type="submit"
           style={{
             width: "100%",
             marginTop: 20,
             padding: "12px",
-            background: "#c8a86b",
-            color: "#000",
+            background: "#1B3F60",
+            color: "#FEFEFE",
             border: "none",
             borderRadius: 6,
             fontSize: 14,
