@@ -331,7 +331,7 @@ const TABS = [
   { key: "reports",   label: "Reports",         short: "Report" },
 ];
 
-function KinKinApp() {
+function KinKinApp({ userProfile, onSignOut }) {
   const [tab, setTab] = useState("dashboard");
   const isMobile = useIsMobile();
   const [trips, setTrips] = useState([]);
@@ -349,6 +349,8 @@ function KinKinApp() {
   const [toast, setToast] = useState(null);
   const [importing, setImporting] = useState(false);
   const [appLoading, setAppLoading] = useState(true);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const globalFileRef = useRef(null);
 
   const _skipSave = useRef(true);
@@ -542,6 +544,27 @@ function KinKinApp() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  async function loadPendingUsers() {
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("approved", false)
+      .order("created_at", { ascending: true });
+    setPendingUsers(data || []);
+  }
+
+  async function approveUser(profileId) {
+    await supabase.from("user_profiles").update({ approved: true }).eq("id", profileId);
+    setPendingUsers((prev) => prev.filter((u) => u.id !== profileId));
+    showToast("User approved");
+  }
+
+  async function rejectUser(profileId, userId) {
+    await supabase.from("user_profiles").delete().eq("id", profileId);
+    showToast("User rejected and removed");
+    setPendingUsers((prev) => prev.filter((u) => u.id !== profileId));
+  }
+
   // ── Aggregates ──────────────────────────────────────────────────────────────
   const totalRevenue = trips.reduce((s, t) => s + t.jual, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
@@ -616,6 +639,24 @@ function KinKinApp() {
           </>
         )}
         <div style={{ flex: 1 }} />
+        {userProfile?.role === "admin" && (
+          <button
+            onClick={() => { setShowAdminPanel(true); loadPendingUsers(); }}
+            style={{ background: "transparent", border: "1px solid #A3915988", color: "#A39159", padding: "5px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer", marginRight: 4 }}
+            title="Admin panel"
+          >
+            Users {pendingUsers.length > 0 ? `(${pendingUsers.length})` : ""}
+          </button>
+        )}
+        <button
+          onClick={() => {
+            if (onSignOut) onSignOut();
+          }}
+          style={{ background: "transparent", border: "1px solid #FEFEFE44", color: "#FEFEFE88", padding: "5px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer", marginRight: 4 }}
+          title="Sign out"
+        >
+          Sign Out
+        </button>
         <button
           onClick={() => setConfirmModal({
             title: "Reset all data?",
@@ -645,6 +686,41 @@ function KinKinApp() {
       {toast && (
         <div style={{ position: "fixed", top: 70, right: 24, background: toast.type === "success" ? "#4A643C" : "#c0392b", color: "#fff", padding: "10px 18px", borderRadius: 6, zIndex: 999, fontSize: 13, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
           {toast.msg}
+        </div>
+      )}
+
+      {/* Admin Panel Modal */}
+      {showAdminPanel && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "#FEFEFE", border: "1px solid #A39159", borderRadius: 10, padding: 28, maxWidth: 520, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#1B3F60", fontWeight: 700 }}>User Management</h3>
+              <button onClick={() => setShowAdminPanel(false)} style={{ background: "transparent", border: "none", fontSize: 20, color: "#888", cursor: "pointer" }}>×</button>
+            </div>
+            <div style={{ marginBottom: 16, padding: "10px 14px", background: "#F8F8F6", borderRadius: 6, border: "1px solid #E0E0DC" }}>
+              <div style={{ fontSize: 12, color: "#7C8B67", marginBottom: 4 }}>Logged in as</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#1B3F60" }}>{userProfile?.username} <span style={{ fontWeight: 400, color: "#A39159", fontSize: 12 }}>({userProfile?.role})</span></div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1B3F60", marginBottom: 12 }}>Pending Approvals</div>
+              {pendingUsers.length === 0 ? (
+                <div style={{ fontSize: 13, color: "#888", textAlign: "center", padding: "20px 0" }}>No pending approvals</div>
+              ) : (
+                pendingUsers.map((u) => (
+                  <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F8F8F6", borderRadius: 6, border: "1px solid #E0E0DC", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#2d2d2d" }}>{u.username}</div>
+                      <div style={{ fontSize: 11, color: "#888" }}>{u.email} · {new Date(u.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => approveUser(u.id)} style={{ background: "#4A643C", color: "#fff", border: "none", padding: "5px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Approve</button>
+                      <button onClick={() => rejectUser(u.id, u.user_id)} style={{ background: "#c0392b", color: "#fff", border: "none", padding: "5px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Reject</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -3769,84 +3845,210 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
   );
 }
 
-const APP_PASSWORD = "808880";
-
-function LoginGate({ onSuccess }) {
-  const [pwd, setPwd] = useState("");
-  const [err, setErr] = useState("");
-  const [focused, setFocused] = useState(false);
-
-  function submit(e) {
-    e.preventDefault();
-    if (pwd === APP_PASSWORD) {
-      setErr("");
-      onSuccess();
-    } else {
-      setErr("Invalid code");
-      setPwd("");
-    }
-  }
-
+function AuthShell({ children }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F4F2", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
-      <form onSubmit={submit} style={{ width: "100%", maxWidth: "360px", display: "flex", flexDirection: "column", alignItems: "center", background: "#FEFEFE", borderRadius: 12, padding: "40px 32px", boxShadow: "0 4px 24px rgba(27,63,96,0.10)", border: "1px solid #E0E0DC" }}>
-        <img src="/logo-light.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24 }} />
-        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#1B3F60", textAlign: "center" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap');`}</style>
+      <div style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", alignItems: "center", background: "#FEFEFE", borderRadius: 12, padding: "40px 32px", boxShadow: "0 4px 24px rgba(27,63,96,0.10)", border: "1px solid #E0E0DC" }}>
+        <img src="/logo-light.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 100, width: "auto", objectFit: "contain", marginBottom: 20 }} />
+        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: 2, color: "#1B3F60", textAlign: "center" }}>
           Kin Kin Trukindo, Ltd.
         </h1>
-        <p style={{ margin: "12px 0 28px 0", color: "#7C8B67", fontSize: 13, letterSpacing: 0.5, textAlign: "center" }}>
-          Enter Authorization Code
-        </p>
-        <input
-          type="password"
-          value={pwd}
-          onChange={(e) => setPwd(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          autoFocus
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            background: "#F8F8F6",
-            border: `1px solid ${focused ? "#A39159" : "#D0D0CC"}`,
-            borderRadius: 6,
-            color: "#2d2d2d",
-            fontSize: 15,
-            textAlign: "center",
-            letterSpacing: 2,
-            outline: "none",
-            boxSizing: "border-box",
-            transition: "border-color 0.15s ease",
-          }}
-        />
-        {err && <div style={{ color: "#c0392b", fontSize: 13, marginTop: 10, textAlign: "center" }}>{err}</div>}
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            marginTop: 20,
-            padding: "12px",
-            background: "#1B3F60",
-            color: "#FEFEFE",
-            border: "none",
-            borderRadius: 6,
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 1.5,
-            fontFamily: "'Montserrat', sans-serif",
-            cursor: "pointer",
-            textTransform: "uppercase",
-          }}
-        >
-          Authorize
-        </button>
-      </form>
+        <div style={{ width: "100%", marginTop: 28 }}>{children}</div>
+      </div>
     </div>
   );
 }
 
+function LoginGate({ onLogin }) {
+  const [mode, setMode] = useState("login"); // "login" | "signup" | "reset"
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  function labelStyle() { return { display: "block", fontSize: 11, fontWeight: 600, color: "#7C8B67", letterSpacing: 0.5, marginBottom: 5, textTransform: "uppercase" }; }
+  function inputStyle() { return { width: "100%", padding: "10px 12px", background: "#F8F8F6", border: "1px solid #D0D0CC", borderRadius: 6, color: "#2d2d2d", fontSize: 14, outline: "none", boxSizing: "border-box" }; }
+  function fieldWrap() { return { marginBottom: 14, width: "100%" }; }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      const { data: profile, error: profileErr } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("username", username.trim().toLowerCase())
+        .single();
+      if (profileErr || !profile) { setError("Username not found."); setLoading(false); return; }
+      if (!profile.approved) { setError("Your account is pending admin approval."); setLoading(false); return; }
+      const { error: authErr } = await supabase.auth.signInWithPassword({ email: profile.email, password });
+      if (authErr) { setError("Invalid password."); setLoading(false); return; }
+      onLogin(profile);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  }
+
+  async function handleSignup(e) {
+    e.preventDefault();
+    setError(""); setMessage("");
+    if (password !== confirmPassword) { setError("Passwords do not match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (!username.trim()) { setError("Username is required."); return; }
+    setLoading(true);
+    try {
+      const { data: existing } = await supabase.from("user_profiles").select("id").eq("username", username.trim().toLowerCase()).single();
+      if (existing) { setError("Username already taken."); setLoading(false); return; }
+      const { data: authData, error: signUpErr } = await supabase.auth.signUp({ email: email.trim(), password });
+      if (signUpErr) { setError(signUpErr.message); setLoading(false); return; }
+      await supabase.from("user_profiles").insert({
+        user_id: authData.user.id,
+        username: username.trim().toLowerCase(),
+        email: email.trim().toLowerCase(),
+        role: "user",
+        approved: false,
+      });
+      try {
+        await fetch("/api/notify-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username.trim(), email: email.trim() }),
+        });
+      } catch {}
+      setMessage("Account created! An admin will review your request and approve your access.");
+      setMode("login");
+      setUsername(""); setEmail(""); setPassword(""); setConfirmPassword("");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  }
+
+  async function handleReset(e) {
+    e.preventDefault();
+    setError(""); setMessage(""); setLoading(true);
+    try {
+      const { data: profile } = await supabase.from("user_profiles").select("email").eq("username", username.trim().toLowerCase()).single();
+      if (!profile) { setError("Username not found."); setLoading(false); return; }
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(profile.email, {
+        redirectTo: window.location.origin,
+      });
+      if (resetErr) { setError(resetErr.message); } else {
+        setMessage("Password reset email sent. Check your inbox.");
+        setMode("login");
+        setUsername("");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  }
+
+  const btnStyle = { width: "100%", marginTop: 8, padding: "12px", background: "#1B3F60", color: "#FEFEFE", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, letterSpacing: 1, fontFamily: "'Montserrat', sans-serif", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, textTransform: "uppercase" };
+  const linkStyle = { background: "none", border: "none", color: "#A39159", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 };
+
+  return (
+    <AuthShell>
+      {message && <div style={{ background: "#f0f7ee", border: "1px solid #4A643C", color: "#4A643C", borderRadius: 6, padding: "10px 14px", fontSize: 13, marginBottom: 16, textAlign: "center" }}>{message}</div>}
+      {mode === "login" && (
+        <form onSubmit={handleLogin}>
+          <div style={fieldWrap()}><label style={labelStyle()}>Username</label><input style={inputStyle()} value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" /></div>
+          <div style={fieldWrap()}><label style={labelStyle()}>Password</label><input type="password" style={inputStyle()} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></div>
+          {error && <div style={{ color: "#c0392b", fontSize: 12, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+          <button type="submit" style={btnStyle} disabled={loading}>{loading ? "Signing in…" : "Sign In"}</button>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
+            <button type="button" style={linkStyle} onClick={() => { setMode("signup"); setError(""); setMessage(""); }}>Create account</button>
+            <button type="button" style={linkStyle} onClick={() => { setMode("reset"); setError(""); setMessage(""); }}>Forgot password?</button>
+          </div>
+        </form>
+      )}
+      {mode === "signup" && (
+        <form onSubmit={handleSignup}>
+          <div style={fieldWrap()}><label style={labelStyle()}>Username</label><input style={inputStyle()} value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" /></div>
+          <div style={fieldWrap()}><label style={labelStyle()}>Email</label><input type="email" style={inputStyle()} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
+          <div style={fieldWrap()}><label style={labelStyle()}>Password</label><input type="password" style={inputStyle()} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></div>
+          <div style={fieldWrap()}><label style={labelStyle()}>Confirm Password</label><input type="password" style={inputStyle()} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" /></div>
+          {error && <div style={{ color: "#c0392b", fontSize: 12, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+          <button type="submit" style={btnStyle} disabled={loading}>{loading ? "Creating account…" : "Create Account"}</button>
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <button type="button" style={linkStyle} onClick={() => { setMode("login"); setError(""); setMessage(""); }}>Back to sign in</button>
+          </div>
+          <p style={{ fontSize: 11, color: "#888", textAlign: "center", marginTop: 12 }}>New accounts require admin approval before access is granted.</p>
+        </form>
+      )}
+      {mode === "reset" && (
+        <form onSubmit={handleReset}>
+          <p style={{ fontSize: 13, color: "#7C8B67", marginBottom: 16, textAlign: "center" }}>Enter your username and we'll send a password reset link to your email.</p>
+          <div style={fieldWrap()}><label style={labelStyle()}>Username</label><input style={inputStyle()} value={username} onChange={(e) => setUsername(e.target.value)} autoFocus /></div>
+          {error && <div style={{ color: "#c0392b", fontSize: 12, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+          <button type="submit" style={btnStyle} disabled={loading}>{loading ? "Sending…" : "Send Reset Email"}</button>
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <button type="button" style={linkStyle} onClick={() => { setMode("login"); setError(""); setMessage(""); }}>Back to sign in</button>
+          </div>
+        </form>
+      )}
+    </AuthShell>
+  );
+}
+
+function PendingApproval({ username, onSignOut }) {
+  return (
+    <AuthShell>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#1B3F60", marginBottom: 8 }}>Pending Approval</h2>
+        <p style={{ fontSize: 13, color: "#7C8B67", marginBottom: 20 }}>Hi <strong>{username}</strong>, your account is awaiting admin approval. You'll receive an email once approved.</p>
+        <button onClick={onSignOut} style={{ background: "transparent", border: "1px solid #D0D0CC", color: "#888", padding: "8px 20px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+      </div>
+    </AuthShell>
+  );
+}
+
 export default function App() {
-  const [authed, setAuthed] = useState(false);
-  if (!authed) return <LoginGate onSuccess={() => setAuthed(true)} />;
-  return <KinKinApp />;
+  const [session, setSession] = useState(undefined); // undefined = loading, null = no session
+  const [userProfile, setUserProfile] = useState(null);
+
+  async function fetchProfile(userId) {
+    const { data } = await supabase.from("user_profiles").select("*").eq("user_id", userId).single();
+    setUserProfile(data || null);
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s ?? null);
+      if (s) fetchProfile(s.user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s ?? null);
+      if (s) fetchProfile(s.user.id);
+      else setUserProfile(null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (session === undefined) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#FEFEFE", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
+        <img src="/logo-light.png" alt="Kin Kin Trukindo" style={{ height: 80, width: "auto", objectFit: "contain", opacity: 0.85 }} />
+        <div style={{ width: 40, height: 40, border: "3px solid #E0E0DC", borderTopColor: "#A39159", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (!session) return <LoginGate onLogin={(profile) => setUserProfile(profile)} />;
+  if (!userProfile) return (
+    <div style={{ minHeight: "100vh", background: "#FEFEFE", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 40, height: 40, border: "3px solid #E0E0DC", borderTopColor: "#A39159", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+  if (!userProfile.approved) return <PendingApproval username={userProfile.username} onSignOut={() => supabase.auth.signOut()} />;
+
+  return <KinKinApp userProfile={userProfile} onSignOut={() => supabase.auth.signOut()} />;
 }
