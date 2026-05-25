@@ -209,6 +209,39 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
     t.source = "import";
   }
 
+  // Emit driver cost expense entries (sangu + each lain item) for Expenses tab + petty cash tracking
+  for (const t of trips) {
+    if (t.sangu > 0) {
+      expenses.push({
+        id: genId(),
+        date: t.date,
+        category: "Salary",
+        description: `Sangu${t.destination ? " — " + t.destination : ""}`,
+        amount: t.sangu,
+        expenseType: "driver",
+        truck: t.nopol,
+        holderId: holderId || "unassigned",
+        source: "import",
+        _fpKey: `DRIVER:${t.date}|SANGU|${t.nopol || ""}|${t.sangu}`,
+      });
+    }
+    for (const item of t.lainItems) {
+      if (!item.amount || item.amount <= 0) continue;
+      expenses.push({
+        id: genId(),
+        date: t.date,
+        category: categorizeExpense(item.label || "Other"),
+        description: item.label || "Lain-lain",
+        amount: item.amount,
+        expenseType: "driver",
+        truck: t.nopol,
+        holderId: holderId || "unassigned",
+        source: "import",
+        _fpKey: `DRIVER:${t.date}|${(item.label || "LAIN").toUpperCase()}|${t.nopol || ""}|${item.amount}`,
+      });
+    }
+  }
+
   // ── Parse expenses section ──────────────────────────────────────────────
   if (expStartIdx !== -1) {
     const endIdx = expEndIdx === -1 ? rows.length : expEndIdx;
@@ -484,6 +517,18 @@ function KinKinApp({ userProfile, onSignOut }) {
     setTrips([...trips, ...newTrips]);
     setExpenses([...expenses, ...taggedExpenses]);
 
+    // Create a single kas "out" entry for total driver costs this import
+    const driverCostTotal = newTrips.reduce((s, t) => s + t.total, 0);
+    const kasEntry = driverCostTotal > 0 ? {
+      id: genId(),
+      date: monthYear + "-01",
+      description: `Driver costs — ${monthYear} (${newTrips.length} trip${newTrips.length !== 1 ? "s" : ""})`,
+      amount: driverCostTotal,
+      type: "out",
+    } : null;
+    if (kasEntry) setKas([...kas, kasEntry]);
+    const kasIds = kasEntry ? [kasEntry.id] : [];
+
     const log = {
       id: genId(),
       importedAt: new Date().toISOString(),
@@ -492,6 +537,7 @@ function KinKinApp({ userProfile, onSignOut }) {
       truckPlate: parsed.truckPlate || "—",
       tripIds,
       expenseIds,
+      kasIds,
       summary: {
         tripCount: newTrips.length,
         skippedDuplicates: skippedCount,
@@ -532,6 +578,7 @@ function KinKinApp({ userProfile, onSignOut }) {
       onConfirm: () => {
         setTrips(trips.filter((t) => !log.tripIds.includes(t.id)));
         setExpenses(expenses.filter((e) => !log.expenseIds.includes(e.id)));
+        if (log.kasIds?.length) setKas(kas.filter((k) => !log.kasIds.includes(k.id)));
         setImportLogs(importLogs.filter((l) => l.id !== logId));
         showToast(`Removed import: ${log.fileName}`);
         setConfirmModal(null);
@@ -567,7 +614,7 @@ function KinKinApp({ userProfile, onSignOut }) {
 
   // ── Aggregates ──────────────────────────────────────────────────────────────
   const totalRevenue = trips.reduce((s, t) => s + t.jual, 0);
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  const totalExpenses = expenses.filter((e) => e.expenseType !== "driver").reduce((s, e) => s + e.amount, 0);
   const truckOpsExpenses = expenses.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + e.amount, 0);
   const overheadExpenses = expenses.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + e.amount, 0);
   const tripCosts = trips.reduce((s, t) => s + t.total, 0);
@@ -1718,12 +1765,20 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         <button onClick={() => switchType("petty")} style={{ background: expenseType === "petty" ? "#A39159" : "#F8F8F6", color: expenseType === "petty" ? "#FEFEFE" : "#7C8B67", border: `1px solid ${expenseType === "petty" ? "#A39159" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Petty Cash Top-Up
         </button>
+        <button onClick={() => switchType("driver")} style={{ background: expenseType === "driver" ? "#1B3F60" : "#F8F8F6", color: expenseType === "driver" ? "#FEFEFE" : "#7C8B67", border: `1px solid ${expenseType === "driver" ? "#1B3F60" : "#D0D0CC"}`, padding: "8px 18px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          Driver Costs
+        </button>
       </div>
 
       <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <h3 style={{ fontSize: 12, color: "#555", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>
-          Add {expenseType === "truck" ? "Truck" : expenseType === "overhead" ? "Overhead" : "Petty Cash Top-Up"}
+          Add {expenseType === "truck" ? "Truck" : expenseType === "overhead" ? "Overhead" : expenseType === "driver" ? "Driver Cost" : "Petty Cash Top-Up"}
         </h3>
+        {expenseType === "driver" ? (
+          <div style={{ color: "#7C8B67", fontSize: 13, padding: "12px 0" }}>
+            Driver costs are recorded automatically when you import a monthly CSV. They cannot be added manually.
+          </div>
+        ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DATE</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
           <div>
@@ -1762,6 +1817,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         <button onClick={addExpense} style={{ marginTop: 14, background: "#A39159", color: "#FEFEFE", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
           + Record {expenseType === "truck" ? "Truck" : expenseType === "overhead" ? "Overhead" : "Petty Cash"} Expense
         </button>
+        )}
       </div>
 
       <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
