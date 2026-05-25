@@ -472,7 +472,10 @@ function KinKinApp() {
       setUploadModal({
         ...uploadModal,
         previewReady: true,
-        parsed: result,
+        parsed: {
+          ...result,
+          expenses: result.expenses.map((e) => ({ ...e, usePettyCash: true })),
+        },
       });
     } catch (err) {
       showToast("Import failed: " + err.message, "error");
@@ -500,14 +503,14 @@ function KinKinApp() {
     });
     const skippedExpCount = parsed.expenses.length - newExpenses.length;
 
-    // ── Auto-assign imported expenses to petty cash holder ───────────────────
-    // If only ONE active holder exists → auto-assign all imported expenses to them
-    // If multiple holders → leave as "unassigned" (holderId = "unassigned")
+    // Assign holderId based on per-expense usePettyCash flag set in the preview
     const activeHolders = pettyHolders.filter((h) => h.active);
     const autoHolderId = activeHolders.length === 1 ? activeHolders[0].id : "unassigned";
-    const taggedExpenses = newExpenses.map((e) =>
-      e.source === "import" ? { ...e, holderId: autoHolderId } : e
-    );
+    const taggedExpenses = newExpenses.map((e) => {
+      if (e.source !== "import") return e;
+      const { usePettyCash: _flag, ...rest } = e;
+      return { ...rest, holderId: _flag !== false ? autoHolderId : "" };
+    });
 
     const tripIds = newTrips.map((t) => t.id);
     const expenseIds = taggedExpenses.map((e) => e.id);
@@ -670,7 +673,7 @@ function KinKinApp() {
             warning: "This cannot be undone.",
             onConfirm: async () => { await supabase.from("kinkin_state").delete().eq("key", STORE_KEY); window.location.reload(); },
           })}
-          style={{ background: "transparent", border: "1px solid #FEFEFE44", color: "#FEFEFE88", padding: "5px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer" }}
+          style={{ display: "none" }}
           title="Clear all data"
         >
           Reset
@@ -839,6 +842,7 @@ function KinKinApp() {
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>DESCRIPTION</th>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>CATEGORY</th>
                             <th style={{ textAlign: "right", padding: "6px 8px" }}>AMOUNT</th>
+                            <th style={{ textAlign: "center", padding: "6px 8px" }}>PETTY CASH?</th>
                             <th style={{ padding: "6px 8px" }}></th>
                           </tr>
                         </thead>
@@ -866,6 +870,9 @@ function KinKinApp() {
                                   </select>
                                 </td>
                                 <td style={{ padding: "4px 4px" }}><input type="number" value={e.amount} onChange={(ev) => updateExp("amount", Number(ev.target.value))} style={{ ...iStyle, textAlign: "right", color: "#c0392b" }} /></td>
+                                <td style={{ padding: "4px 4px", textAlign: "center" }}>
+                                  <input type="checkbox" checked={e.usePettyCash !== false} onChange={(ev) => updateExp("usePettyCash", ev.target.checked)} style={{ width: "auto", cursor: "pointer", accentColor: "#A39159" }} />
+                                </td>
                                 <td style={{ padding: "4px 4px", textAlign: "center" }}><button onClick={removeExp} style={{ background: "transparent", border: "1px solid #c0392b44", color: "#c0392b", fontSize: 11, padding: "2px 6px", borderRadius: 3, cursor: "pointer" }}>✕</button></td>
                               </tr>
                             );
@@ -1408,6 +1415,10 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const isMobile = useIsMobile();
   const [expenseType, setExpenseType] = useState("truck"); // "truck" | "overhead" | "petty"
   const [filter, setFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deletePwd, setDeletePwd] = useState("");
+  const [deletePwdErr, setDeletePwdErr] = useState(false);
   const [form, setForm] = useState({
     date: today(),
     category: "Fuel",
@@ -1496,7 +1507,16 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
     setForm({ ...form, description: "", amount: "", vendor: "", holderId: "" });
   };
 
-  const deleteExpense = (id) => { setExpenses(expenses.filter((e) => e.id !== id)); showToast("Expense deleted"); };
+  const deleteExpense = (id, source) => {
+    if (source === "import") {
+      setDeleteConfirm({ id });
+      setDeletePwd("");
+      setDeletePwdErr(false);
+    } else {
+      setExpenses(expenses.filter((e) => e.id !== id));
+      showToast("Expense deleted");
+    }
+  };
 
   const startEdit = (exp) => {
     setEditingId(exp.id);
@@ -1564,12 +1584,54 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
     return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
   };
 
-  const filtered = filter === "all" ? dateFiltered : dateFiltered.filter((e) => (e.expenseType || "truck") === filter);
+  const sourceFiltered = sourceFilter === "import"
+    ? dateFiltered.filter((e) => e.source === "import")
+    : sourceFilter === "manual"
+    ? dateFiltered.filter((e) => e.source !== "import")
+    : dateFiltered;
+  const filtered = filter === "all" ? sourceFiltered : sourceFiltered.filter((e) => (e.expenseType || "truck") === filter);
   const categories = expenseType === "truck" ? TRUCK_CATEGORIES : expenseType === "overhead" ? OVERHEAD_CATEGORIES : ["Petty Cash"];
   const periodLabel = (dateFrom || dateTo) ? `${dateFrom || "earliest"} → ${dateTo || "today"}` : "All time";
 
   return (
     <div>
+      {deleteConfirm && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "#FEFEFE", borderRadius: 10, padding: 28, maxWidth: 360, width: "100%", border: "1px solid #E0E0DC", boxShadow: "0 4px 24px rgba(0,0,0,0.15)" }}>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#1B3F60", marginBottom: 8, fontWeight: 700 }}>Delete Imported Expense</h3>
+            <p style={{ fontSize: 13, color: "#7C8B67", marginBottom: 16 }}>This expense was imported from a CSV. Enter the admin password to confirm deletion.</p>
+            <input
+              type="password"
+              value={deletePwd}
+              onChange={(ev) => { setDeletePwd(ev.target.value); setDeletePwdErr(false); }}
+              placeholder="Admin password"
+              autoFocus
+              style={{ width: "100%", padding: "10px 12px", border: `1px solid ${deletePwdErr ? "#ef4444" : "#D0D0CC"}`, borderRadius: 6, fontSize: 14, outline: "none", marginBottom: 8, boxSizing: "border-box" }}
+            />
+            {deletePwdErr && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 10 }}>Incorrect password.</div>}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+              <button onClick={() => { setDeleteConfirm(null); setDeletePwd(""); setDeletePwdErr(false); }} style={{ background: "transparent", border: "1px solid #D0D0CC", color: "#888", padding: "8px 16px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+              <button
+                onClick={() => {
+                  if (deletePwd === "808880") {
+                    setExpenses(expenses.filter((e) => e.id !== deleteConfirm.id));
+                    showToast("Expense deleted");
+                    setDeleteConfirm(null);
+                    setDeletePwd("");
+                    setDeletePwdErr(false);
+                  } else {
+                    setDeletePwdErr(true);
+                    setDeletePwd("");
+                  }
+                }}
+                style={{ background: "#ef4444", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>EXPENSES</h2>
 
       {/* Date Range Filter */}
@@ -1747,9 +1809,16 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
       </div>
 
       <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <h3 style={{ fontSize: 12, color: "#555", textTransform: "uppercase", letterSpacing: 1 }}>All Expenses ({filtered.length})</h3>
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 4, marginRight: 8 }}>
+              {[{ key: "all", label: "All Sources" }, { key: "import", label: "From Import" }, { key: "manual", label: "Manual" }].map((f) => (
+                <button key={f.key} onClick={() => setSourceFilter(f.key)} style={{ background: sourceFilter === f.key ? "#1B3F60" : "transparent", color: sourceFilter === f.key ? "#FEFEFE" : "#555", border: "1px solid #E0E0DC", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
             {[{ key: "all", label: "All" }, { key: "truck", label: "Truck" }, { key: "overhead", label: "Overhead" }].map((f) => (
               <button key={f.key} onClick={() => setFilter(f.key)} style={{ background: filter === f.key ? "#A39159" : "transparent", color: filter === f.key ? "#FEFEFE" : "#555", border: "1px solid #E0E0DC", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}>
                 {f.label}
@@ -1811,10 +1880,11 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                   <td style={{ padding: "8px 8px" }}>{e.date}</td>
                   <td style={{ padding: "8px 8px" }}>
                     {(() => {
+                      const isDriver = e.expenseType === "driver";
                       const isPetty = e.expenseType === "petty";
-                      const bg = isPetty ? "#A3915922" : isOverhead ? "#7C8B6722" : "#1B3F6022";
-                      const col = isPetty ? "#A39159" : isOverhead ? "#7C8B67" : "#1B3F60";
-                      const label = isPetty ? "Petty Cash" : isOverhead ? "Overhead" : "Truck";
+                      const bg = isDriver ? "#1B3F6022" : isPetty ? "#A3915922" : isOverhead ? "#7C8B6722" : "#1B3F6022";
+                      const col = isDriver ? "#1B3F60" : isPetty ? "#A39159" : isOverhead ? "#7C8B67" : "#1B3F60";
+                      const label = isDriver ? "Driver" : isPetty ? "Petty Cash" : isOverhead ? "Overhead" : "Truck";
                       return <span className="tag" style={{ background: bg, color: col, border: `1px solid ${col}44` }}>{label}</span>;
                     })()}
                   </td>
@@ -1831,8 +1901,32 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                   </td>
                   <td style={{ padding: "8px 8px", textAlign: "right", color: "#ef4444" }}>{fmt(e.amount)}</td>
                   <td style={{ padding: "8px 4px", whiteSpace: "nowrap" }}>
+                    {(() => {
+                      const holder = pettyHolders.find(h => h.id === e.holderId);
+                      const activeHolder = pettyHolders.find(h => h.active);
+                      if (holder) {
+                        return (
+                          <button
+                            onClick={() => setExpenses(expenses.map(x => x.id === e.id ? { ...x, holderId: "" } : x))}
+                            style={{ background: "#A3915922", border: "1px solid #A3915966", color: "#A39159", fontSize: 10, padding: "2px 6px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}
+                            title="Remove petty cash attribution"
+                          >
+                            {holder.name} ✓
+                          </button>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => { if (activeHolder) setExpenses(expenses.map(x => x.id === e.id ? { ...x, holderId: activeHolder.id } : x)); }}
+                          style={{ background: "transparent", border: "1px solid #D0D0CC", color: "#888", fontSize: 10, padding: "2px 6px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}
+                          title="Attribute to petty cash"
+                        >
+                          + Petty
+                        </button>
+                      );
+                    })()}
                     <button onClick={() => startEdit(e)} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
-                    <button onClick={() => deleteExpense(e.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
+                    <button onClick={() => deleteExpense(e.id, e.source)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
                   </td>
                 </tr>
               );
