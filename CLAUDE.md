@@ -30,7 +30,7 @@ App password: stored as `APP_PASSWORD` constant in `src/App.jsx`
 
 ## Architecture
 
-**Everything lives in one file: `src/App.jsx` (~3700 lines).**
+**Everything lives in one file: `src/App.jsx` (~4100 lines).**
 
 There is no routing, no state management library, no component library. All state lives in `KinKinApp` (the root component) and is passed down as props. All persistence is through two async functions: `loadState()` and `saveState()`.
 
@@ -141,8 +141,10 @@ Remaining balance = `principal - sum(loanPayments where loanId matches)`.
 
 ### LoanPayment
 ```js
-{ id, loanId, date, amount, note }
+{ id, loanId, date, amount, note, kasId? }
 ```
+
+`kasId` — ID of the linked `kas` "out" entry created at the same time. Present on all payments recorded after May 2026. Older payments loaded from the database may not have this field; edit/delete gracefully no-ops on kas in that case.
 
 ### Asset
 ```js
@@ -226,6 +228,15 @@ This means petty cash disbursements are reflected in the main cash ledger automa
 When adding an expense of `expenseType: "petty"` from the Expenses tab, the same double-entry happens.
 
 When importing expenses with only one active holder, they are auto-assigned to that holder (`holderId = activeHolders[0].id`). With multiple active holders, imported expenses get `holderId = "unassigned"` and must be manually assigned from the Petty Cash tab.
+
+### Loan Payment Cash Flow
+Recording a loan payment via `addPayment()` in the `Fleet` component creates **two entries simultaneously**:
+1. A `LoanPayment` record (with a `kasId` field pointing to the kas entry)
+2. A `Kas` entry of `type: "out"` (description: `"Loan payment — {lender}{· note}"`)
+
+This mirrors the petty cash double-entry pattern. Editing a payment also updates the linked kas entry's date and amount. Deleting a payment also removes the linked kas entry (keyed by `kasId`).
+
+`Fleet` receives `kas` and `setKas` as props from `KinKinApp` for this purpose.
 
 ### Loan Balance
 Computed on-the-fly: `principal - sum(payments for this loan)`. Not stored — derived from `loanPayments`.

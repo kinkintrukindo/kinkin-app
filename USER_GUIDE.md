@@ -116,7 +116,7 @@ Buku kas sederhana — mencatat semua uang yang masuk dan keluar dari rekening/k
 2. Isi tanggal, keterangan, jumlah
 3. Klik **+ Add Entry**
 
-> **Catatan:** Pengisian petty cash ke Martha otomatis tercatat di sini saat ditambahkan dari tab Petty Cash atau Expenses. Pembayaran cicilan truk juga perlu dicatat di sini secara manual jika belum ada.
+> **Catatan:** Pengisian petty cash ke Martha otomatis tercatat di sini saat ditambahkan dari tab Petty Cash atau Expenses. Pembayaran cicilan truk juga otomatis tercatat di sini saat dicatat dari tab Capital & Fleet.
 
 ---
 
@@ -161,7 +161,7 @@ Menampilkan kedua truk beserta jadwal cicilan:
 2. Isi tanggal dan jumlah
 3. Klik **Add Payment**
 
-> Sisa hutang akan otomatis berkurang.
+> Sisa hutang akan otomatis berkurang **dan pembayaran langsung tercatat sebagai Cash Out di tab Cash** — tidak perlu mencatat manual di tab Cash.
 
 **Cara menambah truk baru:** Klik **+ Add Truck** di kanan atas.
 
@@ -239,7 +239,7 @@ Bisa, tapi hindari mengedit data yang sama secara bersamaan karena bisa terjadi 
 Buka browser (Chrome atau Safari), ketik `kinkintrukindo.com`, masukkan kode otorisasi.
 
 **Kenapa saldo kas kelihatan berbeda dari yang diharapkan?**
-Pastikan semua pembayaran cicilan truk sudah dicatat di tab **Cash** sebagai Cash Out. Pengeluaran operasional juga harus dicatat agar saldo akurat.
+Pastikan semua pembayaran cicilan truk sudah dicatat di tab **Capital & Fleet** — pembayaran akan otomatis masuk sebagai Cash Out. Pengeluaran operasional juga harus dicatat agar saldo akurat.
 
 **Bagaimana kalau ada pengeluaran Martha yang belum tercatat?**
 Tambahkan manual di tab **Expenses** → pilih **Petty Cash** → pilih Martha.

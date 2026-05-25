@@ -944,7 +944,7 @@ function KinKinApp() {
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} />}
         {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} />}
         {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} />}
-        {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} />}
+        {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
       </div>
     </div>
@@ -2565,7 +2565,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
 }
 
 // ── FLEET ─────────────────────────────────────────────────────────────────────
-function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPayments, capital, setCapital, totalCapitalInjected, showToast, confirmModal, setConfirmModal }) {
+function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPayments, capital, setCapital, totalCapitalInjected, kas, setKas, showToast, confirmModal, setConfirmModal }) {
   const isMobile = useIsMobile();
   const [editLoanId, setEditLoanId] = useState(null);
   const [editLoanForm, setEditLoanForm] = useState({});
@@ -2645,18 +2645,21 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   const startEditPay = (pay) => { setEditPayId(pay.id); setEditPayForm({ ...pay }); };
   const cancelEditPay = () => { setEditPayId(null); setEditPayForm({}); };
   const saveEditPay = () => {
+    const payment = loanPayments.find((p) => p.id === editPayId);
     setLoanPayments(loanPayments.map((p) => p.id === editPayId ? { ...p, date: editPayForm.date, amount: Number(editPayForm.amount) || 0, note: editPayForm.note } : p));
+    if (payment?.kasId) setKas(kas.map((k) => k.id === payment.kasId ? { ...k, date: editPayForm.date, amount: Number(editPayForm.amount) || 0 } : k));
     setEditPayId(null);
     showToast("Payment updated!");
   };
   const deletePay = (payId, loanId) => {
-    const loan = loans.find((l) => l.id === loanId);
+    const payment = loanPayments.find((p) => p.id === payId);
     setConfirmModal({
       title: "Delete this payment?",
       message: "This will remove the payment record permanently.",
       warning: "This cannot be undone.",
       onConfirm: () => {
         setLoanPayments(loanPayments.filter((p) => p.id !== payId));
+        if (payment?.kasId) setKas(kas.filter((k) => k.id !== payment.kasId));
         setConfirmModal(null);
         showToast("Payment removed");
       },
@@ -2665,7 +2668,10 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
   const addPayment = (loanId) => {
     if (!newPay.amount) { showToast("Enter an amount", "error"); return; }
-    setLoanPayments([...loanPayments, { id: genId(), loanId, date: newPay.date, amount: Number(newPay.amount), note: newPay.note }]);
+    const loan = loans.find((l) => l.id === loanId);
+    const kasId = genId();
+    setLoanPayments([...loanPayments, { id: genId(), loanId, date: newPay.date, amount: Number(newPay.amount), note: newPay.note, kasId }]);
+    setKas([...kas, { id: kasId, date: newPay.date, description: `Loan payment — ${loan?.lender || "loan"}${newPay.note ? " · " + newPay.note : ""}`, amount: Number(newPay.amount), type: "out" }]);
     setNewPay({ date: today(), amount: "", note: "" });
     setAddPayLoanId(null);
     showToast("Payment recorded!");
