@@ -208,7 +208,7 @@ Auto-categorization from description keywords is handled by `categorizeExpense()
 
 ### Trip Deduplication (on import)
 `fingerprint(trip)` returns:
-- `CONT:{containerNumber}` if container number is present — container numbers are physically unique
+- `CONT:{date}|{containerNumber}` if container number is present — scoped to date because containers are reused across months
 - `ALT:{date}|{nopol}|{destination}|{jual}` fallback if no container number
 
 Trips that already have a matching fingerprint in existing data are silently skipped.

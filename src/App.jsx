@@ -415,7 +415,7 @@ function KinKinApp() {
   // ── Fingerprint for deduplication — container # is physically unique ────────
   const fingerprint = (t) => {
     const cn = t.contNo != null ? String(t.contNo).trim() : "";
-    if (cn) return `CONT:${cn.toUpperCase()}`;
+    if (cn) return `CONT:${t.date}|${cn.toUpperCase()}`;
     const np = String(t.nopol || "").toUpperCase();
     const ds = String(t.destination || "").toUpperCase();
     return `ALT:${t.date}|${np}|${ds}|${t.jual}`;
@@ -1432,7 +1432,7 @@ function Trips({ trips, setTrips, showToast }) {
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
           <div>
             <h3 style={{ fontSize: 12, color: "#555", textTransform: "uppercase", letterSpacing: 1 }}>All Trips ({trips.length})</h3>
-            <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>Duplicates detected by Container # — re-uploads safe</div>
+            <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>Duplicates detected by date + Container # — re-uploads safe</div>
           </div>
           <span style={{ fontSize: 12, color: "#555" }}>Total Profit: <span style={{ color: "#4A643C" }}>{fmt(trips.reduce((s, t) => s + t.profit, 0))}</span></span>
         </div>
