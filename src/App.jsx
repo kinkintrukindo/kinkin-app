@@ -1254,7 +1254,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             </tr>
           </thead>
           <tbody>
-            {trips.slice(-6).reverse().map((t) => (
+            {[...trips].sort((a, b) => a.date.localeCompare(b.date)).slice(-6).reverse().map((t) => (
               <tr key={t.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                 <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>{t.date}</td>
                 <td style={{ padding: "8px 8px", color: "#2d2d2d", whiteSpace: "nowrap" }}>{t.destination}</td>
@@ -1445,7 +1445,7 @@ function Trips({ trips, setTrips, showToast }) {
             </tr>
           </thead>
           <tbody>
-            {trips.map((t) => {
+            {[...trips].sort((a, b) => a.date.localeCompare(b.date)).map((t) => {
               const isEditing = editingId === t.id;
               if (isEditing) {
                 const editTotal = (Number(editForm.sangu) || 0) + (Number(editForm.lainAmt) || 0);
@@ -1681,7 +1681,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
     : sourceFilter === "manual"
     ? dateFiltered.filter((e) => e.source !== "import")
     : dateFiltered;
-  const filtered = filter === "all" ? sourceFiltered : sourceFiltered.filter((e) => (e.expenseType || "truck") === filter);
+  const filtered = (filter === "all" ? sourceFiltered : sourceFiltered.filter((e) => (e.expenseType || "truck") === filter)).sort((a, b) => a.date.localeCompare(b.date));
   const categories = expenseType === "truck" ? TRUCK_CATEGORIES : expenseType === "overhead" ? OVERHEAD_CATEGORIES : ["Petty Cash"];
   const periodLabel = (dateFrom || dateTo) ? `${dateFrom || "earliest"} → ${dateTo || "today"}` : "All time";
 
@@ -2046,7 +2046,7 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
   };
 
   let running = 0;
-  const rows = kas.map((k) => {
+  const rows = [...kas].sort((a, b) => a.date.localeCompare(b.date)).map((k) => {
     running += k.type === "in" ? k.amount : -k.amount;
     return { ...k, balance: running };
   });
@@ -2136,10 +2136,10 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
 
   // ── Calculations ─────────────────────────────────────────────────────────
   const getHolderStats = (holder) => {
-    const topups = pettyTopups.filter((t) => t.holderId === holder.id);
+    const topups = pettyTopups.filter((t) => t.holderId === holder.id).sort((a, b) => a.date.localeCompare(b.date));
     const totalTopup = topups.reduce((s, t) => s + t.amount, 0);
     // Spending = all expenses tagged to this holder (manual or imported)
-    const holderExpenses = expenses.filter((e) => e.holderId === holder.id);
+    const holderExpenses = expenses.filter((e) => e.holderId === holder.id).sort((a, b) => a.date.localeCompare(b.date));
     const spending = holderExpenses.reduce((s, e) => s + e.amount, 0);
     const balance = totalTopup - spending;
     return { topups, totalTopup, spending, balance, holderExpenses };
@@ -2573,6 +2573,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   const [editPayForm, setEditPayForm] = useState({});
   const [addPayLoanId, setAddPayLoanId] = useState(null);
   const [newPay, setNewPay] = useState({ date: today(), amount: "", note: "" });
+  const [linkMode, setLinkMode] = useState(false);
+  const [linkedKasId, setLinkedKasId] = useState("");
   const [addingTruck, setAddingTruck] = useState(false);
   const [newTruckForm, setNewTruckForm] = useState({ name: "", nopol: "", purchaseDate: today(), vehicleValue: "", monthlyPayment: "", termMonths: 36, startDate: today(), lender: "", notes: "" });
 
@@ -2610,7 +2612,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   };
 
   const getLoanStats = (loan) => {
-    const payments = loanPayments.filter((p) => p.loanId === loan.id);
+    const payments = loanPayments.filter((p) => p.loanId === loan.id).sort((a, b) => a.date.localeCompare(b.date));
     const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
     const dpPaid = loan.principal - (loan.vehicleValue || loan.principal);
     const financedAmount = loan.vehicleValue || loan.principal;
@@ -2667,6 +2669,17 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   };
 
   const addPayment = (loanId) => {
+    if (linkMode) {
+      if (!linkedKasId) { showToast("Select a Cash entry to link", "error"); return; }
+      const kasEntry = kas.find((k) => k.id === linkedKasId);
+      setLoanPayments([...loanPayments, { id: genId(), loanId, date: kasEntry.date, amount: kasEntry.amount, note: newPay.note, kasId: linkedKasId }]);
+      setNewPay({ date: today(), amount: "", note: "" });
+      setLinkMode(false);
+      setLinkedKasId("");
+      setAddPayLoanId(null);
+      showToast("Payment linked!");
+      return;
+    }
     if (!newPay.amount) { showToast("Enter an amount", "error"); return; }
     const loan = loans.find((l) => l.id === loanId);
     const kasId = genId();
@@ -2788,7 +2801,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                   </tr>
                 </thead>
                 <tbody>
-                  {capital.map((c) => {
+                  {[...capital].sort((a, b) => a.date.localeCompare(b.date)).map((c) => {
                     const isEditing = editCapId === c.id;
                     const iStyle = { background: "#F8F8F6", border: "1px solid #A3915966", color: "#2d2d2d", padding: "4px 6px", borderRadius: 3, fontSize: 11, fontFamily: "inherit", width: "100%" };
                     if (isEditing) return (
