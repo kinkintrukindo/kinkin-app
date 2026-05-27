@@ -5,14 +5,15 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/icon-180.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Kin Kin Trukindo — Indonesia's trusted container trucking partner. Port-to-door and door-to-port freight solutions across Java and all major Indonesian ports. Based in Surabaya." />
-  <meta property="og:title" content="Kin Kin Trukindo — Freight & Logistics" />
-  <meta property="og:description" content="Container trucking specialists. Port-to-door, door-to-port, and Java door-to-door haulage." />
-  <meta property="og:image" content="/assets/truck2.jpg" />
+  <meta name="description" content="Kin Kin Trukindo — Experienced container freight services spanning the Indonesian archipelago. Port-to-door, door-to-port, port-to-port, and door-to-door. Based in Surabaya." />
+  <meta property="og:title" content="Kin Kin Trukindo — Freight &amp; Logistics" />
+  <meta property="og:description" content="Experienced freight services spanning the archipelago — from sea to land, we move your cargo with precision and reliability." />
+  <meta property="og:image" content="/assets/hero-1.jpg" />
   <title>Kin Kin Trukindo — Freight &amp; Logistics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,6 +32,7 @@
       --dark:  #0d1f30;
       --white: #FEFEFE;
       --light: #F4F4F0;
+      --cream: #F7F4EE;
       --r: 8px;
     }
 
@@ -80,16 +82,29 @@
     }
 
     /* ══════════════════════════════════════
-       HERO — full-screen video
+       HERO — crossfade slideshow
     ══════════════════════════════════════ */
     .hero {
       position: relative; height: 100vh; min-height: 620px;
       display: flex; align-items: center; justify-content: center;
       text-align: center; overflow: hidden;
     }
-    .hero-video {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; z-index: 0;
+    .hero-bg-layer {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      opacity: 0;
+      will-change: opacity, transform;
+      animation: heroSlide 21s ease-in-out infinite;
+    }
+    .hero-bg-layer:nth-child(1) { background-image: url('/assets/hero-1.jpg'); animation-delay: 0s; }
+    .hero-bg-layer:nth-child(2) { background-image: url('/assets/hero-2.jpg'); animation-delay: 7s; }
+    .hero-bg-layer:nth-child(3) { background-image: url('/assets/hero-3.jpg'); animation-delay: 14s; }
+    @keyframes heroSlide {
+      0%   { opacity: 0; transform: scale(1.00); }
+      5%   { opacity: 1; transform: scale(1.00); }
+      28%  { opacity: 1; transform: scale(1.07); }
+      33%  { opacity: 0; transform: scale(1.08); }
+      100% { opacity: 0; transform: scale(1.00); }
     }
     .hero-overlay {
       position: absolute; inset: 0; z-index: 1;
@@ -159,6 +174,28 @@
     .stat-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; }
 
     /* ══════════════════════════════════════
+       VISION & MISSION
+    ══════════════════════════════════════ */
+    #vision-mission {
+      background: var(--cream); padding: 80px 5vw; text-align: center;
+    }
+    .vm-inner {
+      max-width: 720px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 48px; align-items: center;
+    }
+    .vm-block { width: 100%; }
+    .vm-label {
+      font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 5px; text-transform: uppercase; color: var(--gold); margin-bottom: 18px;
+    }
+    .vm-text {
+      font-family: 'Montserrat', sans-serif; font-size: clamp(14px, 1.8vw, 17px);
+      font-weight: 600; color: #2a3a4a; line-height: 1.75;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .vm-divider { width: 64px; height: 2px; background: rgba(163,145,89,0.4); }
+
+    /* ══════════════════════════════════════
        SECTION COMMON
     ══════════════════════════════════════ */
     section { padding: 96px 5vw; }
@@ -173,11 +210,12 @@
        SERVICES
     ══════════════════════════════════════ */
     #services { background: var(--light); }
-    .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-    @media(max-width:860px){ .services-grid { grid-template-columns: 1fr; } }
+    .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    @media(max-width:1100px){ .services-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media(max-width:600px) { .services-grid { grid-template-columns: 1fr; } }
     .service-card {
       position: relative; border-radius: 14px; overflow: hidden;
-      min-height: 440px; display: flex; flex-direction: column; justify-content: flex-end;
+      min-height: 420px; display: flex; flex-direction: column; justify-content: flex-end;
       cursor: default;
     }
     .service-card-img {
@@ -189,42 +227,78 @@
       position: absolute; inset: 0;
       background: linear-gradient(to top, rgba(13,31,48,0.92) 0%, rgba(13,31,48,0.45) 55%, rgba(13,31,48,0.1) 100%);
     }
-    .service-card-body { position: relative; z-index: 1; padding: 28px; }
+    .service-card-body { position: relative; z-index: 1; padding: 24px; }
     .service-icon-badge {
       display: inline-flex; align-items: center; justify-content: center;
       width: 44px; height: 44px; border-radius: 10px;
       background: rgba(163,145,89,0.2); border: 1px solid rgba(163,145,89,0.4);
       font-size: 20px; margin-bottom: 14px;
     }
-    .service-card h3 { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 8px; }
-    .service-card p { font-size: 13px; color: rgba(255,255,255,0.72); line-height: 1.6; }
+    .service-card h3 { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .service-card p { font-size: 12px; color: rgba(255,255,255,0.72); line-height: 1.6; }
     .service-tag {
-      display: inline-block; margin-top: 14px;
+      display: inline-block; margin-top: 12px;
       background: rgba(163,145,89,0.25); border: 1px solid rgba(163,145,89,0.5);
       color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
       text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
     }
 
     /* ══════════════════════════════════════
-       FLEET GALLERY
+       FLEET
     ══════════════════════════════════════ */
     #fleet { background: var(--white); }
+    .fleet-sample-note {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(163,145,89,0.1); border: 1px solid rgba(163,145,89,0.3);
+      color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 6px 16px; border-radius: 20px;
+      margin-bottom: 56px;
+    }
     .fleet-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 320px 220px;
-      gap: 16px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
     }
-    @media(max-width:700px){ .fleet-grid { grid-template-columns: 1fr; grid-template-rows: auto; } }
-    .fleet-img {
-      width: 100%; height: 100%; object-fit: cover;
-      border-radius: 12px; transition: transform .5s ease;
-      overflow: hidden; display: block;
+    @media(max-width:760px){ .fleet-grid { grid-template-columns: 1fr; } }
+    .fleet-card { border-radius: 16px; overflow: hidden; border: 1px solid rgba(27,63,96,0.08); background: #fff; box-shadow: 0 4px 28px rgba(27,63,96,0.07); }
+    .fleet-photo-wrap {
+      position: relative; overflow: hidden;
+      aspect-ratio: 4 / 5;
     }
-    .fleet-cell { overflow: hidden; border-radius: 12px; }
-    .fleet-cell:first-child { grid-row: 1 / 3; }
-    .fleet-cell img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease; }
-    .fleet-cell:hover img { transform: scale(1.04); }
+    .fleet-photo-wrap img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center 28%;
+      transition: transform .6s ease;
+      display: block;
+    }
+    .fleet-card:hover .fleet-photo-wrap img { transform: scale(1.03); }
+    .fleet-specs-card { padding: 24px 26px 28px; }
+    .fleet-truck-name {
+      font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 800;
+      color: var(--blue); margin-bottom: 4px;
+    }
+    .fleet-truck-type {
+      font-size: 12px; color: var(--gold); font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+    .specs-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px;
+    }
+    .spec-block {
+      background: var(--light); border-radius: 10px; padding: 12px 10px; text-align: center;
+    }
+    .spec-val {
+      font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900;
+      color: var(--blue); line-height: 1;
+    }
+    .spec-val em { font-style: normal; font-size: 11px; color: #8a9aaa; }
+    .spec-key { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8a9aaa; margin-top: 5px; }
+    .fleet-strengths { font-size: 13px; color: #5a6a7a; line-height: 1.65; }
+    .fleet-strengths strong { color: var(--blue); font-weight: 600; }
+    .fleet-badge {
+      display: inline-block; margin-top: 14px;
+      background: rgba(74,100,60,0.08); border: 1px solid rgba(74,100,60,0.25);
+      color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; padding: 5px 14px; border-radius: 20px;
+    }
 
     /* ══════════════════════════════════════
        FEATURE BANNER (container photo)
@@ -247,7 +321,9 @@
        WHY US
     ══════════════════════════════════════ */
     #why-us { background: var(--light); }
-    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; }
+    .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    @media(max-width:860px){ .why-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media(max-width:560px){ .why-grid { grid-template-columns: 1fr; } }
     .why-card {
       background: var(--white); border-radius: 12px; padding: 28px 24px;
       border: 1px solid rgba(27,63,96,0.08);
@@ -259,10 +335,58 @@
     .why-card p { font-size: 13px; color: #6a7a8a; line-height: 1.65; }
 
     /* ══════════════════════════════════════
+       LOGO MEANING
+    ══════════════════════════════════════ */
+    #logo-meaning { background: var(--cream); }
+    .logo-meaning-layout {
+      display: grid;
+      grid-template-columns: 1fr 260px 1fr;
+      grid-template-rows: auto auto;
+      gap: 32px 40px;
+      align-items: center;
+      max-width: 1060px; margin: 0 auto;
+    }
+    @media(max-width:860px){
+      .logo-meaning-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+      }
+      .logo-meaning-center { order: -1; grid-column: auto !important; grid-row: auto !important; }
+      .lm-1, .lm-2, .lm-3, .lm-4 { grid-column: auto !important; grid-row: auto !important; text-align: center !important; }
+      .lm-1 .lm-line, .lm-2 .lm-line, .lm-3 .lm-line, .lm-4 .lm-line { margin: 10px auto; }
+      .lm-callout::after { display: none; }
+    }
+    .logo-meaning-center {
+      grid-column: 2; grid-row: 1 / 3;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-meaning-img {
+      width: 220px; height: 220px; object-fit: contain;
+      filter: drop-shadow(0 6px 24px rgba(27,63,96,0.15));
+    }
+    .lm-1 { grid-column: 1; grid-row: 1; text-align: right; }
+    .lm-2 { grid-column: 3; grid-row: 1; }
+    .lm-3 { grid-column: 1; grid-row: 2; text-align: right; }
+    .lm-4 { grid-column: 3; grid-row: 2; }
+    .lm-callout { }
+    .lm-callout h4 {
+      font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 800;
+      color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .lm-callout p { font-size: 13px; color: #5a6a7a; line-height: 1.65; }
+    .lm-line {
+      display: block; width: 40px; height: 1px;
+      background: rgba(163,145,89,0.5); margin: 10px 0;
+    }
+    .lm-1 .lm-line { margin-left: auto; }
+    .lm-3 .lm-line { margin-left: auto; }
+
+    /* ══════════════════════════════════════
        COVERAGE
     ══════════════════════════════════════ */
     #coverage {
-      position: relative; overflow: hidden;
+      position: relative;
       background: var(--blue); padding: 90px 5vw; text-align: center;
     }
     #coverage::before {
@@ -273,13 +397,24 @@
     #coverage .eyebrow { color: var(--gold); position: relative; }
     #coverage .section-title { color: #fff; position: relative; }
     #coverage .section-sub { color: rgba(255,255,255,0.6); margin: 14px auto 44px; position: relative; }
-    .port-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 900px; margin: 0 auto; position: relative; }
-    .port-chip {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16);
-      color: rgba(255,255,255,0.82); font-size: 12px; font-weight: 600;
-      padding: 7px 16px; border-radius: 20px; transition: .2s; letter-spacing: .3px;
+    #portMap {
+      height: 460px; width: 100%; max-width: 960px; margin: 0 auto;
+      border-radius: 14px; border: 1px solid rgba(255,255,255,0.12);
+      position: relative; z-index: 1;
     }
-    .port-chip:hover { background: rgba(163,145,89,0.28); border-color: var(--gold); color: #fff; }
+    #portMap .leaflet-tile { filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%); }
+    .leaflet-popup-content-wrapper {
+      background: #0d1f30 !important; border: 1px solid rgba(163,145,89,0.45) !important;
+      border-radius: 10px !important; box-shadow: 0 6px 28px rgba(0,0,0,0.5) !important;
+    }
+    .leaflet-popup-content { color: rgba(255,255,255,0.88) !important; font-family: 'Inter', sans-serif !important; font-size: 13px !important; margin: 10px 14px !important; line-height: 1.55 !important; }
+    .leaflet-popup-content strong { font-family: 'Montserrat', sans-serif !important; color: #A39159 !important; display: block !important; font-size: 14px !important; margin-bottom: 3px !important; }
+    .leaflet-popup-tip-container .leaflet-popup-tip { background: #0d1f30 !important; }
+    .leaflet-popup-close-button { color: rgba(255,255,255,0.45) !important; font-size: 18px !important; top: 6px !important; right: 8px !important; }
+    .leaflet-control-zoom a { background: #0d1f30 !important; color: #A39159 !important; border-color: rgba(255,255,255,0.15) !important; }
+    .leaflet-control-zoom a:hover { background: #1B3F60 !important; }
+    .leaflet-control-attribution { background: rgba(0,0,0,0.5) !important; color: rgba(255,255,255,0.35) !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: rgba(255,255,255,0.4) !important; }
 
     /* ══════════════════════════════════════
        QUOTE FORM
@@ -296,8 +431,6 @@
     .contact-line-val { font-size: 14px; color: var(--blue); font-weight: 500; }
     .contact-line-val a { color: var(--blue); transition: color .2s; }
     .contact-line-val a:hover { color: var(--gold); }
-
-    /* WA Button */
     .wa-btn {
       display: inline-flex; align-items: center; gap: 10px;
       background: #25D366; color: #fff;
@@ -307,8 +440,6 @@
     }
     .wa-btn:hover { background: #1ebe5d; transform: translateY(-1px); }
     .wa-btn svg { width: 20px; height: 20px; fill: #fff; flex-shrink: 0; }
-
-    /* Form card */
     .form-card {
       background: var(--white); border-radius: 16px; padding: 38px 34px;
       box-shadow: 0 6px 48px rgba(27,63,96,0.1); border: 1px solid rgba(27,63,96,0.08);
@@ -332,15 +463,13 @@
     .fg textarea { resize: vertical; min-height: 80px; }
     .fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media(max-width:480px){ .fg-row { grid-template-columns: 1fr; } }
-
-    .svc-toggle { display: flex; border: 1.5px solid #D6DCE4; border-radius: var(--r); overflow: hidden; margin-bottom: 4px; }
+    .svc-toggle { display: flex; flex-wrap: wrap; border: 1.5px solid #D6DCE4; border-radius: var(--r); overflow: hidden; margin-bottom: 4px; }
     .svc-toggle button {
-      flex: 1; padding: 10px 6px; border: none; cursor: pointer;
-      font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px;
+      flex: 1; min-width: 80px; padding: 9px 4px; border: none; cursor: pointer;
+      font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .3px;
       background: #FAFBFC; color: #7a8a9a; transition: .2s;
     }
     .svc-toggle button.active { background: var(--blue); color: #fff; }
-
     .submit-btn {
       width: 100%; padding: 15px;
       background: var(--blue); color: #fff; border: none;
@@ -411,21 +540,20 @@
 
 <!-- ══════════════════ HERO ══════════════════ -->
 <section class="hero" id="home">
-  <video class="hero-video" autoplay muted loop playsinline poster="/assets/truck2.jpg">
-    <source src="/assets/truck-video.mov" type="video/mp4" />
-    <source src="/assets/truck-video.mov" type="video/quicktime" />
-  </video>
+  <div class="hero-bg-layer"></div>
+  <div class="hero-bg-layer"></div>
+  <div class="hero-bg-layer"></div>
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <img src="/logo-light.png" alt="Kinkin Trukindo" class="hero-logo" />
     <div class="hero-eyebrow">🇮🇩 Indonesia Container Trucking</div>
     <h1>
-      Moving Containers<br/>
-      <em>Across Every Port</em><br/>
-      in Indonesia
+      From Every Sea<br/>
+      <em>To Every Door</em><br/>
+      Across Indonesia
     </h1>
     <p class="hero-sub">
-      Port-to-door and door-to-port container trucking. Reliable, on-time, and transparent — backed by experienced drivers operating from Surabaya across the archipelago.
+      Experienced freight services spanning the archipelago — from sea to land, we deliver your cargo with precision, reliability, and full transparency. Based in Surabaya, serving every major port.
     </p>
     <div class="hero-btns">
       <a href="#quote" class="btn-gold">Request a Quote</a>
@@ -445,16 +573,31 @@
     <div class="stat-label">Ports Covered</div>
   </div>
   <div class="stat-item reveal reveal-delay-1">
-    <div class="stat-num">Java</div>
+    <div class="stat-num">D2D</div>
     <div class="stat-label">Door to Door</div>
   </div>
   <div class="stat-item reveal reveal-delay-2">
     <div class="stat-num">20ft</div>
-    <div class="stat-label">& 40ft Containers</div>
+    <div class="stat-label">&amp; 40ft Containers</div>
   </div>
   <div class="stat-item reveal reveal-delay-3">
-    <div class="stat-num">SBY</div>
-    <div class="stat-label">Surabaya Based</div>
+    <div class="stat-num">2026</div>
+    <div class="stat-label">Est. Surabaya</div>
+  </div>
+</div>
+
+<!-- ══════════════════ VISION & MISSION ══════════════════ -->
+<div id="vision-mission">
+  <div class="vm-inner">
+    <div class="vm-block reveal">
+      <div class="vm-label">Vision</div>
+      <p class="vm-text">To be the most trusted logistics connection in Indonesia, commanding the archipelago's most powerful fleet and setting the standard for heavy-duty excellence on every road we claim.</p>
+    </div>
+    <div class="vm-divider reveal"></div>
+    <div class="vm-block reveal">
+      <div class="vm-label">Mission</div>
+      <p class="vm-text">A fleet that never sleeps, moving resources with precision, power, and integrity.</p>
+    </div>
   </div>
 </div>
 
@@ -463,21 +606,21 @@
   <div class="section-header reveal">
     <div class="eyebrow">What We Do</div>
     <h2 class="section-title">Container Trucking Services</h2>
-    <p class="section-sub">We specialise exclusively in container cargo — 20ft and 40ft — moving freight with reliability from port to door and vice versa.</p>
+    <p class="section-sub">We specialise exclusively in container cargo — 20ft and 40ft — moving freight with reliability wherever your supply chain needs us.</p>
   </div>
   <div class="services-grid">
     <div class="service-card reveal">
-      <img src="/assets/truck2.jpg" alt="Port to Door" class="service-card-img" />
+      <img src="/assets/hero-1.jpg" alt="Port to Door" class="service-card-img" />
       <div class="service-card-overlay"></div>
       <div class="service-card-body">
         <div class="service-icon-badge">🚛</div>
         <h3>Port to Door</h3>
-        <p>We pick up your container from any major Indonesian port and deliver directly to your warehouse, factory, or distribution centre across Java.</p>
+        <p>We pick up your container from any major Indonesian port and deliver directly to your warehouse, factory, or distribution centre.</p>
         <span class="service-tag">Import Delivery</span>
       </div>
     </div>
     <div class="service-card reveal reveal-delay-1">
-      <img src="/assets/truck3.jpg" alt="Door to Port" class="service-card-img" />
+      <img src="/assets/truck4.jpg" alt="Door to Port" class="service-card-img" style="object-position: center 30%;" />
       <div class="service-card-overlay"></div>
       <div class="service-card-body">
         <div class="service-icon-badge">📦</div>
@@ -487,12 +630,22 @@
       </div>
     </div>
     <div class="service-card reveal reveal-delay-2">
-      <img src="/assets/truck4.jpg" alt="Java Door to Door" class="service-card-img" />
+      <img src="/assets/hero-3.jpg" alt="Port to Port" class="service-card-img" />
+      <div class="service-card-overlay"></div>
+      <div class="service-card-body">
+        <div class="service-icon-badge">⚓</div>
+        <h3>Port to Port</h3>
+        <p>We handle container transfers between ports — coordinating inland transport to connect shipping routes and reduce your logistics overhead.</p>
+        <span class="service-tag">Port Transfer</span>
+      </div>
+    </div>
+    <div class="service-card reveal reveal-delay-3">
+      <img src="/assets/hero-2.jpg" alt="Door to Door" class="service-card-img" />
       <div class="service-card-overlay"></div>
       <div class="service-card-body">
         <div class="service-icon-badge">🗺️</div>
-        <h3>Java Door to Door</h3>
-        <p>Full container trucking between any two points on Java island. Ideal for inter-city distribution or repositioning empty containers.</p>
+        <h3>Door to Door</h3>
+        <p>Full container trucking between any two facilities, anywhere you need. Ideal for inter-city distribution, repositioning empty containers, or bulk haulage.</p>
         <span class="service-tag">Domestic Haulage</span>
       </div>
     </div>
@@ -500,22 +653,77 @@
 </section>
 
 <!-- ══════════════════ FLEET ══════════════════ -->
-<section id="fleet" style="padding-bottom: 0;">
+<section id="fleet">
   <div class="section-header reveal">
     <div class="eyebrow">Our Fleet</div>
-    <h2 class="section-title">Road-Ready. Every Day.</h2>
-    <p class="section-sub">Our trucks are maintained to high operational standards, ensuring your container moves without delays, breakdowns, or surprises.</p>
+    <h2 class="section-title">Built for the Road. Built to Deliver.</h2>
+    <p class="section-sub">A sample from our active fleet — every unit maintained to the highest operational standards, ready to move your cargo without delays or surprises.</p>
+    <div style="margin-top:20px;">
+      <span class="fleet-sample-note">✦ Sample from our active fleet</span>
+    </div>
   </div>
   <div class="fleet-grid reveal">
-    <div class="fleet-cell">
-      <img src="/assets/truck1.jpg" alt="Kinkin Trukindo fleet" />
+
+    <!-- Truck 1: Red Hino SG260TI -->
+    <div class="fleet-card">
+      <div class="fleet-photo-wrap">
+        <img src="/assets/fleet-red-new.jpg" alt="Hino 500 SG260TI" />
+      </div>
+      <div class="fleet-specs-card">
+        <div class="fleet-truck-name">Hino 500 SG260TI</div>
+        <div class="fleet-truck-type">Heavy-Duty Container Chassis · 6×2</div>
+        <div class="specs-row">
+          <div class="spec-block">
+            <div class="spec-val">260<em> HP</em></div>
+            <div class="spec-key">Power</div>
+          </div>
+          <div class="spec-block">
+            <div class="spec-val">716<em> Nm</em></div>
+            <div class="spec-key">Torque</div>
+          </div>
+          <div class="spec-block">
+            <div class="spec-val">23<em> t</em></div>
+            <div class="spec-key">GVW</div>
+          </div>
+        </div>
+        <p class="fleet-strengths">
+          <strong>Engine:</strong> J08E-TI · 7.7L · 6-cylinder Turbocharged Intercooled.<br/>
+          Built for <strong>heavy 40ft container</strong> hauls — high torque output handles loaded containers with ease on long-distance routes and steep gradients.
+        </p>
+        <span class="fleet-badge">✓ 20ft &amp; 40ft Containers</span>
+      </div>
     </div>
-    <div class="fleet-cell">
-      <img src="/assets/truck3.jpg" alt="Hino SG260TI container truck" />
+
+    <!-- Truck 2: Green Hino FG235TI -->
+    <div class="fleet-card">
+      <div class="fleet-photo-wrap">
+        <img src="/assets/fleet-green.jpg" alt="Hino FG235TI" />
+      </div>
+      <div class="fleet-specs-card">
+        <div class="fleet-truck-name">Hino FG235TI</div>
+        <div class="fleet-truck-type">Medium-Heavy Container Truck · 4×2</div>
+        <div class="specs-row">
+          <div class="spec-block">
+            <div class="spec-val">235<em> HP</em></div>
+            <div class="spec-key">Power</div>
+          </div>
+          <div class="spec-block">
+            <div class="spec-val">617<em> Nm</em></div>
+            <div class="spec-key">Torque</div>
+          </div>
+          <div class="spec-block">
+            <div class="spec-val">14.5<em> t</em></div>
+            <div class="spec-key">GVW</div>
+          </div>
+        </div>
+        <p class="fleet-strengths">
+          <strong>Engine:</strong> J05D-TI · 5.1L · 4-cylinder Turbocharged Intercooled.<br/>
+          Agile and fuel-efficient — designed for <strong>urban port access</strong> and tighter delivery routes. Lower operating cost with reliable performance on 20ft container runs.
+        </p>
+        <span class="fleet-badge">✓ 20ft Containers</span>
+      </div>
     </div>
-    <div class="fleet-cell">
-      <img src="/assets/truck2.jpg" alt="Hino 500 truck front" />
-    </div>
+
   </div>
 </section>
 
@@ -571,35 +779,46 @@
   </div>
 </section>
 
+<!-- ══════════════════ LOGO MEANING ══════════════════ -->
+<section id="logo-meaning">
+  <div class="section-header centered reveal">
+    <div class="eyebrow">Our Identity</div>
+    <h2 class="section-title">What Our Logo Represents</h2>
+    <p class="section-sub">Every element of our mark carries meaning — a reflection of the values that drive us forward.</p>
+  </div>
+  <div class="logo-meaning-layout reveal">
+    <div class="lm-callout lm-1">
+      <h4>The Compass &amp; Globe</h4>
+      <span class="lm-line"></span>
+      <p>Represents Guidance and Universal Reach — to ensure we navigate every challenge with relentless momentum.</p>
+    </div>
+    <div class="logo-meaning-center">
+      <img src="/logo-transparent.png" alt="Kin Kin Trukindo Logo" class="logo-meaning-img" />
+    </div>
+    <div class="lm-callout lm-2">
+      <h4>The Indonesian Archipelago</h4>
+      <span class="lm-line"></span>
+      <p>No territory is too distant for our reach and no city is left behind.</p>
+    </div>
+    <div class="lm-callout lm-3">
+      <h4>The Semi-Truck</h4>
+      <span class="lm-line"></span>
+      <p>The engine of prosperity. It represents the unyielding strength that brings provisions to those in need.</p>
+    </div>
+    <div class="lm-callout lm-4">
+      <h4>The Waves</h4>
+      <span class="lm-line"></span>
+      <p>"When you pass through the waters, I will be with you." (Isaiah 43:2)</p>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════════════ COVERAGE ══════════════════ -->
 <section id="coverage">
   <div class="eyebrow reveal">Our Network</div>
   <h2 class="section-title reveal" style="color:#fff; margin-bottom: 14px;">All Major Indonesian Ports</h2>
-  <p class="section-sub reveal" style="color:rgba(255,255,255,.6); margin: 0 auto 44px;">We service every major container-handling port across the archipelago, with full Java door-to-door coverage.</p>
-  <div class="port-grid reveal">
-    <span class="port-chip">Tanjung Priok — Jakarta</span>
-    <span class="port-chip">Tanjung Perak — Surabaya</span>
-    <span class="port-chip">Tanjung Emas — Semarang</span>
-    <span class="port-chip">Merak — Banten</span>
-    <span class="port-chip">Tanjung Intan — Cilacap</span>
-    <span class="port-chip">Belawan — Medan</span>
-    <span class="port-chip">Teluk Bayur — Padang</span>
-    <span class="port-chip">Dumai — Riau</span>
-    <span class="port-chip">Panjang — Bandar Lampung</span>
-    <span class="port-chip">Palembang — South Sumatra</span>
-    <span class="port-chip">Batam — Riau Islands</span>
-    <span class="port-chip">Balikpapan — East Kalimantan</span>
-    <span class="port-chip">Banjarmasin — South Kalimantan</span>
-    <span class="port-chip">Pontianak — West Kalimantan</span>
-    <span class="port-chip">Makassar — South Sulawesi</span>
-    <span class="port-chip">Bitung — North Sulawesi</span>
-    <span class="port-chip">Benoa — Bali</span>
-    <span class="port-chip">Lembar — Lombok</span>
-    <span class="port-chip">Kupang — NTT</span>
-    <span class="port-chip">Ambon — Maluku</span>
-    <span class="port-chip">Sorong — West Papua</span>
-    <span class="port-chip" style="background:rgba(163,145,89,0.25);border-color:var(--gold);color:var(--gold);">✦ All Java — Door to Door</span>
-  </div>
+  <p class="section-sub reveal" style="color:rgba(255,255,255,.6); margin: 0 auto 44px;">We service every major container-handling port across the archipelago, with full door-to-door coverage.</p>
+  <div id="portMap"></div>
 </section>
 
 <!-- ══════════════════ QUOTE ══════════════════ -->
@@ -643,9 +862,10 @@
         <div class="fg">
           <label>Service Type</label>
           <div class="svc-toggle">
-            <button type="button" class="active" id="s1" onclick="setSvc('Port to Door')">🚛 Port to Door</button>
-            <button type="button" id="s2" onclick="setSvc('Door to Port')">📦 Door to Port</button>
-            <button type="button" id="s3" onclick="setSvc('Door to Door')">🗺️ Door to Door</button>
+            <button type="button" class="active" id="s1" onclick="setSvc('Port to Door')">🚛 Port→Door</button>
+            <button type="button" id="s2" onclick="setSvc('Door to Port')">📦 Door→Port</button>
+            <button type="button" id="s3" onclick="setSvc('Port to Port')">⚓ Port→Port</button>
+            <button type="button" id="s4" onclick="setSvc('Door to Door')">🗺️ Door→Door</button>
           </div>
         </div>
 
@@ -670,7 +890,7 @@
             <optgroup label="Sulawesi">
               <option>Makassar</option><option>Bitung (Manado)</option><option>Kendari</option>
             </optgroup>
-            <optgroup label="Bali & East">
+            <optgroup label="Bali &amp; East">
               <option>Benoa (Bali)</option><option>Lembar (Lombok)</option>
               <option>Kupang (NTT)</option><option>Ambon (Maluku)</option>
               <option>Sorong (West Papua)</option>
@@ -756,13 +976,14 @@
           <span>Freight &amp; Logistics</span>
         </div>
       </div>
-      <p class="footer-desc">Indonesia's trusted container trucking partner — moving cargo from port to door and door to port across the archipelago, based in Surabaya.</p>
+      <p class="footer-desc">From sea to land — your trusted container freight partner across Indonesia. Experienced, reliable, and always on time.</p>
     </div>
     <div class="footer-col">
       <h5>Services</h5>
       <a href="#services">Port to Door</a>
       <a href="#services">Door to Port</a>
-      <a href="#services">Java Door to Door</a>
+      <a href="#services">Port to Port</a>
+      <a href="#services">Door to Door</a>
     </div>
     <div class="footer-col">
       <h5>Contact</h5>
@@ -773,12 +994,13 @@
   </div>
   <div class="footer-bottom">
     <p>© 2026 Kin Kin Trukindo, Ltd. All rights reserved.</p>
-    <a href="/admin">Staff Login</a>
+    <a href="/admin">Admin Login</a>
   </div>
 </footer>
 
 <button id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   /* ── Nav scroll ── */
   const nav = document.getElementById('navbar');
@@ -823,7 +1045,7 @@
       <optgroup label="Sulawesi">
         <option>Makassar</option><option>Bitung (Manado)</option><option>Kendari</option>
       </optgroup>
-      <optgroup label="Bali & East">
+      <optgroup label="Bali &amp; East">
         <option>Benoa (Bali)</option><option>Lembar (Lombok)</option>
         <option>Kupang (NTT)</option><option>Ambon (Maluku)</option>
         <option>Sorong (West Papua)</option>
@@ -837,24 +1059,24 @@
   /* ── Service type toggle ── */
   function setSvc(type) {
     document.getElementById('h_svc').value = type;
-    ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('active'));
+    ['s1','s2','s3','s4'].forEach(id => document.getElementById(id).classList.remove('active'));
     const og = document.getElementById('originGroup');
     const dg = document.getElementById('destGroup');
-    const ol = document.getElementById('originLabel');
-    const dl = document.getElementById('destLabel');
 
     if (type === 'Port to Door') {
       document.getElementById('s1').classList.add('active');
-      ol.textContent = 'Port of Loading';
-      dl.textContent = 'Delivery City / Address';
       og.innerHTML = `<label>Port of Loading</label>${portSelectHTML('origin','originInput')}`;
       dg.innerHTML = `<label>Delivery City / Address</label>${textInputHTML('destination','destInput','e.g. Bekasi, West Java')}`;
     } else if (type === 'Door to Port') {
       document.getElementById('s2').classList.add('active');
       og.innerHTML = `<label>Pickup City / Address</label>${textInputHTML('origin','originInput','e.g. Cikarang, West Java')}`;
       dg.innerHTML = `<label>Port of Discharge</label>${portSelectHTML('destination','destInput')}`;
-    } else {
+    } else if (type === 'Port to Port') {
       document.getElementById('s3').classList.add('active');
+      og.innerHTML = `<label>Origin Port</label>${portSelectHTML('origin','originInput')}`;
+      dg.innerHTML = `<label>Destination Port</label>${portSelectHTML('destination','destInput')}`;
+    } else {
+      document.getElementById('s4').classList.add('active');
       og.innerHTML = `<label>Pickup City / Address</label>${textInputHTML('origin','originInput','e.g. Jakarta')}`;
       dg.innerHTML = `<label>Delivery City / Address</label>${textInputHTML('destination','destInput','e.g. Surabaya, East Java')}`;
     }
@@ -880,6 +1102,74 @@
       alert('Network error. Please contact us via WhatsApp or email.');
     }
   });
+
+  /* ── Interactive Port Map (lazy-init when section enters viewport) ── */
+  (function setupPortMap() {
+    const ports = [
+      { name: "Tanjung Priok",  city: "Jakarta",           lat: -6.102,  lng: 106.879 },
+      { name: "Tanjung Perak",  city: "Surabaya",          lat: -7.202,  lng: 112.730 },
+      { name: "Tanjung Emas",   city: "Semarang",          lat: -6.968,  lng: 110.414 },
+      { name: "Merak",          city: "Banten",            lat: -5.935,  lng: 105.998 },
+      { name: "Tanjung Intan",  city: "Cilacap",           lat: -7.736,  lng: 109.016 },
+      { name: "Belawan",        city: "Medan",             lat:  3.789,  lng:  98.709 },
+      { name: "Teluk Bayur",    city: "Padang",            lat: -1.004,  lng: 100.360 },
+      { name: "Dumai",          city: "Riau",              lat:  1.670,  lng: 101.453 },
+      { name: "Panjang",        city: "Bandar Lampung",    lat: -5.450,  lng: 105.302 },
+      { name: "Palembang",      city: "South Sumatra",     lat: -2.985,  lng: 104.764 },
+      { name: "Batam",          city: "Riau Islands",      lat:  1.130,  lng: 104.018 },
+      { name: "Balikpapan",     city: "East Kalimantan",   lat: -1.269,  lng: 116.832 },
+      { name: "Banjarmasin",    city: "South Kalimantan",  lat: -3.323,  lng: 114.592 },
+      { name: "Pontianak",      city: "West Kalimantan",   lat: -0.020,  lng: 109.330 },
+      { name: "Makassar",       city: "South Sulawesi",    lat: -5.130,  lng: 119.413 },
+      { name: "Bitung",         city: "North Sulawesi",    lat:  1.444,  lng: 125.175 },
+      { name: "Benoa",          city: "Bali",              lat: -8.749,  lng: 115.215 },
+      { name: "Lembar",         city: "Lombok",            lat: -8.718,  lng: 116.074 },
+      { name: "Kupang",         city: "NTT",               lat: -10.167, lng: 123.614 },
+      { name: "Ambon",          city: "Maluku",            lat: -3.693,  lng: 128.178 },
+      { name: "Sorong",         city: "West Papua",        lat: -0.881,  lng: 131.260 }
+    ];
+
+    let mapInitialized = false;
+
+    function initMap() {
+      if (mapInitialized) return;
+      mapInitialized = true;
+
+      const portIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:13px;height:13px;background:#A39159;border:2.5px solid rgba(255,255,255,0.75);border-radius:50%;box-shadow:0 0 0 3px rgba(163,145,89,0.3),0 2px 8px rgba(0,0,0,0.55);"></div>',
+        iconSize: [13, 13], iconAnchor: [6, 6], popupAnchor: [0, -10]
+      });
+
+      const map = L.map('portMap', { center: [-2.5, 118], zoom: 4, scrollWheelZoom: false });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18
+      }).addTo(map);
+
+      ports.forEach(p => {
+        L.marker([p.lat, p.lng], { icon: portIcon }).addTo(map)
+          .bindPopup(`<strong>${p.name}</strong>${p.city}<br/><a href="#quote" style="color:#A39159;font-weight:600;font-size:12px;">Get a Quote →</a>`);
+      });
+
+      map.on('click', () => map.scrollWheelZoom.enable());
+      map.on('blur',  () => map.scrollWheelZoom.disable());
+
+      /* ensure Leaflet recalculates size after any CSS transition */
+      setTimeout(() => map.invalidateSize(), 300);
+    }
+
+    /* init when the coverage section scrolls into view */
+    const coverageObserver = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        coverageObserver.disconnect();
+        initMap();
+      }
+    }, { threshold: 0.05 });
+
+    coverageObserver.observe(document.getElementById('coverage'));
+  })();
 </script>
 </body>
 </html>
