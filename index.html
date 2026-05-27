@@ -1,15 +1,745 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/icon-180.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Kin Kin Trukindo, Ltd.</title>
-  </head>
-  <style>html, body, #root { background: #0d0d0d; margin: 0; padding: 0; overflow-x: hidden; width: 100%; }</style>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/icon-180.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Kin Kin Trukindo — Indonesia's trusted container trucking partner. Port-to-door and door-to-port freight solutions across Java and all major Indonesian ports." />
+  <title>Kin Kin Trukindo — Freight &amp; Logistics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; color: #1B3F60; background: #FEFEFE; overflow-x: hidden; }
+    h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+
+    /* ── Tokens ── */
+    :root {
+      --blue:  #1B3F60;
+      --gold:  #A39159;
+      --green: #4A643C;
+      --gray-green: #7C8F67;
+      --white: #FEFEFE;
+      --light: #F4F4F0;
+      --radius: 8px;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--blue);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 64px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    }
+    .nav-brand {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800; font-size: 15px; letter-spacing: 1.5px;
+      color: var(--white); line-height: 1.15;
+    }
+    .nav-brand span { display: block; font-size: 9px; font-weight: 600; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 0.5px; transition: color .2s; }
+    .nav-links a:hover { color: var(--gold); }
+    .nav-cta {
+      background: var(--gold); color: var(--white) !important;
+      padding: 9px 22px; border-radius: var(--radius);
+      font-weight: 700 !important; font-size: 13px !important;
+      transition: background .2s !important;
+    }
+    .nav-cta:hover { background: #8c7a4a !important; }
+    .nav-hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+    .nav-hamburger span { display: block; width: 22px; height: 2px; background: var(--white); border-radius: 2px; transition: .25s; }
+    @media (max-width: 700px) {
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--blue); flex-direction: column; gap: 0; padding: 8px 0 16px; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 12px 5vw; width: 100%; }
+      .nav-cta { margin: 8px 5vw 0; border-radius: var(--radius); text-align: center; }
+      .nav-hamburger { display: flex; }
+    }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh; padding-top: 64px;
+      background: linear-gradient(135deg, var(--blue) 0%, #0f2540 60%, #1a3a2e 100%);
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding-left: 5vw; padding-right: 5vw;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 50%, rgba(163,145,89,0.12) 0%, transparent 60%);
+    }
+    .hero-content { position: relative; max-width: 780px; }
+    .hero-eyebrow {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 3px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 20px;
+      border: 1px solid rgba(163,145,89,0.4); padding: 6px 16px; border-radius: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 58px); font-weight: 800; line-height: 1.12;
+      color: var(--white); margin-bottom: 22px; letter-spacing: -0.5px;
+    }
+    .hero h1 em { color: var(--gold); font-style: normal; }
+    .hero-sub {
+      font-size: clamp(15px, 2vw, 18px); color: rgba(255,255,255,0.72);
+      line-height: 1.65; margin-bottom: 38px; max-width: 580px; margin-left: auto; margin-right: auto;
+    }
+    .hero-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--gold); color: var(--white);
+      padding: 14px 34px; border-radius: var(--radius);
+      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;
+      border: none; cursor: pointer; transition: background .2s, transform .15s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: #8c7a4a; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; color: var(--white);
+      padding: 14px 34px; border-radius: var(--radius);
+      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;
+      border: 1.5px solid rgba(255,255,255,0.35); cursor: pointer; transition: border-color .2s, transform .15s;
+      display: inline-block;
+    }
+    .btn-outline:hover { border-color: var(--gold); transform: translateY(-1px); }
+    .hero-stats {
+      display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;
+      margin-top: 60px; padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-num { font-family: 'Montserrat', sans-serif; font-size: 28px; font-weight: 800; color: var(--gold); }
+    .hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.55); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+
+    /* ── Section shell ── */
+    section { padding: 90px 5vw; }
+    .section-eyebrow {
+      font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 12px;
+    }
+    .section-title { font-size: clamp(24px, 4vw, 38px); font-weight: 800; color: var(--blue); line-height: 1.2; }
+    .section-sub { font-size: 16px; color: #5a6a7a; line-height: 1.65; margin-top: 14px; max-width: 560px; }
+    .section-header { margin-bottom: 52px; }
+
+    /* ── Services ── */
+    #services { background: var(--light); }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .service-card {
+      background: var(--white); border-radius: 12px; padding: 36px 30px;
+      border: 1px solid rgba(27,63,96,0.1);
+      transition: box-shadow .25s, transform .2s;
+      position: relative; overflow: hidden;
+    }
+    .service-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: var(--gold);
+    }
+    .service-card:hover { box-shadow: 0 12px 40px rgba(27,63,96,0.12); transform: translateY(-3px); }
+    .service-icon { font-size: 36px; margin-bottom: 18px; }
+    .service-card h3 { font-size: 18px; font-weight: 700; color: var(--blue); margin-bottom: 10px; }
+    .service-card p { font-size: 14px; color: #5a6a7a; line-height: 1.65; }
+    .service-tag {
+      display: inline-block; margin-top: 16px;
+      background: rgba(74,100,60,0.1); color: var(--green);
+      font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    /* ── Why Us ── */
+    #why-us { background: var(--white); }
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; }
+    .why-item { display: flex; gap: 16px; align-items: flex-start; }
+    .why-icon {
+      flex-shrink: 0; width: 44px; height: 44px;
+      background: rgba(163,145,89,0.12); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .why-item h4 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+    .why-item p { font-size: 13px; color: #5a6a7a; line-height: 1.6; }
+
+    /* ── Coverage banner ── */
+    #coverage {
+      background: var(--blue);
+      padding: 70px 5vw;
+      text-align: center;
+    }
+    #coverage .section-eyebrow { color: var(--gold); }
+    #coverage .section-title { color: var(--white); }
+    #coverage .section-sub { color: rgba(255,255,255,0.65); margin: 14px auto 40px; }
+    .coverage-ports {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 900px; margin: 0 auto;
+    }
+    .port-chip {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.85); font-size: 12px; font-weight: 600;
+      padding: 7px 16px; border-radius: 20px; letter-spacing: 0.3px;
+      transition: background .2s;
+    }
+    .port-chip:hover { background: rgba(163,145,89,0.25); border-color: var(--gold); }
+
+    /* ── Quote Form ── */
+    #quote { background: var(--light); }
+    .quote-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+    @media (max-width: 860px) { .quote-wrap { grid-template-columns: 1fr; } }
+    .quote-info h2 { font-size: clamp(22px, 3.5vw, 34px); font-weight: 800; color: var(--blue); margin-bottom: 14px; }
+    .quote-info p { font-size: 15px; color: #5a6a7a; line-height: 1.7; margin-bottom: 28px; }
+    .quote-contact-item { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+    .quote-contact-item .ic { font-size: 18px; }
+    .quote-contact-item a, .quote-contact-item span { font-size: 14px; color: var(--blue); font-weight: 500; }
+    .quote-contact-item a:hover { color: var(--gold); }
+
+    .quote-form-card {
+      background: var(--white); border-radius: 14px; padding: 36px 32px;
+      box-shadow: 0 4px 32px rgba(27,63,96,0.08); border: 1px solid rgba(27,63,96,0.08);
+    }
+    .quote-form-card h3 { font-size: 18px; font-weight: 700; color: var(--blue); margin-bottom: 24px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6a7a8a; margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid #D8DDE4; border-radius: var(--radius);
+      font-family: 'Inter', sans-serif; font-size: 14px; color: var(--blue);
+      background: #FAFAFA; outline: none; transition: border-color .2s;
+      appearance: none; -webkit-appearance: none;
+    }
+    .form-group select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231B3F60' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue); background: var(--white); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } .quote-form-card { padding: 24px 18px; } }
+
+    .service-toggle { display: flex; gap: 0; margin-bottom: 4px; border: 1.5px solid #D8DDE4; border-radius: var(--radius); overflow: hidden; }
+    .service-toggle button {
+      flex: 1; padding: 10px 8px; border: none; cursor: pointer;
+      font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+      background: #FAFAFA; color: #6a7a8a; transition: .2s;
+    }
+    .service-toggle button.active { background: var(--blue); color: var(--white); }
+
+    .submit-btn {
+      width: 100%; padding: 14px; margin-top: 8px;
+      background: var(--blue); color: var(--white); border: none;
+      border-radius: var(--radius); font-family: 'Montserrat', sans-serif;
+      font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+      cursor: pointer; transition: background .2s;
+    }
+    .submit-btn:hover { background: #0f2540; }
+    .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+    .form-success {
+      display: none; text-align: center; padding: 28px;
+    }
+    .form-success .check { font-size: 48px; margin-bottom: 12px; }
+    .form-success h4 { color: var(--green); font-size: 18px; margin-bottom: 8px; }
+    .form-success p { color: #5a6a7a; font-size: 14px; }
+
+    /* ── Footer ── */
+    footer {
+      background: #0f2540; padding: 60px 5vw 30px;
+      color: rgba(255,255,255,0.6);
+    }
+    .footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+    @media (max-width: 700px) { .footer-top { grid-template-columns: 1fr; } }
+    .footer-brand-name {
+      font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 800;
+      color: var(--white); letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .footer-brand-sub { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+    .footer-desc { font-size: 13px; line-height: 1.7; max-width: 280px; }
+    .footer-col h5 { font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+    .footer-col a, .footer-col span { display: block; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 8px; transition: color .2s; }
+    .footer-col a:hover { color: var(--white); }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .footer-bottom p { font-size: 12px; }
+    .footer-bottom a { font-size: 12px; color: rgba(255,255,255,0.4); }
+    .footer-bottom a:hover { color: var(--white); }
+
+    /* ── Scroll to top ── */
+    .scroll-top {
+      position: fixed; bottom: 24px; right: 24px; z-index: 99;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--gold); color: var(--white); border: none;
+      font-size: 18px; cursor: pointer; display: none; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2); transition: background .2s;
+    }
+    .scroll-top:hover { background: #8c7a4a; }
+    .scroll-top.visible { display: flex; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav id="navbar">
+  <div class="nav-brand">
+    KINKIN TRUKINDO
+    <span>Freight &amp; Logistics</span>
+  </div>
+  <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a href="#services">Services</a>
+    <a href="#why-us">Why Us</a>
+    <a href="#coverage">Coverage</a>
+    <a href="#quote" class="nav-cta">Request Quote</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero" id="home">
+  <div class="hero-content">
+    <div class="hero-eyebrow">🇮🇩 Indonesia Container Trucking</div>
+    <h1>
+      Moving Containers<br/>
+      <em>Across Every Port</em><br/>
+      in Indonesia
+    </h1>
+    <p class="hero-sub">
+      Reliable port-to-door and door-to-port container trucking across Java and all major Indonesian ports. Precision logistics backed by experienced drivers and real-time coordination.
+    </p>
+    <div class="hero-buttons">
+      <a href="#quote" class="btn-primary">Request a Quote</a>
+      <a href="#services" class="btn-outline">Our Services</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num">2</div>
+        <div class="hero-stat-label">Trucks</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">20+</div>
+        <div class="hero-stat-label">Ports Covered</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">Java</div>
+        <div class="hero-stat-label">Door-to-Door</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Services ── -->
+<section id="services">
+  <div class="section-header">
+    <div class="section-eyebrow">What We Do</div>
+    <h2 class="section-title">Container Trucking Services</h2>
+    <p class="section-sub">We specialize exclusively in container cargo — 20ft and 40ft — moving freight with reliability from port to destination or from your location to the port.</p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="service-icon">🚛</div>
+      <h3>Port to Door</h3>
+      <p>We pick up your container from any major Indonesian port and deliver directly to your warehouse, factory, or distribution center across Java.</p>
+      <span class="service-tag">Import Delivery</span>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">📦</div>
+      <h3>Door to Port</h3>
+      <p>We collect your loaded or empty container from your location and transport it to the port in time for vessel cut-off. Reliable stuffing and stripping coordination available.</p>
+      <span class="service-tag">Export Pickup</span>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🗺️</div>
+      <h3>Java Door to Door</h3>
+      <p>Full container trucking between any two points on Java island. Ideal for inter-city distribution or repositioning empty containers.</p>
+      <span class="service-tag">Domestic Haulage</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Why Us ── -->
+<section id="why-us">
+  <div class="section-header">
+    <div class="section-eyebrow">Why Kin Kin Trukindo</div>
+    <h2 class="section-title">Built for Reliability</h2>
+    <p class="section-sub">We run a lean, dedicated operation — meaning your shipment gets full attention, not just a number in a queue.</p>
+  </div>
+  <div class="why-grid">
+    <div class="why-item">
+      <div class="why-icon">📍</div>
+      <div>
+        <h4>Real-Time Coordination</h4>
+        <p>Direct communication with our drivers throughout every trip. No middlemen, no surprises at delivery.</p>
+      </div>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">🔒</div>
+      <div>
+        <h4>Container-Specialist</h4>
+        <p>We operate exclusively with containers — our drivers know port procedures, customs requirements, and terminal operations inside out.</p>
+      </div>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">⚡</div>
+      <div>
+        <h4>Fast Quote Turnaround</h4>
+        <p>Send us your route and we respond within the same business day with a competitive, transparent rate.</p>
+      </div>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">🤝</div>
+      <div>
+        <h4>Personal Service</h4>
+        <p>You deal directly with the owner-operator — decisions happen fast, and your shipment is never deprioritized.</p>
+      </div>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">📋</div>
+      <div>
+        <h4>Transparent Invoicing</h4>
+        <p>Clean, itemized invoices. No hidden surcharges — fuel, toll, and driver allowance are quoted upfront.</p>
+      </div>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">🏆</div>
+      <div>
+        <h4>On-Time Record</h4>
+        <p>Port cut-off compliance is our core commitment. We plan departure times with buffer to absorb traffic.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Coverage ── -->
+<section id="coverage">
+  <div class="section-eyebrow">Our Network</div>
+  <h2 class="section-title">All Major Indonesian Ports</h2>
+  <p class="section-sub">We service every major container-handling port across the archipelago, with full Java door-to-door coverage.</p>
+  <div class="coverage-ports">
+    <span class="port-chip">🏭 Tanjung Priok — Jakarta</span>
+    <span class="port-chip">🏭 Tanjung Perak — Surabaya</span>
+    <span class="port-chip">🏭 Tanjung Emas — Semarang</span>
+    <span class="port-chip">🏭 Merak — Banten</span>
+    <span class="port-chip">🏭 Tanjung Intan — Cilacap</span>
+    <span class="port-chip">🏭 Belawan — Medan</span>
+    <span class="port-chip">🏭 Teluk Bayur — Padang</span>
+    <span class="port-chip">🏭 Dumai — Riau</span>
+    <span class="port-chip">🏭 Panjang — Bandar Lampung</span>
+    <span class="port-chip">🏭 Palembang — South Sumatra</span>
+    <span class="port-chip">🏭 Batam — Riau Islands</span>
+    <span class="port-chip">🏭 Balikpapan — East Kalimantan</span>
+    <span class="port-chip">🏭 Banjarmasin — South Kalimantan</span>
+    <span class="port-chip">🏭 Pontianak — West Kalimantan</span>
+    <span class="port-chip">🏭 Makassar — South Sulawesi</span>
+    <span class="port-chip">🏭 Bitung — North Sulawesi</span>
+    <span class="port-chip">🏭 Benoa — Bali</span>
+    <span class="port-chip">🏭 Lembar — Lombok</span>
+    <span class="port-chip">🏭 Kupang — NTT</span>
+    <span class="port-chip">🏭 Ambon — Maluku</span>
+    <span class="port-chip">🏭 Sorong — West Papua</span>
+    <span class="port-chip">🗺️ All Java — Door to Door</span>
+  </div>
+</section>
+
+<!-- ── Quote Form ── -->
+<section id="quote">
+  <div class="quote-wrap">
+    <div class="quote-info">
+      <div class="section-eyebrow">Get in Touch</div>
+      <h2>Request a Freight Quote</h2>
+      <p>Tell us your route, container type, and cargo — we'll come back with a competitive rate within the same business day.</p>
+      <div class="quote-contact-item">
+        <span class="ic">📧</span>
+        <a href="mailto:info@kinkintrukindo.com">info@kinkintrukindo.com</a>
+      </div>
+      <div class="quote-contact-item">
+        <span class="ic">💬</span>
+        <a href="https://wa.me/62XXXXXXXXXX" target="_blank" id="wa-link">WhatsApp Us</a>
+      </div>
+      <div class="quote-contact-item">
+        <span class="ic">📍</span>
+        <span id="office-address">Jakarta, Indonesia</span>
+      </div>
+    </div>
+
+    <div class="quote-form-card">
+      <h3>Quote Request Form</h3>
+      <form id="quoteForm">
+        <!-- Web3Forms hidden fields -->
+        <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY" />
+        <input type="hidden" name="subject" value="New Freight Quote Request — Kin Kin Trukindo" />
+        <input type="hidden" name="from_name" value="kinkintrukindo.com Quote Form" />
+        <input type="hidden" name="redirect" value="false" />
+        <input type="hidden" name="service_type" id="hidden_service_type" value="Port to Door" />
+
+        <!-- Service type toggle -->
+        <div class="form-group">
+          <label>Service Type</label>
+          <div class="service-toggle">
+            <button type="button" class="active" id="btn-p2d" onclick="setService('Port to Door')">🚛 Port to Door</button>
+            <button type="button" id="btn-d2p" onclick="setService('Door to Port')">📦 Door to Port</button>
+            <button type="button" id="btn-d2d" onclick="setService('Door to Door')">🗺️ Door to Door</button>
+          </div>
+        </div>
+
+        <!-- Origin -->
+        <div class="form-group" id="origin-group">
+          <label id="origin-label">Port of Loading</label>
+          <select name="origin" id="origin-input" required>
+            <option value="">— Select port —</option>
+            <optgroup label="Java">
+              <option>Tanjung Priok (Jakarta)</option>
+              <option>Tanjung Perak (Surabaya)</option>
+              <option>Tanjung Emas (Semarang)</option>
+              <option>Merak (Banten)</option>
+              <option>Tanjung Intan (Cilacap)</option>
+            </optgroup>
+            <optgroup label="Sumatra">
+              <option>Belawan (Medan)</option>
+              <option>Teluk Bayur (Padang)</option>
+              <option>Dumai (Riau)</option>
+              <option>Panjang (Bandar Lampung)</option>
+              <option>Palembang</option>
+              <option>Batam</option>
+            </optgroup>
+            <optgroup label="Kalimantan">
+              <option>Balikpapan</option>
+              <option>Banjarmasin</option>
+              <option>Pontianak</option>
+              <option>Samarinda</option>
+            </optgroup>
+            <optgroup label="Sulawesi">
+              <option>Makassar</option>
+              <option>Bitung (Manado)</option>
+              <option>Kendari</option>
+            </optgroup>
+            <optgroup label="Bali & Eastern Indonesia">
+              <option>Benoa (Bali)</option>
+              <option>Lembar (Lombok)</option>
+              <option>Kupang (NTT)</option>
+              <option>Ambon (Maluku)</option>
+              <option>Sorong (West Papua)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Destination -->
+        <div class="form-group">
+          <label id="dest-label">Delivery City / Address</label>
+          <input type="text" name="destination" id="dest-input" placeholder="e.g. Bekasi, West Java" required />
+        </div>
+
+        <!-- Container -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Container Size</label>
+            <select name="container_size" required>
+              <option value="">— Select —</option>
+              <option>20ft Dry</option>
+              <option>40ft Dry</option>
+              <option>40ft High Cube</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>No. of Containers</label>
+            <input type="number" name="container_qty" placeholder="e.g. 1" min="1" required />
+          </div>
+        </div>
+
+        <!-- Cargo & Date -->
+        <div class="form-group">
+          <label>Cargo Description</label>
+          <input type="text" name="cargo" placeholder="e.g. Electronics, general goods, machinery" />
+        </div>
+        <div class="form-group">
+          <label>Preferred Date</label>
+          <input type="date" name="preferred_date" />
+        </div>
+
+        <!-- Contact -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Your Name *</label>
+            <input type="text" name="name" placeholder="Full name" required />
+          </div>
+          <div class="form-group">
+            <label>Company</label>
+            <input type="text" name="company" placeholder="PT / CV name" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phone / WhatsApp *</label>
+            <input type="tel" name="phone" placeholder="+62 8xx-xxxx-xxxx" required />
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" name="email" placeholder="you@company.com" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Additional Notes</label>
+          <textarea name="notes" placeholder="Special requirements, dangerous goods, customs notes…"></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Send Quote Request →</button>
+      </form>
+
+      <div class="form-success" id="formSuccess">
+        <div class="check">✅</div>
+        <h4>Quote Request Sent!</h4>
+        <p>Thank you! We'll review your request and get back to you within the same business day at the latest.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-top">
+    <div>
+      <div class="footer-brand-name">KINKIN TRUKINDO</div>
+      <div class="footer-brand-sub">Freight &amp; Logistics</div>
+      <p class="footer-desc">Indonesia's trusted container trucking partner — moving cargo from port to door and door to port across the archipelago.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Services</h5>
+      <a href="#services">Port to Door</a>
+      <a href="#services">Door to Port</a>
+      <a href="#services">Java Door to Door</a>
+    </div>
+    <div class="footer-col">
+      <h5>Contact</h5>
+      <a href="mailto:info@kinkintrukindo.com">info@kinkintrukindo.com</a>
+      <a href="https://wa.me/62XXXXXXXXXX" id="footer-wa">WhatsApp</a>
+      <span id="footer-address">Jakarta, Indonesia</span>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Kin Kin Trukindo, Ltd. All rights reserved.</p>
+    <a href="/admin">Staff Login</a>
+  </div>
+</footer>
+
+<!-- Scroll to top -->
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+  // ── Nav hamburger ──
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('nav-links').classList.toggle('open');
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => document.getElementById('nav-links').classList.remove('open'));
+  });
+
+  // ── Scroll top button ──
+  window.addEventListener('scroll', () => {
+    document.getElementById('scrollTop').classList.toggle('visible', window.scrollY > 400);
+  });
+
+  // ── Service type toggle logic ──
+  function setService(type) {
+    document.getElementById('hidden_service_type').value = type;
+    ['btn-p2d','btn-d2p','btn-d2d'].forEach(id => document.getElementById(id).classList.remove('active'));
+
+    const originGroup = document.getElementById('origin-group');
+    const originLabel = document.getElementById('origin-label');
+    const originInput = document.getElementById('origin-input');
+    const destLabel   = document.getElementById('dest-label');
+    const destInput   = document.getElementById('dest-input');
+
+    if (type === 'Port to Door') {
+      document.getElementById('btn-p2d').classList.add('active');
+      originLabel.textContent = 'Port of Loading';
+      destLabel.textContent   = 'Delivery City / Address';
+      // origin = port select
+      originGroup.innerHTML = buildPortSelect('origin', 'Port of Loading');
+      // dest = text
+      destInput.type = 'text';
+      destInput.placeholder = 'e.g. Bekasi, West Java';
+
+    } else if (type === 'Door to Port') {
+      document.getElementById('btn-d2p').classList.add('active');
+      originLabel.textContent = 'Pickup City / Address';
+      destLabel.textContent   = 'Port of Discharge';
+      // origin = text
+      originGroup.innerHTML = `<label>Pickup City / Address</label><input type="text" name="origin" id="origin-input" placeholder="e.g. Cikarang, West Java" required />`;
+      // dest = port select (repurpose dest field)
+      const destGroup = destInput.parentElement;
+      destGroup.innerHTML = buildPortSelect('destination', 'Port of Discharge');
+
+    } else {
+      document.getElementById('btn-d2d').classList.add('active');
+      originGroup.innerHTML = `<label>Pickup City / Address</label><input type="text" name="origin" id="origin-input" placeholder="e.g. Jakarta" required />`;
+      destInput.type = 'text';
+      destLabel.textContent   = 'Delivery City / Address';
+      destInput.placeholder = 'e.g. Surabaya, East Java';
+    }
+  }
+
+  function buildPortSelect(name, labelText) {
+    return `<label>${labelText}</label>
+    <select name="${name}" id="${name === 'origin' ? 'origin-input' : 'dest-input'}" required>
+      <option value="">— Select port —</option>
+      <optgroup label="Java">
+        <option>Tanjung Priok (Jakarta)</option>
+        <option>Tanjung Perak (Surabaya)</option>
+        <option>Tanjung Emas (Semarang)</option>
+        <option>Merak (Banten)</option>
+        <option>Tanjung Intan (Cilacap)</option>
+      </optgroup>
+      <optgroup label="Sumatra">
+        <option>Belawan (Medan)</option>
+        <option>Teluk Bayur (Padang)</option>
+        <option>Dumai (Riau)</option>
+        <option>Panjang (Bandar Lampung)</option>
+        <option>Palembang</option>
+        <option>Batam</option>
+      </optgroup>
+      <optgroup label="Kalimantan">
+        <option>Balikpapan</option>
+        <option>Banjarmasin</option>
+        <option>Pontianak</option>
+        <option>Samarinda</option>
+      </optgroup>
+      <optgroup label="Sulawesi">
+        <option>Makassar</option>
+        <option>Bitung (Manado)</option>
+        <option>Kendari</option>
+      </optgroup>
+      <optgroup label="Bali & Eastern Indonesia">
+        <option>Benoa (Bali)</option>
+        <option>Lembar (Lombok)</option>
+        <option>Kupang (NTT)</option>
+        <option>Ambon (Maluku)</option>
+        <option>Sorong (West Papua)</option>
+      </optgroup>
+    </select>`;
+  }
+
+  // ── Form submission via Web3Forms ──
+  document.getElementById('quoteForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    const formData = new FormData(this);
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('quoteForm').style.display = 'none';
+        document.getElementById('formSuccess').style.display = 'block';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Send Quote Request →';
+        alert('Something went wrong. Please email us directly at info@kinkintrukindo.com');
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Send Quote Request →';
+      alert('Network error. Please email us at info@kinkintrukindo.com');
+    }
+  });
+</script>
+</body>
 </html>
