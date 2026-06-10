@@ -672,6 +672,12 @@ function KinKinApp() {
     setActivityLog((prev) => [{ id: genId(), at: new Date().toISOString(), action, type, description }, ...prev]);
   };
 
+  const resetAll = () => {
+    setTrips([]); setExpenses([]); setKas([]); setCapital([]); setLoans([]);
+    setAssets([]); setLoanPayments([]); setImportLogs([]); setPettyTopups([]);
+    setActivityLog([]);
+  };
+
   const guardedDelete = (message, onConfirm) => {
     setDeleteGuard({ message, onConfirm });
     setDeleteGuardCode("");
@@ -1014,7 +1020,7 @@ function KinKinApp() {
                 })()}
 
                 <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 4, padding: 12, fontSize: 11, color: "#e2e8f0", marginBottom: 14 }}>
-                  This import will be saved as a log entry. You can delete the whole batch later if uploaded wrongly — from the Dashboard → Import History.
+                  This import will be saved as a log entry. You can delete the whole batch later if uploaded wrongly — from Settings → Import History.
                 </div>
 
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
@@ -1097,14 +1103,14 @@ function KinKinApp() {
       )}
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
-        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} />}
+        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} setExpenses={setExpenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
-        {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={setAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} />}
+        {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={setAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
       </div>
 
       {/* ── GLOBAL FAB ── */}
@@ -1190,12 +1196,9 @@ function KinKinApp() {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, importLogs, undoImport, kas }) {
+function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, kas }) {
   const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
-  const [undoModal, setUndoModal] = useState(null);
-  const [resetModal, setResetModal] = useState(null);
-  const [importHistoryOpen, setImportHistoryOpen] = useState(false);
   const truckStats = trucks.map((t) => {
     const tTrips = trips.filter((x) => x.nopol === t);
     const tExp = expenses.filter((x) => x.truck === t);
@@ -1217,76 +1220,6 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       {/* Transparent backdrop to close KPI popup on outside click */}
       {kpiPopup && <div onClick={() => setKpiPopup(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 199 }} />}
 
-      {/* Undo import password modal */}
-      {undoModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#162030", border: "1px solid rgba(248,113,113,0.4)", borderRadius: 10, padding: 24, maxWidth: 380, width: "100%", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#f87171", fontWeight: 700, marginBottom: 8 }}>Confirm Undo Import</h3>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 16, lineHeight: 1.5 }}>Enter admin password to delete this import and all its entries.</p>
-            <input
-              type="password"
-              placeholder="Admin password"
-              value={undoModal.pwd}
-              onChange={(e) => setUndoModal({ ...undoModal, pwd: e.target.value, err: "" })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (undoModal.pwd === "808880") { undoImport(undoModal.logId); setUndoModal(null); }
-                  else setUndoModal({ ...undoModal, err: "Incorrect password" });
-                }
-              }}
-              style={{ width: "100%", padding: "10px 12px", fontSize: 13, border: `1px solid ${undoModal.err ? "#f87171" : "rgba(255,255,255,0.12)"}`, borderRadius: 4, marginBottom: 6, boxSizing: "border-box" }}
-              autoFocus
-            />
-            {undoModal.err && <div style={{ fontSize: 12, color: "#f87171", marginBottom: 10 }}>{undoModal.err}</div>}
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 14 }}>
-              <button onClick={() => setUndoModal(null)} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)", padding: "9px 18px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-              <button
-                onClick={() => {
-                  if (undoModal.pwd === "808880") { undoImport(undoModal.logId); setUndoModal(null); }
-                  else setUndoModal({ ...undoModal, err: "Incorrect password" });
-                }}
-                style={{ background: "#f87171", color: "#fff", border: "none", padding: "9px 20px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-              >Undo Import</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reset all data password modal */}
-      {resetModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#162030", border: "1px solid #f87171", borderRadius: 10, padding: 24, maxWidth: 400, width: "100%", boxShadow: "0 8px 32px rgba(0,0,0,0.25)" }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#f87171", fontWeight: 700, marginBottom: 8 }}>Reset All Data</h3>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 8, lineHeight: 1.5 }}>This will <strong>permanently delete</strong> all trips, expenses, cash entries, loans, assets, capital, and import history.</p>
-            <p style={{ fontSize: 12, color: "#f87171", fontWeight: 600, marginBottom: 16 }}>This action cannot be undone.</p>
-            <input
-              type="password"
-              placeholder="Admin password"
-              value={resetModal.pwd}
-              onChange={(e) => setResetModal({ ...resetModal, pwd: e.target.value, err: "" })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (resetModal.pwd === "808880") { supabase.from("kinkin_state").delete().eq("key", STORE_KEY).then(() => window.location.reload()); }
-                  else setResetModal({ ...resetModal, err: "Incorrect password" });
-                }
-              }}
-              style={{ width: "100%", padding: "10px 12px", fontSize: 13, border: `1px solid ${resetModal.err ? "#f87171" : "rgba(255,255,255,0.12)"}`, borderRadius: 4, marginBottom: 6, boxSizing: "border-box" }}
-              autoFocus
-            />
-            {resetModal.err && <div style={{ fontSize: 12, color: "#f87171", marginBottom: 10 }}>{resetModal.err}</div>}
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 14 }}>
-              <button onClick={() => setResetModal(null)} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)", padding: "9px 18px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-              <button
-                onClick={() => {
-                  if (resetModal.pwd === "808880") { supabase.from("kinkin_state").delete().eq("key", STORE_KEY).then(() => window.location.reload()); }
-                  else setResetModal({ ...resetModal, err: "Incorrect password" });
-                }}
-                style={{ background: "#f87171", color: "#fff", border: "none", padding: "9px 20px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-              >Yes, Reset Everything</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#e2e8f0", letterSpacing: 0.3, fontWeight: 700 }}>DASHBOARD OVERVIEW</h2>
@@ -1509,85 +1442,6 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
         </div>
       </div>
 
-      {/* Import History — collapsible, collapsed by default */}
-      <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, marginTop: 20, overflow: "hidden" }}>
-        <div
-          onClick={() => setImportHistoryOpen((o) => !o)}
-          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", cursor: "pointer", userSelect: "none" }}
-        >
-          <h3 style={{ fontSize: 13, color: "#c8a86b", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700, margin: 0 }}>IMPORT HISTORY</h3>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 11, background: "rgba(200,168,107,0.13)", color: "#c8a86b", border: "1px solid rgba(200,168,107,0.3)", padding: "2px 8px", borderRadius: 3 }}>
-              {importLogs ? importLogs.length : 0} import{(!importLogs || importLogs.length !== 1) ? "s" : ""}
-            </span>
-            <span style={{ fontSize: 13, color: "#c8a86b" }}>{importHistoryOpen ? "▼" : "▶"}</span>
-          </div>
-        </div>
-        {importHistoryOpen && importLogs && importLogs.length > 0 && (
-          <div style={{ padding: "0 20px 20px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ overflowX: "auto", marginTop: 14 }}>
-            <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 540 }}>
-              <thead>
-                <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                  <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>IMPORTED AT</th>
-                  <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>PERIOD</th>
-                  <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>FILE</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>TRIPS</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>EXPENSES</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>REVENUE</th>
-                  <th style={{ textAlign: "center", padding: "6px 8px" }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {importLogs.map((log) => (
-                  <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                    <td style={{ padding: "8px 8px", color: "rgba(255,255,255,0.45)", fontSize: 11, whiteSpace: "nowrap" }}>
-                      {new Date(log.importedAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
-                    </td>
-                    <td style={{ padding: "8px 8px", color: "#c8a86b", fontWeight: 600, whiteSpace: "nowrap" }}>{log.monthYear}</td>
-                    <td style={{ padding: "8px 8px", color: "rgba(255,255,255,0.45)", fontSize: 11 }} title={log.fileName}>
-                      {log.fileName.length > 30 ? log.fileName.slice(0, 27) + "..." : log.fileName}
-                    </td>
-                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#34d399" }}>{log.summary.tripCount}</td>
-                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#f59e0b" }}>{log.summary.expenseCount}</td>
-                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#34d399", whiteSpace: "nowrap" }}>{fmt(log.summary.totalRevenue)}</td>
-                    <td style={{ padding: "8px 8px", textAlign: "center" }}>
-                      <button
-                        onClick={() => setUndoModal({ logId: log.id, pwd: "", err: "" })}
-                        style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.4)", color: "#f87171", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}
-                        title="Delete this import and all its entries"
-                      >
-                        Undo
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </div>
-        )}
-        {importHistoryOpen && (!importLogs || importLogs.length === 0) && (
-          <div style={{ padding: "14px 20px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>No imports yet.</div>
-        )}
-      </div>
-
-      {/* Danger Zone */}
-      <div style={{ marginTop: 32, borderTop: "2px solid #ef444433", paddingTop: 20 }}>
-        <div style={{ fontSize: 11, color: "#f87171", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Danger Zone</div>
-        <div style={{ background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 600 }}>Reset All Data</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 4 }}>Permanently delete all trips, expenses, cash entries, loans, assets, capital, and import history.</div>
-          </div>
-          <button
-            onClick={() => setResetModal({ pwd: "", err: "" })}
-            style={{ background: "#ef444411", border: "1px solid rgba(248,113,113,0.4)", color: "#f87171", padding: "10px 20px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
-          >
-            Reset All Data
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -2309,12 +2163,12 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
       </div>
 
       {/* OPT 2 — Compact horizontal cash summary strip */}
-      <div style={{ display:"flex", background:"#162030", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden", marginBottom:16 }}>
-        <div style={{ flex:1, padding:"14px 18px", borderRight:"1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", background:"#162030", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden", marginBottom:16 }}>
+        <div style={{ flex:1, padding:"14px 18px", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)", borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Cash In</div>
           <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:18, fontWeight:700, color:"#34d399" }}>{fmt(kas.filter(k=>k.type==="in").reduce((s,k)=>s+k.amount,0))}</div>
         </div>
-        <div style={{ flex:1, padding:"14px 18px", borderRight:"1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ flex:1, padding:"14px 18px", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)", borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Cash Out</div>
           <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:18, fontWeight:700, color:"#f87171" }}>{fmt(kas.filter(k=>k.type==="out").reduce((s,k)=>s+k.amount,0))}</div>
         </div>
@@ -2348,7 +2202,8 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
 
       <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20 }}>
         <h3 style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Cash Ledger</h3>
-        <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+        <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 480 }}>
           <thead>
             <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               {["DATE", "DESCRIPTION", "CASH IN", "CASH OUT", "BALANCE", ""].map((h) => (
@@ -2369,6 +2224,7 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -2514,7 +2370,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
           {addingHolder && (
             <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 20, marginBottom: 20 }}>
               <h3 style={{ fontSize: 12, color: "#c8a86b", marginBottom: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>New Petty Cash Holder</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", display: "block", marginBottom: 4 }}>NAME *</label>
                   <input placeholder="Holder name" value={newHolderForm.name} onChange={(e) => setNewHolderForm({ ...newHolderForm, name: e.target.value })} style={inputStyle} />
@@ -2767,7 +2623,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
               {topups.length === 0 ? (
                 <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, padding: "10px 0" }}>No top-ups yet.</div>
               ) : (
-                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 320 }}>
                   <thead>
                     <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                       {["DATE", "NOTE", "AMOUNT", ""].map((h) => (
@@ -2810,6 +2667,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                     </tr>
                   </tfoot>
                 </table>
+                </div>
               )}
             </div>
 
@@ -2845,7 +2703,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#e2e8f0", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid rgba(255,255,255,0.06)" }}>
                         Trip Driver Costs — Allowances &amp; Misc
                       </div>
-                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                      <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 320 }}>
                         <thead>
                           <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                             {["DATE", "DESCRIPTION", "TRUCK", "AMOUNT"].map(h => (
@@ -2870,6 +2729,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                           </tr>
                         </tfoot>
                       </table>
+                      </div>
                     </div>
                   )}
 
@@ -2879,7 +2739,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#c8a86b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid #A3915922" }}>
                         Additional Expenses — Operational &amp; Misc
                       </div>
-                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                      <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 320 }}>
                         <thead>
                           <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                             {["DATE", "DESCRIPTION", "CATEGORY", "AMOUNT"].map(h => (
@@ -2908,6 +2769,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                           </tr>
                         </tfoot>
                       </table>
+                      </div>
                     </div>
                   )}
 
@@ -3162,7 +3024,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
             {capital.length === 0 ? (
               <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, textAlign: "center", padding: 30 }}>No entries yet.</div>
             ) : (
-              <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+              <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 480 }}>
                 <thead>
                   <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                     {["DATE", "TYPE", "FROM / LENDER", "DESCRIPTION", "AMOUNT", ""].map((h) => (
@@ -3219,6 +3082,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                   </tr>
                 </tfoot>
               </table>
+              </div>
             )}
           </div>
         </div>
@@ -3415,7 +3279,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
               {stats.payments.length === 0 ? (
                 <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, padding: "10px 0" }}>No payments recorded yet.</div>
               ) : (
-                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 360 }}>
                   <thead>
                     <tr style={{ color: "rgba(255,255,255,0.25)" }}>
                       <th style={{ textAlign: "left", padding: "5px 6px" }}>#</th>
@@ -3462,6 +3327,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                     </tr>
                   </tfoot>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -3487,6 +3353,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
   fTotalRevenue, fGrossProfit, fNetProfit, fTripCosts, fTruckOpsExpenses, fOverheadExpenses,
   fKasBalance, totalAssetsValue, totalLoanPrincipalRemaining, totalCapitalInjected, periodLabel }) {
 
+  const isMobile = useIsMobile();
   const [chartGranularity, setChartGranularity] = useState("monthly"); // weekly | monthly | quarterly | yearly
   const [activeMetrics, setActiveMetrics] = useState(["gpPct", "netPct", "debtToAsset"]);
 
@@ -3713,7 +3580,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
         </div>
 
         {/* Ratio Cards Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 24 }}>
           {RATIO_CARDS.map((m) => {
             const val = m.value;
             const isGood = val !== null && !isNaN(val) && m.good(val);
@@ -4405,7 +4272,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
-function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast }) {
+function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast, importLogs, undoImport, resetAll }) {
   const [curPwd, setCurPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confPwd, setConfPwd] = useState("");
@@ -4413,6 +4280,13 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
   const [actPage, setActPage] = useState(25);
   const [auditResults, setAuditResults] = useState(null);
   const [auditing, setAuditing] = useState(false);
+  const [importHistoryOpen, setImportHistoryOpen] = useState(false);
+  const [undoTarget, setUndoTarget] = useState(null);
+  const [undoPwd, setUndoPwd] = useState("");
+  const [undoErr, setUndoErr] = useState("");
+  const [showReset, setShowReset] = useState(false);
+  const [resetPwd, setResetPwd] = useState("");
+  const [resetErr, setResetErr] = useState("");
 
   function handleChangePwd(e) {
     e.preventDefault();
@@ -4587,6 +4461,109 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
           </>
         )}
       </div>
+
+      {/* Section D — Import History */}
+      <div style={{ background:"#162030", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, overflow:"hidden", marginBottom:16 }}>
+        <div onClick={() => setImportHistoryOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", cursor:"pointer" }}>
+          <h3 style={{ fontSize:13, color:"#c8a86b", letterSpacing:1, textTransform:"uppercase", fontWeight:700, margin:0 }}>Import History</h3>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:11, background:"rgba(200,168,107,0.13)", color:"#c8a86b", border:"1px solid rgba(200,168,107,0.3)", padding:"2px 8px", borderRadius:3 }}>
+              {importLogs ? importLogs.length : 0} import{(!importLogs || importLogs.length !== 1) ? "s" : ""}
+            </span>
+            <span style={{ fontSize:13, color:"#c8a86b" }}>{importHistoryOpen ? "▼" : "▶"}</span>
+          </div>
+        </div>
+        {importHistoryOpen && importLogs && importLogs.length > 0 && (
+          <div style={{ padding:"0 20px 20px", borderTop:"1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ overflowX:"auto", marginTop:14 }}>
+              <table style={{ width:"100%", fontSize:12, borderCollapse:"collapse", minWidth:540 }}>
+                <thead>
+                  <tr style={{ color:"rgba(255,255,255,0.45)", borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
+                    <th style={{ textAlign:"left", padding:"6px 8px", whiteSpace:"nowrap" }}>IMPORTED AT</th>
+                    <th style={{ textAlign:"left", padding:"6px 8px" }}>PERIOD</th>
+                    <th style={{ textAlign:"left", padding:"6px 8px" }}>FILE</th>
+                    <th style={{ textAlign:"right", padding:"6px 8px" }}>TRIPS</th>
+                    <th style={{ textAlign:"right", padding:"6px 8px" }}>EXPENSES</th>
+                    <th style={{ textAlign:"center", padding:"6px 8px" }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importLogs.map(log => (
+                    <tr key={log.id} style={{ borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+                      <td style={{ padding:"8px", color:"rgba(255,255,255,0.45)", fontSize:11, whiteSpace:"nowrap" }}>
+                        {new Date(log.importedAt).toLocaleString("en-US", { dateStyle:"short", timeStyle:"short" })}
+                      </td>
+                      <td style={{ padding:"8px", color:"#c8a86b", fontWeight:600 }}>{log.monthYear}</td>
+                      <td style={{ padding:"8px", color:"rgba(255,255,255,0.45)", fontSize:11 }} title={log.fileName}>
+                        {log.fileName.length > 28 ? log.fileName.slice(0,25)+"..." : log.fileName}
+                      </td>
+                      <td style={{ padding:"8px", textAlign:"right", color:"#34d399" }}>{log.summary.tripCount}</td>
+                      <td style={{ padding:"8px", textAlign:"right", color:"#f59e0b" }}>{log.summary.expenseCount}</td>
+                      <td style={{ padding:"8px", textAlign:"center" }}>
+                        <button
+                          onClick={() => setUndoTarget(log.id)}
+                          style={{ background:"transparent", border:"1px solid rgba(248,113,113,0.4)", color:"#f87171", padding:"4px 10px", borderRadius:3, fontSize:11, cursor:"pointer" }}
+                        >Undo</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {importHistoryOpen && (!importLogs || importLogs.length === 0) && (
+          <div style={{ padding:"14px 20px", borderTop:"1px solid rgba(255,255,255,0.08)", fontSize:12, color:"rgba(255,255,255,0.45)" }}>No imports yet.</div>
+        )}
+      </div>
+
+      {/* Undo confirmation inline */}
+      {undoTarget && (
+        <div style={{ background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.3)", borderRadius:8, padding:16, marginBottom:16 }}>
+          <div style={{ fontSize:13, color:"#f87171", fontWeight:700, marginBottom:10 }}>Confirm undo import</div>
+          <input type="password" placeholder="Enter admin code" value={undoPwd} onChange={e => setUndoPwd(e.target.value)}
+            style={{ width:"100%", padding:"8px 10px", background:"#0f1c2a", border:`1px solid ${undoErr?"#f87171":"rgba(255,255,255,0.12)"}`, borderRadius:4, color:"#e2e8f0", fontSize:12, boxSizing:"border-box", marginBottom:8, fontFamily:"inherit" }} />
+          {undoErr && <div style={{ fontSize:11, color:"#f87171", marginBottom:8 }}>{undoErr}</div>}
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={() => { setUndoTarget(null); setUndoPwd(""); setUndoErr(""); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.5)", padding:"7px 16px", borderRadius:4, fontSize:12, cursor:"pointer" }}>Cancel</button>
+            <button onClick={() => {
+              if (undoPwd === appPassword) { undoImport(undoTarget); setUndoTarget(null); setUndoPwd(""); setUndoErr(""); showToast("Import undone!"); }
+              else setUndoErr("Incorrect code");
+            }} style={{ background:"#f87171", border:"none", color:"#fff", padding:"7px 16px", borderRadius:4, fontSize:12, fontWeight:700, cursor:"pointer" }}>Confirm Undo</button>
+          </div>
+        </div>
+      )}
+
+      {/* Section E — Danger Zone */}
+      <div style={{ borderTop:"2px solid rgba(248,113,113,0.2)", paddingTop:20 }}>
+        <div style={{ fontSize:11, color:"#f87171", fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginBottom:12 }}>Danger Zone</div>
+        <div style={{ background:"rgba(248,113,113,0.05)", border:"1px solid rgba(248,113,113,0.2)", borderRadius:8, padding:16, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <div style={{ fontSize:13, color:"#e2e8f0", fontWeight:600 }}>Reset All Data</div>
+            <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginTop:4 }}>Permanently delete all trips, expenses, cash entries, loans, assets, capital, and import history.</div>
+          </div>
+          <button onClick={() => setShowReset(true)} style={{ background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.4)", color:"#f87171", padding:"10px 20px", borderRadius:6, fontSize:13, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+            Reset All Data
+          </button>
+        </div>
+        {showReset && (
+          <div style={{ background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.3)", borderRadius:8, padding:16, marginTop:12 }}>
+            <div style={{ fontSize:13, color:"#f87171", fontWeight:700, marginBottom:10 }}>Type admin code to confirm full reset</div>
+            <input type="password" placeholder="Admin code" value={resetPwd} onChange={e => setResetPwd(e.target.value)}
+              style={{ width:"100%", padding:"8px 10px", background:"#0f1c2a", border:`1px solid ${resetErr?"#f87171":"rgba(255,255,255,0.12)"}`, borderRadius:4, color:"#e2e8f0", fontSize:12, boxSizing:"border-box", marginBottom:8, fontFamily:"inherit" }} />
+            {resetErr && <div style={{ fontSize:11, color:"#f87171", marginBottom:8 }}>{resetErr}</div>}
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={() => { setShowReset(false); setResetPwd(""); setResetErr(""); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.5)", padding:"7px 16px", borderRadius:4, fontSize:12, cursor:"pointer" }}>Cancel</button>
+              <button onClick={() => {
+                if (resetPwd !== appPassword) { setResetErr("Incorrect code"); return; }
+                resetAll();
+                showToast("All data has been reset.", "error");
+                setShowReset(false); setResetPwd(""); setResetErr("");
+              }} style={{ background:"#f87171", border:"none", color:"#fff", padding:"7px 16px", borderRadius:4, fontSize:12, fontWeight:700, cursor:"pointer" }}>Yes, Reset Everything</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -4616,8 +4593,8 @@ function LoginGate({ onSuccess }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0c1420", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
       <form onSubmit={submit} style={{ width: "100%", maxWidth: "360px", display: "flex", flexDirection: "column", alignItems: "center", background: "#162030", borderRadius: 12, padding: "40px 32px", boxShadow: "0 4px 24px rgba(27,63,96,0.10)", border: "1px solid rgba(255,255,255,0.08)" }}>
-        <img src="/logo-light.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24 }} />
-        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#0d1e30", textAlign: "center" }}>
+        <img src="/logo-transparent.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }} />
+        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#e2e8f0", textAlign: "center" }}>
           Kin Kin Trukindo, Ltd.
         </h1>
         <p style={{ margin: "12px 0 28px 0", color: "rgba(255,255,255,0.45)", fontSize: 13, letterSpacing: 0.5, textAlign: "center" }}>
@@ -4652,8 +4629,8 @@ function LoginGate({ onSuccess }) {
             width: "100%",
             marginTop: 20,
             padding: "12px",
-            background: "#0d1e30",
-            color: "#162030",
+            background: "#c8a86b",
+            color: "#0d1e30",
             border: "none",
             borderRadius: 6,
             fontSize: 14,
