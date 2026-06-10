@@ -99,6 +99,8 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
   const trips = [];
   const expenses = [];
   let truckPlate = "";
+  // Each entry: { plate, labelCol, amtCol } — one per truck column group in the sheet
+  let truckColumns = [];
 
   // ── Find boundaries ─────────────────────────────────────────────────────
   let tripStartIdx = -1;
@@ -121,10 +123,18 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
       continue;
     }
     if (firstCell.startsWith("PENGELUARAN TAMBAHAN")) {
-      // Try to extract truck plate from this row
-      const match = firstCell.match(/PENGELUARAN TAMBAHAN\s+(.+)/);
-      if (match) truckPlate = match[1].trim();
-      // Next row should be the header (KETERANGAN, NOMINAL), expenses start after
+      // Scan every 3rd column across the row for truck headers (col 0, 3, 6, ...)
+      // Martha's format: each truck section occupies 2 data cols + 1 spacer col
+      truckColumns = [];
+      for (let c = 0; c < row.length; c += 3) {
+        const cell = str(row[c]).toUpperCase();
+        const match = cell.match(/PENGELUARAN TAMBAHAN\s+(.+)/);
+        if (match) {
+          const plate = match[1].trim();
+          truckColumns.push({ plate, labelCol: c, amtCol: c + 1 });
+          if (!truckPlate) truckPlate = plate; // keep first plate for legacy return value
+        }
+      }
       expStartIdx = i + 2;
       continue;
     }
@@ -245,30 +255,30 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
   // ── Parse expenses section ──────────────────────────────────────────────
   if (expStartIdx !== -1) {
     const endIdx = expEndIdx === -1 ? rows.length : expEndIdx;
+    // Fall back to legacy two-column behaviour if no truckColumns were detected
+    const cols = truckColumns.length > 0
+      ? truckColumns
+      : [{ plate: truckPlate, labelCol: 0, amtCol: 1 }, { plate: truckPlate, labelCol: 3, amtCol: 4 }];
     for (let i = expStartIdx; i < endIdx; i++) {
       const row = rows[i];
       if (!row) continue;
-      // Left side: cols 0,1 — Right side: cols 3,4 (only present in 2-column layouts)
-      const pairs = [
-        [str(row[0]), num(row[1])],
-        [str(row[3]), num(row[4])],
-      ];
-      for (const [label, amt] of pairs) {
+      for (const { plate, labelCol, amtCol } of cols) {
+        const label = str(row[labelCol]);
+        const amt = num(row[amtCol]);
         if (!label) continue;
         const lu = label.toUpperCase();
         if (lu === "TOTAL" || lu === "KETERANGAN" || lu === "NOMINAL") continue;
-        if (amt <= 0) continue; // skip zero/empty amounts
+        if (amt <= 0) continue;
         expenses.push({
           id: genId(),
           date: monthYear || new Date().toISOString().slice(0, 10),
           category: categorizeExpense(label),
           description: label,
           amount: amt,
-          truck: truckPlate,
+          truck: plate,
           expenseType: "truck",
           source: "import",
-          // Deduplication key: date + description + amount
-          _fpKey: `EXP:${monthYear}|${label.toUpperCase()}|${amt}`,
+          _fpKey: `EXP:${monthYear}|${plate}|${lu}|${amt}`,
         });
       }
     }
@@ -1593,7 +1603,12 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
       setKas([...kas, { id: genId(), date: form.date, description: `Petty cash — ${holder?.name || "holder"}${form.description ? ": " + form.description : ""}`, amount: Number(form.amount), type: "out" }]);
       showToast(`Petty cash recorded for ${holder?.name || "holder"} + added to cash ledger!`);
     } else {
-      showToast(`${form.expenseType === "truck" ? "Truck" : "Overhead"} expense recorded!`);
+      // Truck and overhead expenses are paid from main cash balance
+      const label = form.expenseType === "truck"
+        ? `Truck expense — ${form.truck}${form.description ? ": " + form.description : ""}`
+        : `Overhead — ${form.description}${form.vendor ? " (" + form.vendor + ")" : ""}`;
+      setKas([...kas, { id: genId(), date: form.date, description: label, amount: Number(form.amount), type: "out" }]);
+      showToast(`${form.expenseType === "truck" ? "Truck" : "Overhead"} expense recorded + deducted from cash!`);
     }
 
     setForm({ ...form, description: "", amount: "", vendor: "", holderId: "" });
