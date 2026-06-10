@@ -392,6 +392,10 @@ function KinKinApp() {
   const [toast, setToast] = useState(null);
   const [importing, setImporting] = useState(false);
   const [appLoading, setAppLoading] = useState(true);
+  const [deleteGuard, setDeleteGuard] = useState(null); // { message, onConfirm }
+  const [deleteGuardCode, setDeleteGuardCode] = useState("");
+  const [deleteGuardErr, setDeleteGuardErr] = useState(false);
+  const [activityLog, setActivityLog] = useState([]);
   const globalFileRef = useRef(null);
 
   const _skipSave = useRef(true);
@@ -409,6 +413,7 @@ function KinKinApp() {
         setImportLogs(saved.importLogs ?? []);
         setPettyHolders(saved.pettyHolders ?? []);
         setPettyTopups(saved.pettyTopups ?? []);
+        setActivityLog(saved.activityLog ?? []);
       }
       _skipSave.current = false;
       setAppLoading(false);
@@ -418,8 +423,8 @@ function KinKinApp() {
   // Auto-save whenever any data changes
   useEffect(() => {
     if (_skipSave.current) return;
-    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups });
-  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups]);
+    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog });
+  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog]);
 
   // Step 1: User picks a file — open modal asking for month/year
   // ── Fingerprint for deduplication — container # is physically unique ────────
@@ -583,6 +588,7 @@ function KinKinApp() {
       },
     };
     setImportLogs([log, ...importLogs]);
+    logActivity("import", "import", `Imported ${fileName} — ${newTrips.length} trips, ${taggedExpenses.length} expenses`);
 
     const parts = [];
     if (newTrips.length > 0)    parts.push(`${newTrips.length} trips`);
@@ -614,6 +620,7 @@ function KinKinApp() {
         setExpenses(expenses.filter((e) => !log.expenseIds.includes(e.id)));
         if (log.kasIds?.length) setKas(kas.filter((k) => !log.kasIds.includes(k.id)));
         setImportLogs(importLogs.filter((l) => l.id !== logId));
+        logActivity("undo", "import", `Undone import: ${log.fileName}`);
         showToast(`Removed import: ${log.fileName}`);
         setConfirmModal(null);
       },
@@ -623,6 +630,16 @@ function KinKinApp() {
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const logActivity = (action, type, description) => {
+    setActivityLog((prev) => [{ id: genId(), at: new Date().toISOString(), action, type, description }, ...prev]);
+  };
+
+  const guardedDelete = (message, onConfirm) => {
+    setDeleteGuard({ message, onConfirm });
+    setDeleteGuardCode("");
+    setDeleteGuardErr(false);
   };
 
   // ── Aggregates ──────────────────────────────────────────────────────────────
@@ -997,13 +1014,41 @@ function KinKinApp() {
 
       
 
+      {deleteGuard && (
+        <div style={{ position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.8)",zIndex:1200,display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+          <div style={{ background:"#FEFEFE",border:"1px solid #c0392b",borderRadius:10,padding:24,maxWidth:400,width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.25)" }}>
+            <h3 style={{ fontFamily:"'Montserrat',sans-serif",fontSize:16,color:"#c0392b",fontWeight:700,marginBottom:10 }}>⚠ Confirm Deletion</h3>
+            <p style={{ fontSize:13,color:"#555",marginBottom:16,lineHeight:1.5 }}>{deleteGuard.message}</p>
+            <p style={{ fontSize:12,color:"#888",marginBottom:8 }}>Enter admin code to proceed:</p>
+            <input
+              type="password" value={deleteGuardCode} autoFocus
+              onChange={(e) => { setDeleteGuardCode(e.target.value); setDeleteGuardErr(false); }}
+              onKeyDown={(e) => { if (e.key === "Enter") {
+                if (deleteGuardCode === APP_PASSWORD) { deleteGuard.onConfirm(); setDeleteGuard(null); }
+                else setDeleteGuardErr(true);
+              }}}
+              style={{ width:"100%",padding:"8px 10px",border:`1px solid ${deleteGuardErr?"#c0392b":"#E0E0DC"}`,borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:deleteGuardErr?4:14 }}
+              placeholder="Admin code"
+            />
+            {deleteGuardErr && <p style={{ color:"#c0392b",fontSize:11,marginBottom:10 }}>Incorrect code. Try again.</p>}
+            <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+              <button onClick={() => setDeleteGuard(null)} style={{ background:"transparent",color:"#7C8B67",border:"1px solid #E0E0DC",padding:"9px 18px",borderRadius:4,fontSize:12,cursor:"pointer" }}>Cancel</button>
+              <button onClick={() => {
+                if (deleteGuardCode === APP_PASSWORD) { deleteGuard.onConfirm(); setDeleteGuard(null); }
+                else setDeleteGuardErr(true);
+              }} style={{ background:"#c0392b",color:"#fff",border:"none",padding:"9px 20px",borderRadius:4,fontWeight:700,fontSize:13,cursor:"pointer" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
-        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} />}
-        {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} />}
-        {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} />}
-        {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} />}
-        {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} />}
-        {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} />}
+        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} activityLog={activityLog} />}
+        {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
       </div>
     </div>
@@ -1011,11 +1056,14 @@ function KinKinApp() {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, importLogs, undoImport, kas }) {
+function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, importLogs, undoImport, kas, activityLog }) {
   const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
   const [undoModal, setUndoModal] = useState(null);
   const [resetModal, setResetModal] = useState(null);
+  const [importHistoryOpen, setImportHistoryOpen] = useState(false);
+  const [activityLogOpen, setActivityLogOpen] = useState(false);
+  const [activityPage, setActivityPage] = useState(20);
   const truckStats = trucks.map((t) => {
     const tTrips = trips.filter((x) => x.nopol === t);
     const tExp = expenses.filter((x) => x.truck === t);
@@ -1329,55 +1377,131 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
         </div>
       </div>
 
-      {/* Import History — moved to bottom */}
-      {importLogs && importLogs.length > 0 && (
-        <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginTop: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 13, color: "#A39159", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700 }}>Import History</h3>
-            <span style={{ fontSize: 11, color: "#555" }}>{importLogs.length} import{importLogs.length !== 1 ? "s" : ""}</span>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 540 }}>
-            <thead>
-              <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
-                <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>IMPORTED AT</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>PERIOD</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>FILE</th>
-                <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>TRIPS</th>
-                <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>EXPENSES</th>
-                <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>REVENUE</th>
-                <th style={{ textAlign: "center", padding: "6px 8px" }}>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {importLogs.map((log) => (
-                <tr key={log.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
-                  <td style={{ padding: "8px 8px", color: "#7C8B67", fontSize: 11, whiteSpace: "nowrap" }}>
-                    {new Date(log.importedAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
-                  </td>
-                  <td style={{ padding: "8px 8px", color: "#A39159", fontWeight: 600, whiteSpace: "nowrap" }}>{log.monthYear}</td>
-                  <td style={{ padding: "8px 8px", color: "#7C8B67", fontSize: 11 }} title={log.fileName}>
-                    {log.fileName.length > 30 ? log.fileName.slice(0, 27) + "..." : log.fileName}
-                  </td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{log.summary.tripCount}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#f59e0b" }}>{log.summary.expenseCount}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C", whiteSpace: "nowrap" }}>{fmt(log.summary.totalRevenue)}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "center" }}>
-                    <button
-                      onClick={() => setUndoModal({ logId: log.id, pwd: "", err: "" })}
-                      style={{ background: "transparent", border: "1px solid #ef444466", color: "#ef4444", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}
-                      title="Delete this import and all its entries"
-                    >
-                      Undo
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Import History — collapsible, collapsed by default */}
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, marginTop: 20, overflow: "hidden" }}>
+        <div
+          onClick={() => setImportHistoryOpen((o) => !o)}
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", cursor: "pointer", userSelect: "none" }}
+        >
+          <h3 style={{ fontSize: 13, color: "#A39159", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700, margin: 0 }}>IMPORT HISTORY</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 11, background: "#A3915922", color: "#A39159", border: "1px solid #A3915944", padding: "2px 8px", borderRadius: 3 }}>
+              {importLogs ? importLogs.length : 0} import{(!importLogs || importLogs.length !== 1) ? "s" : ""}
+            </span>
+            <span style={{ fontSize: 13, color: "#A39159" }}>{importHistoryOpen ? "▼" : "▶"}</span>
           </div>
         </div>
-      )}
+        {importHistoryOpen && importLogs && importLogs.length > 0 && (
+          <div style={{ padding: "0 20px 20px", borderTop: "1px solid #E0E0DC" }}>
+            <div style={{ overflowX: "auto", marginTop: 14 }}>
+            <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 540 }}>
+              <thead>
+                <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
+                  <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>IMPORTED AT</th>
+                  <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>PERIOD</th>
+                  <th style={{ textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" }}>FILE</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>TRIPS</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>EXPENSES</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" }}>REVENUE</th>
+                  <th style={{ textAlign: "center", padding: "6px 8px" }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {importLogs.map((log) => (
+                  <tr key={log.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                    <td style={{ padding: "8px 8px", color: "#7C8B67", fontSize: 11, whiteSpace: "nowrap" }}>
+                      {new Date(log.importedAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
+                    </td>
+                    <td style={{ padding: "8px 8px", color: "#A39159", fontWeight: 600, whiteSpace: "nowrap" }}>{log.monthYear}</td>
+                    <td style={{ padding: "8px 8px", color: "#7C8B67", fontSize: 11 }} title={log.fileName}>
+                      {log.fileName.length > 30 ? log.fileName.slice(0, 27) + "..." : log.fileName}
+                    </td>
+                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{log.summary.tripCount}</td>
+                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#f59e0b" }}>{log.summary.expenseCount}</td>
+                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C", whiteSpace: "nowrap" }}>{fmt(log.summary.totalRevenue)}</td>
+                    <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                      <button
+                        onClick={() => setUndoModal({ logId: log.id, pwd: "", err: "" })}
+                        style={{ background: "transparent", border: "1px solid #ef444466", color: "#ef4444", padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer" }}
+                        title="Delete this import and all its entries"
+                      >
+                        Undo
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        )}
+        {importHistoryOpen && (!importLogs || importLogs.length === 0) && (
+          <div style={{ padding: "14px 20px", borderTop: "1px solid #E0E0DC", fontSize: 12, color: "#555" }}>No imports yet.</div>
+        )}
+      </div>
+
+      {/* Activity Log — collapsible, collapsed by default */}
+      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, marginTop: 16, overflow: "hidden" }}>
+        <div
+          onClick={() => setActivityLogOpen((o) => !o)}
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", cursor: "pointer", userSelect: "none" }}
+        >
+          <h3 style={{ fontSize: 13, color: "#A39159", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700, margin: 0 }}>ACTIVITY LOG</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 11, background: "#A3915922", color: "#A39159", border: "1px solid #A3915944", padding: "2px 8px", borderRadius: 3 }}>
+              {activityLog ? activityLog.length : 0} entr{(!activityLog || activityLog.length !== 1) ? "ies" : "y"}
+            </span>
+            <span style={{ fontSize: 13, color: "#A39159" }}>{activityLogOpen ? "▼" : "▶"}</span>
+          </div>
+        </div>
+        {activityLogOpen && (
+          <div style={{ padding: "0 20px 20px", borderTop: "1px solid #E0E0DC" }}>
+            {(!activityLog || activityLog.length === 0) ? (
+              <div style={{ fontSize: 12, color: "#555", padding: "14px 0" }}>No activity recorded yet.</div>
+            ) : (
+              <>
+                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 14 }}>
+                  <thead>
+                    <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
+                      <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>TIME</th>
+                      <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>ACTION</th>
+                      <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>TYPE</th>
+                      <th style={{ textAlign: "left", padding: "5px 8px" }}>DESCRIPTION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityLog.slice(0, activityPage).map((entry) => {
+                      const badgeColor = entry.action === "add" ? "#10b981" : entry.action === "delete" ? "#ef4444" : entry.action === "import" ? "#1B3F60" : "#f59e0b";
+                      return (
+                        <tr key={entry.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                          <td style={{ padding: "6px 8px", color: "#7C8B67", fontSize: 11, whiteSpace: "nowrap" }}>
+                            {new Date(entry.at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
+                          </td>
+                          <td style={{ padding: "6px 8px" }}>
+                            <span style={{ background: badgeColor + "22", color: badgeColor, border: `1px solid ${badgeColor}44`, padding: "2px 7px", borderRadius: 3, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+                              {entry.action}
+                            </span>
+                          </td>
+                          <td style={{ padding: "6px 8px", color: "#555", fontSize: 11 }}>{entry.type}</td>
+                          <td style={{ padding: "6px 8px", color: "#2d2d2d", fontSize: 12 }}>{entry.description}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {activityLog.length > activityPage && (
+                  <button
+                    onClick={() => setActivityPage((p) => p + 20)}
+                    style={{ marginTop: 12, background: "transparent", border: "1px solid #A3915944", color: "#A39159", padding: "6px 16px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}
+                  >
+                    Show more ({activityLog.length - activityPage} remaining)
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Danger Zone */}
       <div style={{ marginTop: 32, borderTop: "2px solid #ef444433", paddingTop: 20 }}>
@@ -1400,7 +1524,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
 }
 
 // ── TRIPS ─────────────────────────────────────────────────────────────────────
-function Trips({ trips, setTrips, showToast }) {
+function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
   const [form, setForm] = useState({ date: today(), invNo: "", destination: "", nopol: "", contNo: "", sangu: "", lainLabel: "", lainAmt: "", jual: "" });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -1411,11 +1535,19 @@ function Trips({ trips, setTrips, showToast }) {
   const addTrip = () => {
     if (!form.destination || !form.jual) { showToast("Fill in Destination and Invoice Amount", "error"); return; }
     setTrips([...trips, { ...form, id: genId(), total, profit, sangu: Number(form.sangu), lainAmt: Number(form.lainAmt), jual: Number(form.jual), source: "manual" }]);
+    logActivity("add", "trip", `Trip to ${form.destination}`);
     setForm({ date: today(), invNo: "", destination: "", nopol: "", contNo: "", sangu: "", lainLabel: "", lainAmt: "", jual: "" });
     showToast("Trip added!");
   };
 
-  const deleteTrip = (id) => { setTrips(trips.filter((t) => t.id !== id)); showToast("Trip deleted"); };
+  const deleteTrip = (id) => {
+    const t = trips.find((x) => x.id === id);
+    guardedDelete(`Delete trip to ${t?.destination || "unknown"} on ${t?.date || "?"}?`, () => {
+      setTrips(trips.filter((x) => x.id !== id));
+      logActivity("delete", "trip", `Trip ${t?.destination} ${t?.date}`);
+      showToast("Trip deleted");
+    });
+  };
 
   const startEdit = (trip) => {
     setEditingId(trip.id);
@@ -1562,14 +1694,11 @@ function Trips({ trips, setTrips, showToast }) {
 }
 
 // ── EXPENSES ──────────────────────────────────────────────────────────────────
-function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups, pettyTopups, setKas, kas, showToast }) {
+function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups, pettyTopups, setKas, kas, showToast, guardedDelete, logActivity }) {
   const isMobile = useIsMobile();
   const [expenseType, setExpenseType] = useState("truck"); // "truck" | "overhead" | "petty"
   const [filter, setFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [deletePwd, setDeletePwd] = useState("");
-  const [deletePwdErr, setDeletePwdErr] = useState(false);
   const [form, setForm] = useState({
     date: today(),
     category: "Fuel",
@@ -1642,6 +1771,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
       holderId: form.expenseType === "petty"     ? form.holderId : "",
     };
     setExpenses([...expenses, entry]);
+    logActivity("add", "expense", `${form.expenseType} — ${form.description}`);
 
     // If petty cash — also create a top-up entry (money going to holder)
     // AND a cash ledger entry
@@ -1663,15 +1793,13 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
     setForm({ ...form, description: "", amount: "", vendor: "", holderId: "" });
   };
 
-  const deleteExpense = (id, source) => {
-    if (source === "import") {
-      setDeleteConfirm({ id });
-      setDeletePwd("");
-      setDeletePwdErr(false);
-    } else {
+  const deleteExpense = (id) => {
+    const exp = expenses.find((e) => e.id === id);
+    guardedDelete(`Delete expense: ${exp?.description || "this expense"}?`, () => {
       setExpenses(expenses.filter((e) => e.id !== id));
+      logActivity("delete", "expense", `${exp?.expenseType || "expense"} — ${exp?.description || ""}`);
       showToast("Expense deleted");
-    }
+    });
   };
 
   const startEdit = (exp) => {
@@ -1751,43 +1879,6 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
   return (
     <div>
-      {deleteConfirm && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#FEFEFE", borderRadius: 10, padding: 28, maxWidth: 360, width: "100%", border: "1px solid #E0E0DC", boxShadow: "0 4px 24px rgba(0,0,0,0.15)" }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#1B3F60", marginBottom: 8, fontWeight: 700 }}>Delete Imported Expense</h3>
-            <p style={{ fontSize: 13, color: "#7C8B67", marginBottom: 16 }}>This expense was imported from a CSV. Enter the admin password to confirm deletion.</p>
-            <input
-              type="password"
-              value={deletePwd}
-              onChange={(ev) => { setDeletePwd(ev.target.value); setDeletePwdErr(false); }}
-              placeholder="Admin password"
-              autoFocus
-              style={{ width: "100%", padding: "10px 12px", border: `1px solid ${deletePwdErr ? "#ef4444" : "#D0D0CC"}`, borderRadius: 6, fontSize: 14, outline: "none", marginBottom: 8, boxSizing: "border-box" }}
-            />
-            {deletePwdErr && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 10 }}>Incorrect password.</div>}
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-              <button onClick={() => { setDeleteConfirm(null); setDeletePwd(""); setDeletePwdErr(false); }} style={{ background: "transparent", border: "1px solid #D0D0CC", color: "#888", padding: "8px 16px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-              <button
-                onClick={() => {
-                  if (deletePwd === "808880") {
-                    setExpenses(expenses.filter((e) => e.id !== deleteConfirm.id));
-                    showToast("Expense deleted");
-                    setDeleteConfirm(null);
-                    setDeletePwd("");
-                    setDeletePwdErr(false);
-                  } else {
-                    setDeletePwdErr(true);
-                    setDeletePwd("");
-                  }
-                }}
-                style={{ background: "#ef4444", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#1B3F60", letterSpacing: 0.3, fontWeight: 700, marginBottom: 20 }}>EXPENSES</h2>
 
       {/* Date Range Filter */}
@@ -2083,7 +2174,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                       );
                     })()}
                     <button onClick={() => startEdit(e)} style={{ background: "transparent", border: "1px solid #A3915944", color: "#A39159", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
-                    <button onClick={() => deleteExpense(e.id, e.source)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
+                    <button onClick={() => deleteExpense(e.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
                   </td>
                 </tr>
               );
@@ -2098,13 +2189,14 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
 
 // ── CASH  ────────────────────────────────────────────────────────────────
-function Kas({ kas, setKas, showToast, kasBalance }) {
+function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity }) {
   const isMobile = useIsMobile();
   const [form, setForm] = useState({ date: today(), description: "", amount: "", type: "in" });
 
   const addKas = () => {
     if (!form.description || !form.amount) { showToast("Fill in Description and Amount", "error"); return; }
     setKas([...kas, { ...form, id: genId(), amount: Number(form.amount) }]);
+    logActivity("add", "cash", form.description);
     setForm({ ...form, description: "", amount: "" });
     showToast("Cash entry added!");
   };
@@ -2171,7 +2263,7 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
                 <td style={{ padding: "8px 8px", textAlign: "right", color: "#4A643C" }}>{k.type === "in" ? fmt(k.amount) : "—"}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right", color: "#ef4444" }}>{k.type === "out" ? fmt(k.amount) : "—"}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right", color: "#A39159" }}>{fmt(k.balance)}</td>
-                <td><button onClick={() => { setKas(kas.filter((x) => x.id !== k.id)); showToast("Entry deleted"); }} style={{ background: "none", border: "none", color: "#999", fontSize: 14, padding: "2px 6px" }}>✕</button></td>
+                <td><button onClick={() => guardedDelete(`Delete cash entry: ${k.description}?`, () => { setKas(kas.filter((x) => x.id !== k.id)); logActivity("delete", "cash", k.description); showToast("Entry deleted"); })} style={{ background: "none", border: "none", color: "#999", fontSize: 14, padding: "2px 6px" }}>✕</button></td>
               </tr>
             ))}
           </tbody>
@@ -2185,7 +2277,7 @@ function Kas({ kas, setKas, showToast, kasBalance }) {
 // ── FINANCING ─────────────────────────────────────────────────────────────────
 
 // ── PETTY CASH ────────────────────────────────────────────────────────────────
-function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups, expenses, kas, setKas, showToast, confirmModal, setConfirmModal }) {
+function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups, expenses, kas, setKas, showToast, confirmModal, setConfirmModal, guardedDelete, logActivity }) {
   const isMobile = useIsMobile();
   const [activeHolder, setActiveHolder] = useState(null); // holderId or null = overview
   const [addingHolder, setAddingHolder] = useState(false);
@@ -2251,26 +2343,23 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
   const deleteHolder = (id) => {
     const holder = pettyHolders.find((h) => h.id === id);
     const topupCount = pettyTopups.filter((t) => t.holderId === id).length;
-    setConfirmModal({
-      title: `Delete ${holder?.name}?`,
-      message: `This will permanently delete this holder and all ${topupCount} top-up record${topupCount !== 1 ? "s" : ""} associated with them.`,
-      warning: "This cannot be undone.",
-      onConfirm: () => {
-        setPettyHolders(pettyHolders.filter((h) => h.id !== id));
-        setPettyTopups(pettyTopups.filter((t) => t.holderId !== id));
-        setConfirmModal(null);
-        if (activeHolder === id) setActiveHolder(null);
-        showToast(`${holder?.name} deleted`);
-      },
+    guardedDelete(`Delete ${holder?.name}? This will permanently delete this holder and all ${topupCount} top-up record${topupCount !== 1 ? "s" : ""} associated with them.`, () => {
+      setPettyHolders(pettyHolders.filter((h) => h.id !== id));
+      setPettyTopups(pettyTopups.filter((t) => t.holderId !== id));
+      logActivity("delete", "petty holder", `Holder ${holder?.name} deleted`);
+      if (activeHolder === id) setActiveHolder(null);
+      showToast(`${holder?.name} deleted`);
     });
   };
 
   const addTopup = () => {
     if (!topupForm.holderId || !topupForm.amount) { showToast("Select a holder and enter amount", "error"); return; }
+    const holderName = pettyHolders.find(h=>h.id===topupForm.holderId)?.name || "";
     const newTopup = { id: genId(), holderId: topupForm.holderId, date: topupForm.date, amount: Number(topupForm.amount), note: topupForm.note };
     setPettyTopups([...pettyTopups, newTopup]);
     // Also record as cash-out in the main cash ledger
-    setKas([...kas, { id: genId(), date: topupForm.date, description: `Petty cash top-up — ${pettyHolders.find(h=>h.id===topupForm.holderId)?.name || ""}${topupForm.note ? " · " + topupForm.note : ""}`, amount: Number(topupForm.amount), type: "out" }]);
+    setKas([...kas, { id: genId(), date: topupForm.date, description: `Petty cash top-up — ${holderName}${topupForm.note ? " · " + topupForm.note : ""}`, amount: Number(topupForm.amount), type: "out" }]);
+    logActivity("add", "petty topup", `Top-up for ${holderName}${topupForm.note ? ": " + topupForm.note : ""}`);
     setTopupForm({ holderId: topupForm.holderId, date: today(), amount: "", note: "" });
     showToast("Top-up recorded + added to cash ledger!");
   };
@@ -2282,15 +2371,11 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
   };
 
   const deleteTopup = (id) => {
-    setConfirmModal({
-      title: "Delete this top-up?",
-      message: "This removes the top-up record. The matching cash ledger entry is NOT automatically removed.",
-      warning: "Cannot be undone.",
-      onConfirm: () => {
-        setPettyTopups(pettyTopups.filter((t) => t.id !== id));
-        setConfirmModal(null);
-        showToast("Top-up deleted");
-      },
+    const topup = pettyTopups.find((t) => t.id === id);
+    guardedDelete("Delete this top-up? The matching cash ledger entry is NOT automatically removed.", () => {
+      setPettyTopups(pettyTopups.filter((t) => t.id !== id));
+      logActivity("delete", "petty topup", `Top-up deleted${topup?.note ? ": " + topup.note : ""}`);
+      showToast("Top-up deleted");
     });
   };
 
@@ -2629,7 +2714,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
 }
 
 // ── FLEET ─────────────────────────────────────────────────────────────────────
-function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPayments, capital, setCapital, totalCapitalInjected, kas, setKas, showToast, confirmModal, setConfirmModal }) {
+function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPayments, capital, setCapital, totalCapitalInjected, kas, setKas, showToast, confirmModal, setConfirmModal, guardedDelete, logActivity }) {
   const isMobile = useIsMobile();
   const [editLoanId, setEditLoanId] = useState(null);
   const [editLoanForm, setEditLoanForm] = useState({});
@@ -2651,6 +2736,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   const addCapital = () => {
     if (!capForm.source || !capForm.amount) { showToast("Fill in Source and Amount", "error"); return; }
     setCapital([...capital, { ...capForm, id: genId(), amount: Number(capForm.amount) }]);
+    logActivity("add", capForm.type === "capital" ? "capital" : "loan", `${capForm.type === "capital" ? "Capital" : "Loan"} from ${capForm.source}`);
     setCapForm({ date: today(), source: "", description: "", amount: "", type: "capital" });
     showToast(capForm.type === "capital" ? "Capital injection recorded!" : "Loan recorded!");
   };
@@ -2658,8 +2744,11 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   const deleteCapital = (id) => {
     const entry = capital.find((c) => c.id === id);
     if (entry?.loanId) { showToast("Linked to a loan — remove via Fleet section", "error"); return; }
-    setCapital(capital.filter((c) => c.id !== id));
-    showToast("Entry removed");
+    guardedDelete(`Delete capital entry from ${entry?.source || "unknown"}?`, () => {
+      setCapital(capital.filter((c) => c.id !== id));
+      logActivity("delete", "capital", `Capital entry from ${entry?.source || ""} deleted`);
+      showToast("Entry removed");
+    });
   };
 
   const saveEditCap = () => {
@@ -2719,16 +2808,12 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   };
   const deletePay = (payId, loanId) => {
     const payment = loanPayments.find((p) => p.id === payId);
-    setConfirmModal({
-      title: "Delete this payment?",
-      message: "This will remove the payment record permanently.",
-      warning: "This cannot be undone.",
-      onConfirm: () => {
-        setLoanPayments(loanPayments.filter((p) => p.id !== payId));
-        if (payment?.kasId) setKas(kas.filter((k) => k.id !== payment.kasId));
-        setConfirmModal(null);
-        showToast("Payment removed");
-      },
+    const loan = loans.find((l) => l.id === loanId);
+    guardedDelete(`Delete loan payment of ${payment ? fmt(payment.amount) : ""} for ${loan?.lender || "loan"}?`, () => {
+      setLoanPayments(loanPayments.filter((p) => p.id !== payId));
+      if (payment?.kasId) setKas(kas.filter((k) => k.id !== payment.kasId));
+      logActivity("delete", "loan payment", `Payment for ${loan?.lender || "loan"} deleted`);
+      showToast("Payment removed");
     });
   };
 
@@ -2749,6 +2834,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
     const kasId = genId();
     setLoanPayments([...loanPayments, { id: genId(), loanId, date: newPay.date, amount: Number(newPay.amount), note: newPay.note, kasId }]);
     setKas([...kas, { id: kasId, date: newPay.date, description: `Loan payment — ${loan?.lender || "loan"}${newPay.note ? " · " + newPay.note : ""}`, amount: Number(newPay.amount), type: "out" }]);
+    logActivity("add", "loan payment", `Payment for ${loan?.lender || "loan"}`);
     setNewPay({ date: today(), amount: "", note: "" });
     setAddPayLoanId(null);
     showToast("Payment recorded!");
@@ -2772,6 +2858,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
       startDate: newTruckForm.startDate, termMonths: Number(newTruckForm.termMonths) || 36,
       notes: newTruckForm.notes,
     }]);
+    logActivity("add", "truck", `Truck ${newTruckForm.nopol} added`);
     setNewTruckForm({ name: "", nopol: "", purchaseDate: today(), vehicleValue: "", monthlyPayment: "", termMonths: 36, startDate: today(), lender: "", notes: "" });
     setAddingTruck(false);
     showToast("Truck & contract added!");
