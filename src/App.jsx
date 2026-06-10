@@ -479,12 +479,22 @@ function KinKinApp() {
         if (!t.date) t.date = monthDate;
       }
 
+      // Mark duplicates at preview time so the user can see what's new vs already imported
+      const previewExistingByFp = new Map(trips.map((t) => [fingerprint(t), t]));
+      const previewExpFp = new Set();
+      for (const e of expenses.filter((e) => e._fpKey)) {
+        previewExpFp.add(e._fpKey);
+        const parts = e._fpKey.split("|");
+        if (parts.length === 3 && e.truck) previewExpFp.add(`${parts[0]}|${e.truck}|${parts[1]}|${parts[2]}`);
+      }
+
       setUploadModal({
         ...uploadModal,
         previewReady: true,
         parsed: {
           ...result,
-          expenses: result.expenses.map((e) => ({ ...e, usePettyCash: true })),
+          trips: result.trips.map((t) => ({ ...t, _isDuplicate: previewExistingByFp.has(fingerprint(t)) })),
+          expenses: result.expenses.map((e) => ({ ...e, usePettyCash: true, _isDuplicate: e._fpKey ? previewExpFp.has(e._fpKey) : false })),
         },
       });
     } catch (err) {
@@ -504,7 +514,20 @@ function KinKinApp() {
     const skippedCount = parsed.trips.length - newTrips.length;
 
     // ── Deduplicate expenses against existing ─────────────────────────────────
-    const existingExpFp = new Set(expenses.filter((e) => e._fpKey).map((e) => e._fpKey));
+    // Build the set of existing keys, and also derive the new-format equivalent
+    // for expenses that were saved with the old key format (no plate in key),
+    // so re-uploading a month doesn't create duplicates for already-imported rows.
+    const existingExpFp = new Set();
+    for (const e of expenses.filter((e) => e._fpKey)) {
+      existingExpFp.add(e._fpKey);
+      // Old format: EXP:{date}|{LABEL}|{amt}  (3 pipe-separated parts)
+      // New format: EXP:{date}|{plate}|{LABEL}|{amt}  (4 parts)
+      // If old format and we have a truck plate, also register the new-format key
+      const parts = e._fpKey.split("|");
+      if (parts.length === 3 && e.truck) {
+        existingExpFp.add(`${parts[0]}|${e.truck}|${parts[1]}|${parts[2]}`);
+      }
+    }
     const newExpenses = parsed.expenses.filter((e) => {
       if (!e._fpKey) return true;
       if (existingExpFp.has(e._fpKey)) return false;
@@ -788,10 +811,16 @@ function KinKinApp() {
                 </div>
 
                 {/* Trips preview — editable (functional state updates to avoid stale closure) */}
-                {uploadModal.parsed.trips.length > 0 && (
+                {uploadModal.parsed.trips.length > 0 && (() => {
+                  const newCount = uploadModal.parsed.trips.filter(t => !t._isDuplicate).length;
+                  const skipCount = uploadModal.parsed.trips.length - newCount;
+                  return (
                   <details open style={{ marginBottom: 14 }}>
                     <summary style={{ cursor: "pointer", color: "#4A643C", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
-                      Trips ({uploadModal.parsed.trips.length}) — <span style={{ color: "#A39159", fontWeight: 400 }}>all fields editable below</span>
+                      Trips ({uploadModal.parsed.trips.length}) —{" "}
+                      <span style={{ color: "#10b981" }}>{newCount} new</span>
+                      {skipCount > 0 && <span style={{ color: "#aaa" }}>, {skipCount} already imported (will skip)</span>}
+                      <span style={{ color: "#A39159", fontWeight: 400 }}> — all fields editable below</span>
                     </summary>
                     <div style={{ background: "#F4F4F2", borderRadius: 4, maxHeight: 300, overflowY: "auto", marginTop: 6 }}>
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
@@ -821,15 +850,18 @@ function KinKinApp() {
                                 return { ...prev, parsed: { ...prev.parsed, trips: updated } };
                               });
                             };
+                            const rowStyle = t._isDuplicate ? { borderBottom: "1px solid #E0E0DC", opacity: 0.4, background: "#f5f5f3" } : { borderBottom: "1px solid #E0E0DC" };
                             return (
-                              <tr key={i} style={{ borderBottom: "1px solid #E0E0DC" }}>
-                                <td style={{ padding: "4px 4px" }}><input type="date" value={t.date || ""} onChange={(e) => updateTrip("date", e.target.value)} style={iStyle} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.invNo || ""} placeholder="Inv #" onChange={(e) => updateTrip("invNo", e.target.value)} style={iStyle} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.destination || ""} onChange={(e) => updateTrip("destination", e.target.value)} style={iStyle} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.nopol || ""} onChange={(e) => updateTrip("nopol", e.target.value)} style={{ ...iStyle, color: "#A39159" }} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.contNo || ""} onChange={(e) => updateTrip("contNo", e.target.value)} style={{ ...iStyle, color: "#7C8B67" }} /></td>
-                                <td style={{ padding: "4px 4px" }}><input type="number" value={t.jual ?? ""} onChange={(e) => updateTrip("jual", e.target.value)} style={{ ...iStyle, textAlign: "right" }} /></td>
-                                <td style={{ padding: "4px 8px", textAlign: "right", color: (t.profit || 0) >= 0 ? "#4A643C" : "#c0392b", whiteSpace: "nowrap" }}>{fmt(t.profit || 0)}</td>
+                              <tr key={i} style={rowStyle}>
+                                <td style={{ padding: "4px 4px" }}><input type="date" value={t.date || ""} onChange={(e) => updateTrip("date", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.invNo || ""} placeholder="Inv #" onChange={(e) => updateTrip("invNo", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.destination || ""} onChange={(e) => updateTrip("destination", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.nopol || ""} onChange={(e) => updateTrip("nopol", e.target.value)} style={{ ...iStyle, color: "#A39159" }} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.contNo || ""} onChange={(e) => updateTrip("contNo", e.target.value)} style={{ ...iStyle, color: "#7C8B67" }} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 4px" }}><input type="number" value={t.jual ?? ""} onChange={(e) => updateTrip("jual", e.target.value)} style={{ ...iStyle, textAlign: "right" }} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 8px", textAlign: "right", color: (t.profit || 0) >= 0 ? "#4A643C" : "#c0392b", whiteSpace: "nowrap" }}>
+                                  {t._isDuplicate ? <span style={{ color: "#bbb", fontSize: 10 }}>skip</span> : fmt(t.profit || 0)}
+                                </td>
                               </tr>
                             );
                           })}
@@ -837,13 +869,19 @@ function KinKinApp() {
                       </table>
                     </div>
                   </details>
-                )}
+                  );
+                })()}
 
                 {/* Expenses preview — editable */}
-                {uploadModal.parsed.expenses.length > 0 && (
+                {uploadModal.parsed.expenses.length > 0 && (() => {
+                  const newCount = uploadModal.parsed.expenses.filter(e => !e._isDuplicate).length;
+                  const skipCount = uploadModal.parsed.expenses.length - newCount;
+                  return (
                   <details style={{ marginBottom: 14 }}>
                     <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
-                      Additional Expenses ({uploadModal.parsed.expenses.length}) — <span style={{ color: "#A39159", fontWeight: 400 }}>all fields editable</span>
+                      Additional Expenses ({uploadModal.parsed.expenses.length}) —{" "}
+                      <span style={{ color: "#10b981" }}>{newCount} new</span>
+                      {skipCount > 0 && <span style={{ color: "#aaa" }}>, {skipCount} already imported (will skip)</span>}
                     </summary>
                     <div style={{ background: "#F4F4F2", borderRadius: 4, maxHeight: 260, overflowY: "auto", marginTop: 6 }}>
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
@@ -871,6 +909,16 @@ function KinKinApp() {
                                 parsed: { ...prev.parsed, expenses: prev.parsed.expenses.filter((_, idx) => idx !== i) }
                               }));
                             };
+                            if (e._isDuplicate) {
+                              return (
+                                <tr key={i} style={{ borderBottom: "1px solid #E0E0DC", opacity: 0.35, background: "#f5f5f3" }}>
+                                  <td style={{ padding: "4px 8px", color: "#999", fontSize: 11 }}>{e.description}</td>
+                                  <td style={{ padding: "4px 8px", color: "#bbb", fontSize: 11 }}>{e.category}</td>
+                                  <td style={{ padding: "4px 8px", textAlign: "right", color: "#bbb", fontSize: 11 }}>{fmt(e.amount)}</td>
+                                  <td colSpan={2} style={{ padding: "4px 8px", textAlign: "center", color: "#bbb", fontSize: 10 }}>already imported — skip</td>
+                                </tr>
+                              );
+                            }
                             return (
                               <tr key={i} style={{ borderBottom: "1px solid #E0E0DC" }}>
                                 <td style={{ padding: "4px 4px" }}><input value={e.description} onChange={(ev) => updateExp("description", ev.target.value)} style={iStyle} /></td>
@@ -891,7 +939,8 @@ function KinKinApp() {
                       </table>
                     </div>
                   </details>
-                )}
+                  );
+                })()}
 
                 <div style={{ background: "#E8EFF8", border: "1px solid #1B3F6044", borderRadius: 4, padding: 12, fontSize: 11, color: "#1B3F60", marginBottom: 14 }}>
                   This import will be saved as a log entry. You can delete the whole batch later if uploaded wrongly — from the Dashboard → Import History.
