@@ -2402,6 +2402,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
     });
   };
 
+  const [filterMonth, setFilterMonth] = useState("");
+
   const iStyle = { background: "#F8F8F6", border: "1px solid #A3915966", color: "#2d2d2d", padding: "5px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 11, width: "100%" };
   const inputStyle = { background: "#F8F8F6", border: "1px solid #E0E0DC", color: "#2d2d2d", padding: "8px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 12, width: "100%", outline: "none" };
 
@@ -2587,6 +2589,16 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
       {activeHolder && currentHolder && (() => {
         const { topups, totalTopup, spending, balance, holderExpenses } = getHolderStats(currentHolder);
 
+        const filtered = filterMonth
+          ? holderExpenses.filter(e => e.date.slice(0, 7) === filterMonth)
+          : holderExpenses;
+
+        const driverExp = filtered.filter(e => e.expenseType === "driver").sort((a, b) => a.date.localeCompare(b.date));
+        const otherExp  = filtered.filter(e => e.expenseType !== "driver").sort((a, b) => a.date.localeCompare(b.date));
+        const driverTotal = driverExp.reduce((s, e) => s + e.amount, 0);
+        const otherTotal  = otherExp.reduce((s, e) => s + e.amount, 0);
+        const filteredTotal = driverTotal + otherTotal;
+
         return (
           <div>
             {/* Summary */}
@@ -2683,50 +2695,116 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
               )}
             </div>
 
-            {/* Reported spending from expenses */}
+            {/* Reported spending — split by type with month filter */}
             <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20 }}>
-              <h3 style={{ fontSize: 12, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>
-                Reported Spending ({holderExpenses.length} entries)
-              </h3>
+              {/* Header + filter */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                <h3 style={{ fontSize: 12, color: "#A39159", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Reported Spending ({holderExpenses.length} entries total)
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label style={{ fontSize: 11, color: "#555" }}>Filter by month:</label>
+                  <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
+                    style={{ fontSize: 12, padding: "4px 8px", border: "1px solid #E0E0DC", borderRadius: 4, background: "#F8F8F6", color: "#2d2d2d", fontFamily: "inherit" }} />
+                  {filterMonth && <button onClick={() => setFilterMonth("")} style={{ fontSize: 11, color: "#888", background: "transparent", border: "1px solid #E0E0DC", borderRadius: 3, padding: "3px 8px", cursor: "pointer" }}>Clear</button>}
+                </div>
+              </div>
+
               {holderExpenses.length === 0 ? (
                 <div style={{ background: "#F4F4F2", borderRadius: 6, padding: 16, fontSize: 12, color: "#555", lineHeight: 1.7 }}>
                   <div style={{ marginBottom: 6 }}>No spending reported yet for {currentHolder.name}.</div>
-                  <div>Spending is recorded when:</div>
-                  <div style={{ paddingLeft: 12, color: "#555" }}>
-                    • You import a monthly CSV — expenses in the sheet are linked here<br />
-                    • You manually add an expense and tag it to this petty cash holder
-                  </div>
+                  <div>Spending is recorded when you import a monthly CSV or manually add an expense tagged to this holder.</div>
                 </div>
               ) : (
-                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
-                      {["DATE", "DESCRIPTION", "CATEGORY", "AMOUNT"].map((h) => (
-                        <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "5px 8px" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {holderExpenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
-                      <tr key={e.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
-                        <td style={{ padding: "7px 8px" }}>{e.date}</td>
-                        <td style={{ padding: "7px 8px" }}>{e.description}</td>
-                        <td style={{ padding: "7px 8px" }}>
-                          <span className="tag" style={{ background: (CAT_COLOR[e.category] || "#6b7280") + "22", color: CAT_COLOR[e.category] || "#7C8B67", border: `1px solid ${(CAT_COLOR[e.category] || "#6b7280")}44` }}>
-                            {e.category}
-                          </span>
-                        </td>
-                        <td style={{ padding: "7px 8px", textAlign: "right", color: "#ef4444" }}>{fmt(e.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ borderTop: "2px solid #E0E0DC" }}>
-                      <td colSpan={3} style={{ padding: "6px 8px", fontSize: 11, color: "#555" }}>Total Spending</td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#ef4444", fontWeight: 700 }}>{fmt(spending)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+                <>
+                  {filtered.length === 0 && (
+                    <div style={{ fontSize: 12, color: "#888", padding: "10px 0" }}>No entries for this month.</div>
+                  )}
+
+                  {/* Section 1 — Trip Driver Costs */}
+                  {driverExp.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#1B3F60", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid #1B3F6022" }}>
+                        Trip Driver Costs — Sangu &amp; Miscellaneous
+                      </div>
+                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
+                            {["DATE", "DESCRIPTION", "TRUCK", "AMOUNT"].map(h => (
+                              <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "5px 8px" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {driverExp.map(e => (
+                            <tr key={e.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                              <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{e.date}</td>
+                              <td style={{ padding: "6px 8px" }}>{e.description}</td>
+                              <td style={{ padding: "6px 8px", color: "#A39159", fontSize: 11 }}>{e.truck || "—"}</td>
+                              <td style={{ padding: "6px 8px", textAlign: "right", color: "#ef4444" }}>{fmt(e.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{ borderTop: "1px solid #E0E0DC", background: "#F8F8F6" }}>
+                            <td colSpan={3} style={{ padding: "5px 8px", fontSize: 11, color: "#555", fontWeight: 600 }}>Subtotal — Trip Costs</td>
+                            <td style={{ padding: "5px 8px", textAlign: "right", color: "#ef4444", fontWeight: 700 }}>{fmt(driverTotal)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Section 2 — Pengeluaran Tambahan */}
+                  {otherExp.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#7C5A1E", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid #A3915922" }}>
+                        Pengeluaran Tambahan — Operational &amp; Misc Expenses
+                      </div>
+                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
+                            {["DATE", "DESCRIPTION", "CATEGORY", "AMOUNT"].map(h => (
+                              <th key={h} style={{ textAlign: h === "AMOUNT" ? "right" : "left", padding: "5px 8px" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {otherExp.map(e => (
+                            <tr key={e.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                              <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{e.date}</td>
+                              <td style={{ padding: "6px 8px" }}>{e.description}</td>
+                              <td style={{ padding: "6px 8px" }}>
+                                <span style={{ background: (CAT_COLOR[e.category] || "#6b7280") + "22", color: CAT_COLOR[e.category] || "#7C8B67", border: `1px solid ${(CAT_COLOR[e.category] || "#6b7280")}44`, fontSize: 10, padding: "2px 6px", borderRadius: 3 }}>
+                                  {e.category}
+                                </span>
+                              </td>
+                              <td style={{ padding: "6px 8px", textAlign: "right", color: "#ef4444" }}>{fmt(e.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{ borderTop: "1px solid #E0E0DC", background: "#F8F8F6" }}>
+                            <td colSpan={3} style={{ padding: "5px 8px", fontSize: 11, color: "#555", fontWeight: 600 }}>Subtotal — Pengeluaran Tambahan</td>
+                            <td style={{ padding: "5px 8px", textAlign: "right", color: "#ef4444", fontWeight: 700 }}>{fmt(otherTotal)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Grand total */}
+                  {filtered.length > 0 && (
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <div style={{ background: "#1B3F60", borderRadius: 6, padding: "10px 20px", display: "flex", gap: 32, alignItems: "center" }}>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1 }}>
+                          {filterMonth ? `Total ${filterMonth}` : "Grand Total"}
+                        </span>
+                        <span style={{ fontSize: 16, color: "#ef4444", fontWeight: 700 }}>{fmt(filteredTotal)}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
