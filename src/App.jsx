@@ -396,6 +396,7 @@ function KinKinApp() {
   const [deleteGuardCode, setDeleteGuardCode] = useState("");
   const [deleteGuardErr, setDeleteGuardErr] = useState(false);
   const [activityLog, setActivityLog] = useState([]);
+  const [cashBackfillDone, setCashBackfillDone] = useState(false);
   const globalFileRef = useRef(null);
 
   const _skipSave = useRef(true);
@@ -405,7 +406,6 @@ function KinKinApp() {
       if (saved) {
         setTrips(saved.trips ?? []);
         setExpenses(saved.expenses ?? []);
-        setKas(saved.kas ?? []);
         setCapital(saved.capital ?? []);
         setLoans(saved.loans ?? []);
         setAssets(saved.assets ?? []);
@@ -414,6 +414,36 @@ function KinKinApp() {
         setPettyHolders(saved.pettyHolders ?? []);
         setPettyTopups(saved.pettyTopups ?? []);
         setActivityLog(saved.activityLog ?? []);
+        setCashBackfillDone(saved.cashBackfillDone ?? false);
+
+        // One-time migration: create kas "out" entries for historical manually-added
+        // truck and overhead expenses that were logged before the cash-deduction fix.
+        const existingKas = saved.kas ?? [];
+        const existingExpenses = saved.expenses ?? [];
+        if (!saved.cashBackfillDone) {
+          const manual = existingExpenses.filter(
+            (e) => (e.expenseType === "truck" || e.expenseType === "overhead") && e.source !== "import"
+          );
+          const backfillEntries = manual.map((e) => ({
+            id: genId(),
+            date: e.date,
+            description: e.expenseType === "truck"
+              ? `Truck expense — ${e.truck || ""}${e.description ? ": " + e.description : ""}`
+              : `Overhead — ${e.description}${e.vendor ? " (" + e.vendor + ")" : ""}`,
+            amount: e.amount,
+            type: "out",
+          }));
+          setKas([...existingKas, ...backfillEntries]);
+          setCashBackfillDone(true);
+          if (backfillEntries.length > 0) {
+            setActivityLog((prev) => [
+              { id: genId(), at: new Date().toISOString(), action: "migration", type: "cash", description: `Backfilled ${backfillEntries.length} kas entries for historical truck/overhead expenses` },
+              ...prev,
+            ]);
+          }
+        } else {
+          setKas(existingKas);
+        }
       }
       _skipSave.current = false;
       setAppLoading(false);
@@ -423,8 +453,8 @@ function KinKinApp() {
   // Auto-save whenever any data changes
   useEffect(() => {
     if (_skipSave.current) return;
-    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog });
-  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog]);
+    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone });
+  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone]);
 
   // Step 1: User picks a file — open modal asking for month/year
   // ── Fingerprint for deduplication — container # is physically unique ────────
@@ -1471,7 +1501,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
                   </thead>
                   <tbody>
                     {activityLog.slice(0, activityPage).map((entry) => {
-                      const badgeColor = entry.action === "add" ? "#10b981" : entry.action === "delete" ? "#ef4444" : entry.action === "import" ? "#1B3F60" : "#f59e0b";
+                      const badgeColor = entry.action === "add" ? "#10b981" : entry.action === "delete" ? "#ef4444" : entry.action === "import" ? "#1B3F60" : entry.action === "migration" ? "#7C3AED" : "#f59e0b";
                       return (
                         <tr key={entry.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
                           <td style={{ padding: "6px 8px", color: "#7C8B67", fontSize: 11, whiteSpace: "nowrap" }}>
