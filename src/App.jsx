@@ -372,6 +372,7 @@ const TABS = [
   { key: "petty",     label: "Petty Cash",      short: "Petty" },
   { key: "fleet",     label: "Fleet",           short: "Fleet" },
   { key: "reports",   label: "Reports",         short: "Report" },
+  { key: "settings",  label: "Settings",        short: "Opts" },
 ];
 
 function KinKinApp() {
@@ -397,6 +398,7 @@ function KinKinApp() {
   const [deleteGuardErr, setDeleteGuardErr] = useState(false);
   const [activityLog, setActivityLog] = useState([]);
   const [cashBackfillDone, setCashBackfillDone] = useState(false);
+  const [appPassword, setAppPassword] = useState(APP_PASSWORD);
   const globalFileRef = useRef(null);
 
   const _skipSave = useRef(true);
@@ -415,6 +417,7 @@ function KinKinApp() {
         setPettyTopups(saved.pettyTopups ?? []);
         setActivityLog(saved.activityLog ?? []);
         setCashBackfillDone(saved.cashBackfillDone ?? false);
+        if (saved.appPassword) { setAppPassword(saved.appPassword); _runtimePassword = saved.appPassword; }
 
         // One-time migration: create kas "out" entries for historical manually-added
         // truck and overhead expenses that were logged before the cash-deduction fix.
@@ -450,11 +453,14 @@ function KinKinApp() {
     });
   }, []);
 
+  // Keep module-level ref in sync so LoginGate always reads the current password
+  useEffect(() => { _runtimePassword = appPassword; }, [appPassword]);
+
   // Auto-save whenever any data changes
   useEffect(() => {
     if (_skipSave.current) return;
-    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone });
-  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone]);
+    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword });
+  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword]);
 
   // Step 1: User picks a file — open modal asking for month/year
   // ── Fingerprint for deduplication — container # is physically unique ────────
@@ -1047,7 +1053,7 @@ function KinKinApp() {
               type="password" value={deleteGuardCode} autoFocus
               onChange={(e) => { setDeleteGuardCode(e.target.value); setDeleteGuardErr(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") {
-                if (deleteGuardCode === APP_PASSWORD) { deleteGuard.onConfirm(); setDeleteGuard(null); }
+                if (deleteGuardCode === appPassword) { deleteGuard.onConfirm(); setDeleteGuard(null); }
                 else setDeleteGuardErr(true);
               }}}
               style={{ width:"100%",padding:"8px 10px",border:`1px solid ${deleteGuardErr?"#c0392b":"#E0E0DC"}`,borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:deleteGuardErr?4:14 }}
@@ -1057,7 +1063,7 @@ function KinKinApp() {
             <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
               <button onClick={() => setDeleteGuard(null)} style={{ background:"transparent",color:"#7C8B67",border:"1px solid #E0E0DC",padding:"9px 18px",borderRadius:4,fontSize:12,cursor:"pointer" }}>Cancel</button>
               <button onClick={() => {
-                if (deleteGuardCode === APP_PASSWORD) { deleteGuard.onConfirm(); setDeleteGuard(null); }
+                if (deleteGuardCode === appPassword) { deleteGuard.onConfirm(); setDeleteGuard(null); }
                 else setDeleteGuardErr(true);
               }} style={{ background:"#c0392b",color:"#fff",border:"none",padding:"9px 20px",borderRadius:4,fontWeight:700,fontSize:13,cursor:"pointer" }}>Delete</button>
             </div>
@@ -1066,27 +1072,26 @@ function KinKinApp() {
       )}
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
-        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} activityLog={activityLog} />}
+        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} undoImport={undoImport} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
+        {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={setAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} />}
       </div>
     </div>
   );
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, importLogs, undoImport, kas, activityLog }) {
+function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, importLogs, undoImport, kas }) {
   const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
   const [undoModal, setUndoModal] = useState(null);
   const [resetModal, setResetModal] = useState(null);
   const [importHistoryOpen, setImportHistoryOpen] = useState(false);
-  const [activityLogOpen, setActivityLogOpen] = useState(false);
-  const [activityPage, setActivityPage] = useState(20);
   const truckStats = trucks.map((t) => {
     const tTrips = trips.filter((x) => x.nopol === t);
     const tExp = expenses.filter((x) => x.truck === t);
@@ -1460,69 +1465,6 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
         )}
         {importHistoryOpen && (!importLogs || importLogs.length === 0) && (
           <div style={{ padding: "14px 20px", borderTop: "1px solid #E0E0DC", fontSize: 12, color: "#555" }}>No imports yet.</div>
-        )}
-      </div>
-
-      {/* Activity Log — collapsible, collapsed by default */}
-      <div style={{ background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, marginTop: 16, overflow: "hidden" }}>
-        <div
-          onClick={() => setActivityLogOpen((o) => !o)}
-          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", cursor: "pointer", userSelect: "none" }}
-        >
-          <h3 style={{ fontSize: 13, color: "#A39159", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700, margin: 0 }}>ACTIVITY LOG</h3>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 11, background: "#A3915922", color: "#A39159", border: "1px solid #A3915944", padding: "2px 8px", borderRadius: 3 }}>
-              {activityLog ? activityLog.length : 0} entr{(!activityLog || activityLog.length !== 1) ? "ies" : "y"}
-            </span>
-            <span style={{ fontSize: 13, color: "#A39159" }}>{activityLogOpen ? "▼" : "▶"}</span>
-          </div>
-        </div>
-        {activityLogOpen && (
-          <div style={{ padding: "0 20px 20px", borderTop: "1px solid #E0E0DC" }}>
-            {(!activityLog || activityLog.length === 0) ? (
-              <div style={{ fontSize: 12, color: "#555", padding: "14px 0" }}>No activity recorded yet.</div>
-            ) : (
-              <>
-                <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 14 }}>
-                  <thead>
-                    <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
-                      <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>TIME</th>
-                      <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>ACTION</th>
-                      <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>TYPE</th>
-                      <th style={{ textAlign: "left", padding: "5px 8px" }}>DESCRIPTION</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activityLog.slice(0, activityPage).map((entry) => {
-                      const badgeColor = entry.action === "add" ? "#10b981" : entry.action === "delete" ? "#ef4444" : entry.action === "import" ? "#1B3F60" : entry.action === "migration" ? "#7C3AED" : "#f59e0b";
-                      return (
-                        <tr key={entry.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
-                          <td style={{ padding: "6px 8px", color: "#7C8B67", fontSize: 11, whiteSpace: "nowrap" }}>
-                            {new Date(entry.at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
-                          </td>
-                          <td style={{ padding: "6px 8px" }}>
-                            <span style={{ background: badgeColor + "22", color: badgeColor, border: `1px solid ${badgeColor}44`, padding: "2px 7px", borderRadius: 3, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
-                              {entry.action}
-                            </span>
-                          </td>
-                          <td style={{ padding: "6px 8px", color: "#555", fontSize: 11 }}>{entry.type}</td>
-                          <td style={{ padding: "6px 8px", color: "#2d2d2d", fontSize: 12 }}>{entry.description}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {activityLog.length > activityPage && (
-                  <button
-                    onClick={() => setActivityPage((p) => p + 20)}
-                    style={{ marginTop: 12, background: "transparent", border: "1px solid #A3915944", color: "#A39159", padding: "6px 16px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}
-                  >
-                    Show more ({activityLog.length - activityPage} remaining)
-                  </button>
-                )}
-              </>
-            )}
-          </div>
         )}
       </div>
 
@@ -4286,7 +4228,199 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
   );
 }
 
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast }) {
+  const [curPwd, setCurPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confPwd, setConfPwd] = useState("");
+  const [pwdErr, setPwdErr] = useState("");
+  const [actPage, setActPage] = useState(25);
+  const [auditResults, setAuditResults] = useState(null);
+  const [auditing, setAuditing] = useState(false);
+
+  function handleChangePwd(e) {
+    e.preventDefault();
+    if (curPwd !== appPassword) { setPwdErr("Current password is incorrect."); return; }
+    if (newPwd.length < 4) { setPwdErr("New password must be at least 4 characters."); return; }
+    if (newPwd !== confPwd) { setPwdErr("New passwords do not match."); return; }
+    setAppPassword(newPwd);
+    setCurPwd(""); setNewPwd(""); setConfPwd(""); setPwdErr("");
+    showToast("Password updated!");
+  }
+
+  function runAudit() {
+    setAuditing(true);
+    setTimeout(() => {
+      const results = [];
+
+      // Check 1 — Cash balance integrity
+      const computed = kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0);
+      const diff = Math.abs(computed - kasBalance);
+      results.push({ label: "Cash Balance Integrity", status: diff < 1 ? "pass" : "fail", detail: diff < 1 ? `Balance matches: ${fmt(kasBalance)}` : `Expected ${fmt(computed)}, stored ${fmt(kasBalance)} — diff ${fmt(diff)}` });
+
+      // Check 2 — Duplicate kas entries
+      const dupPairs = [];
+      for (let i = 0; i < kas.length; i++) {
+        for (let j = i + 1; j < kas.length; j++) {
+          if (kas[i].date === kas[j].date && kas[i].amount === kas[j].amount && kas[i].type === kas[j].type) {
+            dupPairs.push(`${kas[i].date} · ${fmt(kas[i].amount)} (${kas[i].type}) — "${kas[i].description}" & "${kas[j].description}"`);
+          }
+        }
+      }
+      results.push({ label: "Duplicate Cash Entries", status: dupPairs.length === 0 ? "pass" : "warn", detail: dupPairs.length === 0 ? "No duplicates found." : dupPairs });
+
+      // Check 3 — Stale driver-cost entries
+      const staleDC = kas.filter((k) => k.description && k.description.startsWith("Driver costs —"));
+      results.push({ label: "Stale Driver-Cost Cash Entries", status: staleDC.length === 0 ? "pass" : "warn", detail: staleDC.length === 0 ? "None found." : staleDC.map((k) => `${k.date} · ${fmt(k.amount)} — "${k.description}"`) });
+
+      // Check 4 — Manual expenses without kas entry
+      const manualExp = expenses.filter((e) => e.source !== "import" && (e.expenseType === "truck" || e.expenseType === "overhead"));
+      const missingKas = manualExp.filter((e) => !kas.some((k) => k.type === "out" && k.amount === e.amount && k.date === e.date));
+      results.push({ label: "Manual Expenses Missing Cash Entry", status: missingKas.length === 0 ? "pass" : "warn", detail: missingKas.length === 0 ? "All manual expenses have matching cash entries." : missingKas.map((e) => `${e.date} · ${fmt(e.amount)} — ${e.description}`) });
+
+      // Check 5 — Petty cash reconciliation
+      const activeHolders = pettyHolders.filter((h) => h.active);
+      const pettyIssues = [];
+      for (const h of activeHolders) {
+        const topups = pettyTopups.filter((t) => t.holderId === h.id).reduce((s, t) => s + t.amount, 0);
+        const spending = expenses.filter((e) => e.holderId === h.id).reduce((s, e) => s + e.amount, 0);
+        if (topups - spending < 0) pettyIssues.push(`${h.name}: topups ${fmt(topups)}, spending ${fmt(spending)}, balance ${fmt(topups - spending)}`);
+      }
+      results.push({ label: "Petty Cash Reconciliation", status: pettyIssues.length === 0 ? "pass" : "warn", detail: pettyIssues.length === 0 ? "All active holders have non-negative balances." : pettyIssues });
+
+      // Check 6 — Unassigned imported expenses
+      const unassigned = expenses.filter((e) => e.holderId === "unassigned").length;
+      results.push({ label: "Unassigned Imported Expenses", status: unassigned === 0 ? "pass" : "warn", detail: unassigned === 0 ? "No unassigned expenses." : `${unassigned} expense(s) need holder assignment in Petty Cash tab.` });
+
+      // Check 7 — Loan overpayment
+      const loanIssues = [];
+      for (const loan of loans) {
+        const paid = loanPayments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+        if (paid > loan.principal) loanIssues.push(`${loan.lender}: principal ${fmt(loan.principal)}, paid ${fmt(paid)}`);
+      }
+      results.push({ label: "Loan Overpayment", status: loanIssues.length === 0 ? "pass" : "fail", detail: loanIssues.length === 0 ? "No loans overpaid." : loanIssues });
+
+      setAuditResults(results);
+      setAuditing(false);
+    }, 0);
+  }
+
+  const passed = auditResults ? auditResults.filter((r) => r.status === "pass").length : 0;
+  const warned = auditResults ? auditResults.filter((r) => r.status === "warn").length : 0;
+  const failed = auditResults ? auditResults.filter((r) => r.status === "fail").length : 0;
+
+  const card = { background: "#FEFEFE", border: "1px solid #E0E0DC", borderRadius: 8, padding: 20, marginBottom: 16 };
+  const sectionTitle = { fontSize: 13, color: "#A39159", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700, margin: "0 0 16px 0" };
+  const inputStyle = { width: "100%", padding: "8px 10px", border: "1px solid #D0D0CC", borderRadius: 5, fontSize: 13, outline: "none", boxSizing: "border-box", marginBottom: 10 };
+
+  return (
+    <div style={{ maxWidth: 680 }}>
+      {/* Section A — Change Password */}
+      <div style={card}>
+        <h3 style={sectionTitle}>Change Password</h3>
+        <form onSubmit={handleChangePwd}>
+          <label style={{ fontSize: 12, color: "#7C8B67", display: "block", marginBottom: 3 }}>Current Password</label>
+          <input type="password" value={curPwd} onChange={(e) => { setCurPwd(e.target.value); setPwdErr(""); }} style={inputStyle} autoComplete="current-password" />
+          <label style={{ fontSize: 12, color: "#7C8B67", display: "block", marginBottom: 3 }}>New Password</label>
+          <input type="password" value={newPwd} onChange={(e) => { setNewPwd(e.target.value); setPwdErr(""); }} style={inputStyle} autoComplete="new-password" />
+          <label style={{ fontSize: 12, color: "#7C8B67", display: "block", marginBottom: 3 }}>Confirm New Password</label>
+          <input type="password" value={confPwd} onChange={(e) => { setConfPwd(e.target.value); setPwdErr(""); }} style={{ ...inputStyle, marginBottom: 4 }} autoComplete="new-password" />
+          {pwdErr && <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>{pwdErr}</div>}
+          <button type="submit" style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "9px 20px", borderRadius: 5, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Update Password</button>
+        </form>
+      </div>
+
+      {/* Section B — Activity Log */}
+      <div style={card}>
+        <h3 style={sectionTitle}>Activity Log <span style={{ fontWeight: 400, fontSize: 11, color: "#999" }}>({activityLog ? activityLog.length : 0} entries)</span></h3>
+        {(!activityLog || activityLog.length === 0) ? (
+          <div style={{ fontSize: 12, color: "#555" }}>No activity recorded yet.</div>
+        ) : (
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ color: "#555", borderBottom: "1px solid #E0E0DC" }}>
+                    <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>TIME</th>
+                    <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>ACTION</th>
+                    <th style={{ textAlign: "left", padding: "5px 8px", whiteSpace: "nowrap" }}>TYPE</th>
+                    <th style={{ textAlign: "left", padding: "5px 8px" }}>DESCRIPTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...activityLog].slice(0, actPage).map((entry) => {
+                    const bc = entry.action === "add" ? "#10b981" : entry.action === "delete" ? "#ef4444" : entry.action === "import" ? "#1B3F60" : entry.action === "undo" ? "#f59e0b" : entry.action === "migration" ? "#7C8B67" : "#f59e0b";
+                    return (
+                      <tr key={entry.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
+                        <td style={{ padding: "6px 8px", color: "#7C8B67", fontSize: 11, whiteSpace: "nowrap" }}>{new Date(entry.at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}</td>
+                        <td style={{ padding: "6px 8px" }}>
+                          <span style={{ background: bc + "22", color: bc, border: `1px solid ${bc}44`, padding: "2px 7px", borderRadius: 3, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>{entry.action}</span>
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "#555", fontSize: 11 }}>{entry.type}</td>
+                        <td style={{ padding: "6px 8px", color: "#2d2d2d", fontSize: 12 }}>{entry.description}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {activityLog.length > actPage && (
+              <button onClick={() => setActPage((p) => p + 25)} style={{ marginTop: 12, background: "transparent", border: "1px solid #A3915944", color: "#A39159", padding: "6px 16px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
+                Load more ({activityLog.length - actPage} remaining)
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Section C — Financial Audit */}
+      <div style={card}>
+        <h3 style={sectionTitle}>Financial Audit</h3>
+        <button onClick={runAudit} disabled={auditing} style={{ background: "#1B3F60", color: "#fff", border: "none", padding: "9px 20px", borderRadius: 5, fontSize: 13, fontWeight: 700, cursor: auditing ? "not-allowed" : "pointer", opacity: auditing ? 0.7 : 1, marginBottom: auditResults ? 16 : 0 }}>
+          {auditing ? "⟳ Running..." : "Run Audit"}
+        </button>
+        {auditResults && (
+          <>
+            <div style={{ marginBottom: 12, fontSize: 13 }}>
+              <span style={{ color: "#10b981", fontWeight: 700 }}>{passed} passed</span>
+              {warned > 0 && <span style={{ color: "#f59e0b", fontWeight: 700 }}> · {warned} warning{warned !== 1 ? "s" : ""}</span>}
+              {failed > 0 && <span style={{ color: "#ef4444", fontWeight: 700 }}> · {failed} issue{failed !== 1 ? "s" : ""}</span>}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {auditResults.map((r, i) => {
+                const statusColor = r.status === "pass" ? "#10b981" : r.status === "warn" ? "#f59e0b" : "#ef4444";
+                const icon = r.status === "pass" ? "✅" : r.status === "warn" ? "⚠️" : "🔴";
+                const detailArr = Array.isArray(r.detail) ? r.detail : null;
+                return (
+                  <div key={i} style={{ border: `1px solid ${statusColor}33`, borderRadius: 6, padding: "10px 14px", background: statusColor + "08" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: detailArr ? 6 : 0 }}>
+                      <span>{icon}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: statusColor, textTransform: "uppercase", letterSpacing: 0.5 }}>{r.status}</span>
+                      <span style={{ fontSize: 13, color: "#2d2d2d" }}>{r.label}</span>
+                    </div>
+                    {detailArr ? (
+                      <ul style={{ margin: "4px 0 0 24px", padding: 0, fontSize: 12, color: "#555" }}>
+                        {detailArr.map((d, j) => <li key={j} style={{ marginBottom: 2 }}>{d}</li>)}
+                      </ul>
+                    ) : (
+                      <div style={{ fontSize: 12, color: "#555", marginLeft: 24 }}>{r.detail}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const APP_PASSWORD = "808880";
+
+// Module-level ref so LoginGate can always read the current runtime password
+// without needing prop threading through App → LoginGate.
+let _runtimePassword = APP_PASSWORD;
 
 function LoginGate({ onSuccess }) {
   const [pwd, setPwd] = useState("");
@@ -4295,7 +4429,7 @@ function LoginGate({ onSuccess }) {
 
   function submit(e) {
     e.preventDefault();
-    if (pwd === APP_PASSWORD) {
+    if (pwd === _runtimePassword) {
       setErr("");
       onSuccess();
     } else {
