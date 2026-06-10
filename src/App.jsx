@@ -586,17 +586,10 @@ function KinKinApp() {
     setTrips([...trips, ...newTrips]);
     setExpenses([...expenses, ...taggedExpenses]);
 
-    // Create a single kas "out" entry for total driver costs this import
-    const driverCostTotal = newTrips.reduce((s, t) => s + t.total, 0);
-    const kasEntry = driverCostTotal > 0 ? {
-      id: genId(),
-      date: monthYear + "-01",
-      description: `Driver costs — ${monthYear} (${newTrips.length} trip${newTrips.length !== 1 ? "s" : ""})`,
-      amount: driverCostTotal,
-      type: "out",
-    } : null;
-    if (kasEntry) setKas([...kas, kasEntry]);
-    const kasIds = kasEntry ? [kasEntry.id] : [];
+    // Sheet expenses (driver costs + pengeluaran tambahan) are paid by Martha
+    // from her petty cash — they do NOT touch the main cash balance directly.
+    // Main cash only reduces when Martha receives a top-up from the Cash tab.
+    const kasIds = [];
 
     const log = {
       id: genId(),
