@@ -1611,8 +1611,8 @@ function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
                   <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmt(t.jual)}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right", color: t.profit >= 0 ? "#34d399" : "#f87171" }}>{fmt(t.profit)}</td>
                   <td style={{ padding: "8px 4px", whiteSpace: "nowrap" }}>
-                    <button onClick={() => startEdit(t)} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
-                    <button onClick={() => deleteTrip(t.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
+                    <button onClick={() => startEdit(t)} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">Edit</button>
+                    <button onClick={() => deleteTrip(t.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">Del</button>
                   </td>
                 </tr>
               );
@@ -1644,36 +1644,44 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
 
-  // Date range filter for analysis section
-  const [datePreset, setDatePreset] = useState("all");
+  // Period filter
+  const [filterPeriod, setFilterPeriod] = useState("all"); // "all"|"this-month"|"last-month"|"this-quarter"|"custom"
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const applyDatePreset = (key) => {
-    setDatePreset(key);
-    const now = new Date();
-    let from = "", to = "";
-    if (key === "all") { from = ""; to = ""; }
-    else if (key === "thisMonth") {
-      from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const getPeriodBounds = (period) => {
+    const t = today();
+    const [y, m] = t.split('-').map(Number);
+    if (period === 'this-month') return { from: `${y}-${String(m).padStart(2,'0')}-01`, to: t };
+    if (period === 'last-month') {
+      const lm = m === 1 ? 12 : m - 1;
+      const ly = m === 1 ? y - 1 : y;
+      const lastDay = new Date(y, m - 1, 0).getDate();
+      return { from: `${ly}-${String(lm).padStart(2,'0')}-01`, to: `${ly}-${String(lm).padStart(2,'0')}-${lastDay}` };
     }
-    else if (key === "lastMonth") {
-      from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-      to = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+    if (period === 'this-quarter') {
+      const qStart = Math.floor((m - 1) / 3) * 3 + 1;
+      return { from: `${y}-${String(qStart).padStart(2,'0')}-01`, to: t };
     }
-    else if (key === "ytd") {
-      from = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
-      to = new Date(now.getFullYear(), 11, 31).toISOString().slice(0, 10);
-    }
-    setDateFrom(from);
-    setDateTo(to);
+    return { from: '', to: '' };
   };
+
+  const selectPeriod = (period) => {
+    setFilterPeriod(period);
+    if (period !== 'custom') {
+      const bounds = getPeriodBounds(period);
+      setDateFrom(bounds.from);
+      setDateTo(bounds.to);
+    }
+  };
+
+  const effectiveFrom = filterPeriod === 'all' ? '' : filterPeriod === 'custom' ? dateFrom : getPeriodBounds(filterPeriod).from;
+  const effectiveTo   = filterPeriod === 'all' ? '' : filterPeriod === 'custom' ? dateTo   : getPeriodBounds(filterPeriod).to;
 
   const inDateRange = (dateStr) => {
     if (!dateStr) return true;
-    if (dateFrom && dateStr < dateFrom) return false;
-    if (dateTo && dateStr > dateTo) return false;
+    if (effectiveFrom && dateStr < effectiveFrom) return false;
+    if (effectiveTo   && dateStr > effectiveTo)   return false;
     return true;
   };
 
@@ -1773,6 +1781,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const truckTotal = dateFiltered.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + e.amount, 0);
   const overheadTotal = dateFiltered.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + e.amount, 0);
   const grandTotal = truckTotal + overheadTotal;
+  const periodLabel = filterPeriod === 'all' ? 'All time' : filterPeriod === 'custom' ? `${effectiveFrom || 'earliest'} → ${effectiveTo || 'today'}` : filterPeriod.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   // Aggregate by category for pie chart
   const byCategory = {};
@@ -1809,7 +1818,6 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
     : dateFiltered;
   const filtered = (filter === "all" ? sourceFiltered : sourceFiltered.filter((e) => (e.expenseType || "truck") === filter)).sort((a, b) => a.date.localeCompare(b.date));
   const categories = expenseType === "truck" ? TRUCK_CATEGORIES : expenseType === "overhead" ? OVERHEAD_CATEGORIES : ["Petty Cash"];
-  const periodLabel = (dateFrom || dateTo) ? `${dateFrom || "earliest"} → ${dateTo || "today"}` : "All time";
 
   return (
     <div>
@@ -1820,7 +1828,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         </button>
       </div>
 
-      {/* Date Range Filter */}
+      {/* Period Filter */}
       <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div style={{ fontSize: 12, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Period Filter</div>
@@ -1828,24 +1836,28 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
           {[
-            { key: "all", label: "All Time" },
-            { key: "thisMonth", label: "This Month" },
-            { key: "lastMonth", label: "Last Month" },
-            { key: "ytd", label: "Year to Date" },
-            { key: "custom", label: "Custom" },
+            { key: "all",          label: "All Time" },
+            { key: "this-month",   label: "This Month" },
+            { key: "last-month",   label: "Last Month" },
+            { key: "this-quarter", label: "This Quarter" },
+            { key: "custom",       label: "Custom" },
           ].map((p) => (
-            <button key={p.key} onClick={() => applyDatePreset(p.key)} style={{
-              background: datePreset === p.key ? "#c8a86b" : "#1e2d3e",
-              color: datePreset === p.key ? "#162030" : "rgba(255,255,255,0.45)",
-              border: `1px solid ${datePreset === p.key ? "#c8a86b" : "rgba(255,255,255,0.12)"}`,
-              padding: "5px 10px", borderRadius: 3, fontSize: 11, fontWeight: 600, cursor: "pointer"
+            <button key={p.key} onClick={() => selectPeriod(p.key)} style={{
+              background: filterPeriod === p.key ? "#c8a86b" : "#1e2d3e",
+              color: filterPeriod === p.key ? "#162030" : "rgba(255,255,255,0.45)",
+              border: `1px solid ${filterPeriod === p.key ? "#c8a86b" : "rgba(255,255,255,0.12)"}`,
+              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer"
             }}>
               {p.label}
             </button>
           ))}
-          <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setDatePreset("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
-          <span style={{ color: "rgba(255,255,255,0.45)" }}>→</span>
-          <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setDatePreset("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+          {filterPeriod === 'custom' && (
+            <>
+              <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setFilterPeriod("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>→</span>
+              <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setFilterPeriod("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+            </>
+          )}
         </div>
       </div>
 
@@ -2117,8 +2129,8 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
                         </button>
                       );
                     })()}
-                    <button onClick={() => startEdit(e)} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">✏️</button>
-                    <button onClick={() => deleteExpense(e.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">🗑</button>
+                    <button onClick={() => startEdit(e)} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }} title="Edit">Edit</button>
+                    <button onClick={() => deleteExpense(e.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }} title="Delete">Del</button>
                   </td>
                 </tr>
               );
@@ -2136,6 +2148,41 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity }) {
   const isMobile = useIsMobile();
   const [form, setForm] = useState({ date: today(), description: "", amount: "", type: "in" });
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  // Period filter
+  const [kasFilter, setKasFilter] = useState("all");
+  const [kasFrom, setKasFrom] = useState("");
+  const [kasTo, setKasTo] = useState("");
+
+  const getKasPeriodBounds = (period) => {
+    const t = today();
+    const [y, m] = t.split('-').map(Number);
+    if (period === 'this-month') return { from: `${y}-${String(m).padStart(2,'0')}-01`, to: t };
+    if (period === 'last-month') {
+      const lm = m === 1 ? 12 : m - 1;
+      const ly = m === 1 ? y - 1 : y;
+      const lastDay = new Date(y, m - 1, 0).getDate();
+      return { from: `${ly}-${String(lm).padStart(2,'0')}-01`, to: `${ly}-${String(lm).padStart(2,'0')}-${lastDay}` };
+    }
+    if (period === 'this-quarter') {
+      const qStart = Math.floor((m - 1) / 3) * 3 + 1;
+      return { from: `${y}-${String(qStart).padStart(2,'0')}-01`, to: t };
+    }
+    return { from: '', to: '' };
+  };
+
+  const selectKasPeriod = (period) => {
+    setKasFilter(period);
+    if (period !== 'custom') {
+      const bounds = getKasPeriodBounds(period);
+      setKasFrom(bounds.from);
+      setKasTo(bounds.to);
+    }
+  };
+
+  const effectiveKasFrom = kasFilter === 'all' ? '' : kasFilter === 'custom' ? kasFrom : getKasPeriodBounds(kasFilter).from;
+  const effectiveKasTo   = kasFilter === 'all' ? '' : kasFilter === 'custom' ? kasTo   : getKasPeriodBounds(kasFilter).to;
 
   const addKas = () => {
     if (!form.description || !form.amount) { showToast("Fill in Description and Amount", "error"); return; }
@@ -2151,7 +2198,16 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
     return { ...k, balance: running };
   });
 
-  const [showAddForm, setShowAddForm] = useState(false);
+  const filteredRows = kasFilter === 'all'
+    ? rows
+    : rows.filter((k) => {
+        if (effectiveKasFrom && k.date < effectiveKasFrom) return false;
+        if (effectiveKasTo   && k.date > effectiveKasTo)   return false;
+        return true;
+      });
+
+  const periodCashIn  = filteredRows.filter(k => k.type === "in").reduce((s, k) => s + k.amount, 0);
+  const periodCashOut = filteredRows.filter(k => k.type === "out").reduce((s, k) => s + k.amount, 0);
 
   return (
     <div>
@@ -2162,19 +2218,59 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
         </button>
       </div>
 
-      {/* OPT 2 — Compact horizontal cash summary strip */}
-      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", background:"#162030", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden", marginBottom:16 }}>
+      {/* All-time cash summary strip */}
+      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", background:"#162030", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden", marginBottom: kasFilter !== 'all' ? 0 : 16 }}>
         <div style={{ flex:1, padding:"14px 18px", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)", borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Cash In</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Cash In (All Time)</div>
           <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:18, fontWeight:700, color:"#34d399" }}>{fmt(kas.filter(k=>k.type==="in").reduce((s,k)=>s+k.amount,0))}</div>
         </div>
         <div style={{ flex:1, padding:"14px 18px", borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)", borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Cash Out</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Cash Out (All Time)</div>
           <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:18, fontWeight:700, color:"#f87171" }}>{fmt(kas.filter(k=>k.type==="out").reduce((s,k)=>s+k.amount,0))}</div>
         </div>
         <div style={{ flex:1, padding:"14px 18px", background:"rgba(200,168,107,0.06)" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:5 }}>Balance</div>
           <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:18, fontWeight:700, color:"#c8a86b" }}>{fmt(kasBalance)}</div>
+        </div>
+      </div>
+      {kasFilter !== 'all' && (
+        <div style={{ background:"#1e2d3e", border:"1px solid rgba(255,255,255,0.08)", borderTop:"none", borderRadius:"0 0 8px 8px", padding:"8px 18px", marginBottom:16, fontSize:11, color:"rgba(255,255,255,0.45)", display:"flex", gap:20, flexWrap:"wrap" }}>
+          <span>Period total:</span>
+          <span style={{ color:"#34d399" }}>Cash In {fmt(periodCashIn)}</span>
+          <span style={{ color:"rgba(255,255,255,0.3)" }}>·</span>
+          <span style={{ color:"#f87171" }}>Cash Out {fmt(periodCashOut)}</span>
+          <span style={{ color:"rgba(255,255,255,0.3)" }}>·</span>
+          <span style={{ color:"#c8a86b" }}>Net {fmt(periodCashIn - periodCashOut)}</span>
+        </div>
+      )}
+
+      {/* Period Filter */}
+      <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginRight: 6 }}>Period:</span>
+          {[
+            { key: "all",          label: "All Time" },
+            { key: "this-month",   label: "This Month" },
+            { key: "last-month",   label: "Last Month" },
+            { key: "this-quarter", label: "This Quarter" },
+            { key: "custom",       label: "Custom" },
+          ].map((p) => (
+            <button key={p.key} onClick={() => selectKasPeriod(p.key)} style={{
+              background: kasFilter === p.key ? "#c8a86b" : "#1e2d3e",
+              color: kasFilter === p.key ? "#162030" : "rgba(255,255,255,0.45)",
+              border: `1px solid ${kasFilter === p.key ? "#c8a86b" : "rgba(255,255,255,0.12)"}`,
+              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer"
+            }}>
+              {p.label}
+            </button>
+          ))}
+          {kasFilter === 'custom' && (
+            <>
+              <input type="date" value={kasFrom} onChange={(e) => { setKasFrom(e.target.value); setKasFilter("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>→</span>
+              <input type="date" value={kasTo} onChange={(e) => { setKasTo(e.target.value); setKasFilter("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+            </>
+          )}
         </div>
       </div>
 
@@ -2201,7 +2297,7 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
       )}
 
       <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20 }}>
-        <h3 style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Cash Ledger</h3>
+        <h3 style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Cash Ledger {kasFilter !== 'all' ? `(${filteredRows.length} entries in period)` : `(${rows.length} total)`}</h3>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 480 }}>
           <thead>
@@ -2212,7 +2308,7 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
             </tr>
           </thead>
           <tbody>
-            {rows.map((k) => (
+            {filteredRows.map((k) => (
               <tr key={k.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <td style={{ padding: "8px 8px" }}>{k.date}</td>
                 <td style={{ padding: "8px 8px" }}>{k.description}</td>
@@ -2485,10 +2581,10 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                           <button onClick={() => setActiveHolder(h.id)} style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "5px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
                             View Details →
                           </button>
-                          <button onClick={() => { setEditHolderId(h.id); setEditHolderForm({ name: h.name, notes: h.notes || "" }); }} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>✏️</button>
+                          <button onClick={() => { setEditHolderId(h.id); setEditHolderForm({ name: h.name, notes: h.notes || "" }); }} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }}>Edit</button>
                           {h.active && <button onClick={() => deactivateHolder(h.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Deactivate">⊗</button>}
                           {!h.active && <button onClick={() => setPettyHolders(pettyHolders.map((x) => x.id === h.id ? { ...x, active: true } : x))} style={{ background: "transparent", border: "1px solid rgba(52,211,153,0.25)", color: "#34d399", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Reactivate">↺</button>}
-                          <button onClick={() => deleteHolder(h.id)} style={{ background: "transparent", border: "1px solid #ef444488", color: "#ef444488", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Delete permanently">🗑</button>
+                          <button onClick={() => deleteHolder(h.id)} style={{ background: "transparent", border: "1px solid #ef444488", color: "#ef444488", padding: "4px 8px", borderRadius: 3, fontSize: 12, cursor: "pointer" }} title="Delete permanently">Del</button>
                         </div>
                       )}
                     </div>
@@ -2652,8 +2748,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                           <td style={{ padding: "7px 8px", color: "rgba(255,255,255,0.45)" }}>{t.note || "—"}</td>
                           <td style={{ padding: "7px 8px", textAlign: "right", color: "#60a5fa", fontWeight: 600 }}>{fmt(t.amount)}</td>
                           <td style={{ padding: "7px 4px", whiteSpace: "nowrap" }}>
-                            <button onClick={() => { setEditTopupId(t.id); setEditTopupForm({ date: t.date, amount: t.amount, note: t.note || "" }); }} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
-                            <button onClick={() => deleteTopup(t.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "2px 7px", borderRadius: 3, cursor: "pointer" }}>🗑</button>
+                            <button onClick={() => { setEditTopupId(t.id); setEditTopupForm({ date: t.date, amount: t.amount, note: t.note || "" }); }} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>Edit</button>
+                            <button onClick={() => deleteTopup(t.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "2px 7px", borderRadius: 3, cursor: "pointer" }}>Del</button>
                           </td>
                         </tr>
                       );
@@ -3067,8 +3163,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                         <td style={{ padding: "8px 8px", color: "rgba(255,255,255,0.45)" }}>{c.description}</td>
                         <td style={{ padding: "8px 8px", textAlign: "right", color: c.type === "capital" ? "#34d399" : "#60a5fa", fontWeight: 600 }}>{fmt(c.amount)}</td>
                         <td style={{ padding: "8px 4px", whiteSpace: "nowrap" }}>
-                          <button onClick={() => { setEditCapId(c.id); setEditCapForm({ ...c }); }} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
-                          <button onClick={() => deleteCapital(c.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>🗑</button>
+                          <button onClick={() => { setEditCapId(c.id); setEditCapForm({ ...c }); }} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "3px 8px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>Edit</button>
+                          <button onClick={() => deleteCapital(c.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>Del</button>
                         </td>
                       </tr>
                     );
@@ -3178,7 +3274,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
             {/* Contract Details — view or edit mode */}
             {isEditingContract ? (
               <div style={{ background: "#1e2d3e", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 6, padding: 16, marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: "#c8a86b", marginBottom: 12, fontWeight: 600 }}>✏️ Editing Contract</div>
+                <div style={{ fontSize: 12, color: "#c8a86b", marginBottom: 12, fontWeight: 600 }}>Editing Contract</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
                   {[
                     ["Purpose / Name", "purpose"], ["Lender", "lender"], ["Vehicle Value (Rp)", "vehicleValue"],
@@ -3312,8 +3408,8 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                           <td style={{ padding: "6px 6px", color: "rgba(255,255,255,0.45)" }}>{p.note || "—"}</td>
                           <td style={{ padding: "6px 6px", textAlign: "right", color: "#34d399", fontWeight: 600 }}>{fmt(p.amount)}</td>
                           <td style={{ padding: "6px 6px", whiteSpace: "nowrap" }}>
-                            <button onClick={() => startEditPay(p)} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>✏️</button>
-                            <button onClick={() => deletePay(p.id, loan.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "2px 7px", borderRadius: 3, cursor: "pointer" }}>🗑</button>
+                            <button onClick={() => startEditPay(p)} style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.3)", color: "#c8a86b", fontSize: 11, padding: "2px 7px", borderRadius: 3, marginRight: 4, cursor: "pointer" }}>Edit</button>
+                            <button onClick={() => deletePay(p.id, loan.id)} style={{ background: "transparent", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 11, padding: "2px 7px", borderRadius: 3, cursor: "pointer" }}>Del</button>
                           </td>
                         </tr>
                       );
@@ -3356,6 +3452,7 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
   const isMobile = useIsMobile();
   const [chartGranularity, setChartGranularity] = useState("monthly"); // weekly | monthly | quarterly | yearly
   const [activeMetrics, setActiveMetrics] = useState(["gpPct", "netPct", "debtToAsset"]);
+  const [activeAbsMetrics, setActiveAbsMetrics] = useState(["netRevenue", "grossProfitAbs"]);
 
   // ── Cumulative balance sheet figures (always all-time) ────────────────────
   const totalDebt = totalLoanPrincipalRemaining;
@@ -3424,10 +3521,13 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
           grossProfit: gp,
           operatingProfit: op,
           netProfit: net,
-          gpPct:   b.revenue > 0 ? +((gp / b.revenue) * 100).toFixed(1) : 0,
-          netPct:  b.revenue > 0 ? +((net / b.revenue) * 100).toFixed(1) : 0,
-          opPct:   b.revenue > 0 ? +((op / b.revenue) * 100).toFixed(1) : 0,
-          opexPct: b.revenue > 0 ? +((total_exp / b.revenue) * 100).toFixed(1) : 0,
+          gpPct:        b.revenue > 0 ? +((gp / b.revenue) * 100).toFixed(1) : 0,
+          netPct:       b.revenue > 0 ? +((net / b.revenue) * 100).toFixed(1) : 0,
+          opPct:        b.revenue > 0 ? +((op / b.revenue) * 100).toFixed(1) : 0,
+          opexPct:      b.revenue > 0 ? +((total_exp / b.revenue) * 100).toFixed(1) : 0,
+          // Absolute series for secondary Y-axis (in millions for readability)
+          netRevenue:   +(b.revenue / 1000000).toFixed(2),
+          grossProfitAbs: +(gp / 1000000).toFixed(2),
         };
       });
   };
@@ -3436,11 +3536,22 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
 
   // ── Metric config ─────────────────────────────────────────────────────────
   const METRIC_CONFIG = [
-    { key: "gpPct",    label: "Gross Profit %",    color: "#34d399", unit: "%", ideal: "> 30%",  good: v => v >= 30 },
-    { key: "opPct",    label: "Operating Margin %", color: "#60a5fa", unit: "%", ideal: "> 20%",  good: v => v >= 20 },
-    { key: "netPct",   label: "Net Margin %",       color: "#a78bfa", unit: "%", ideal: "> 15%",  good: v => v >= 15 },
-    { key: "opexPct",  label: "OpEx / Revenue %",   color: "#f59e0b", unit: "%", ideal: "< 50%",  good: v => v <= 50 },
+    { key: "gpPct",    label: "Gross Profit %",    color: "#34d399", unit: "%", ideal: "> 30%",  good: v => v >= 30,  yAxisId: "left" },
+    { key: "opPct",    label: "Operating Margin %", color: "#60a5fa", unit: "%", ideal: "> 20%",  good: v => v >= 20, yAxisId: "left" },
+    { key: "netPct",   label: "Net Margin %",       color: "#a78bfa", unit: "%", ideal: "> 15%",  good: v => v >= 15, yAxisId: "left" },
+    { key: "opexPct",  label: "OpEx / Revenue %",   color: "#f59e0b", unit: "%", ideal: "< 50%",  good: v => v <= 50, yAxisId: "left" },
   ];
+
+  const ABS_METRIC_CONFIG = [
+    { key: "netRevenue",     label: "Net Revenue (M)",    color: "#60a5fa", unit: "M" },
+    { key: "grossProfitAbs", label: "Gross Profit (M)",   color: "#34d399", unit: "M" },
+  ];
+
+  const toggleAbsMetric = (key) => {
+    setActiveAbsMetrics(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
   const RATIO_CARDS = [
     {
@@ -3558,11 +3669,15 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
     return (
       <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: "10px 14px", fontSize: 11 }}>
         <div style={{ color: "#c8a86b", fontWeight: 700, marginBottom: 6 }}>{label}</div>
-        {payload.map((p, i) => (
-          <div key={i} style={{ color: p.color, marginBottom: 2 }}>
-            {p.name}: <strong>{p.value?.toFixed(1)}{p.unit || "%"}</strong>
-          </div>
-        ))}
+        {payload.map((p, i) => {
+          const isAbs = ABS_METRIC_CONFIG.some(m => m.key === p.dataKey);
+          const displayVal = isAbs ? `${p.value?.toFixed(2)}M` : `${p.value?.toFixed(1)}%`;
+          return (
+            <div key={i} style={{ color: p.color, marginBottom: 2 }}>
+              {p.name}: <strong>{displayVal}</strong>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -3642,6 +3757,17 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
                     {m.label}
                   </button>
                 ))}
+                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, padding: "4px 2px" }}>|</span>
+                {ABS_METRIC_CONFIG.map((m) => (
+                  <button key={m.key} onClick={() => toggleAbsMetric(m.key)} style={{
+                    background: activeAbsMetrics.includes(m.key) ? m.color + "22" : "transparent",
+                    color: activeAbsMetrics.includes(m.key) ? m.color : "rgba(255,255,255,0.45)",
+                    border: `1px solid ${activeAbsMetrics.includes(m.key) ? m.color + "66" : "rgba(255,255,255,0.12)"}`,
+                    padding: "4px 10px", borderRadius: 3, fontSize: 11, cursor: "pointer", fontWeight: activeAbsMetrics.includes(m.key) ? 600 : 400,
+                  }}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -3651,45 +3777,81 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
               Not enough data to draw a trend yet — import more months to see trends.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2d3e" />
-                <XAxis dataKey="period" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
-                <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} unit="%" domain={["auto", "auto"]} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }} />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.25)" strokeDasharray="4 2" />
-                {METRIC_CONFIG.filter(m => activeMetrics.includes(m.key)).map((m) => (
-                  <Line
-                    key={m.key}
-                    type="monotone"
-                    dataKey={m.key}
-                    name={m.label}
-                    stroke={m.color}
-                    strokeWidth={2}
-                    dot={{ fill: m.color, r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <>
+              {activeAbsMetrics.length > 0 && (
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 4, textAlign: "right" }}>
+                  Left axis: % · Right axis: millions (Rp)
+                </div>
+              )}
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={timeSeries} margin={{ top: 5, right: activeAbsMetrics.length > 0 ? 50 : 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2d3e" />
+                  <XAxis dataKey="period" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
+                  <YAxis yAxisId="left" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} unit="%" domain={["auto", "auto"]} />
+                  {activeAbsMetrics.length > 0 && (
+                    <YAxis yAxisId="right" orientation="right" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} unit="M" domain={["auto", "auto"]} />
+                  )}
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }} />
+                  <ReferenceLine yAxisId="left" y={0} stroke="rgba(255,255,255,0.25)" strokeDasharray="4 2" />
+                  {METRIC_CONFIG.filter(m => activeMetrics.includes(m.key)).map((m) => (
+                    <Line
+                      key={m.key}
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey={m.key}
+                      name={m.label}
+                      stroke={m.color}
+                      strokeWidth={2}
+                      dot={{ fill: m.color, r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  ))}
+                  {ABS_METRIC_CONFIG.filter(m => activeAbsMetrics.includes(m.key)).map((m) => (
+                    <Line
+                      key={m.key}
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey={m.key}
+                      name={m.label}
+                      stroke={m.color}
+                      strokeWidth={2}
+                      strokeDasharray="5 3"
+                      dot={{ fill: m.color, r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </>
           )}
 
           {/* Revenue vs Cost bars */}
           <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 10 }}>Revenue vs Costs (Rp)</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 10 }}>Net Revenue vs Costs (Rp)</div>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={timeSeries} margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2d3e" />
                 <XAxis dataKey="period" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : `${(v/1000).toFixed(0)}K`} />
-                <Tooltip formatter={(v) => fmt(v)} contentStyle={{ background: "#0d1e30", border: "1px solid rgba(255,255,255,0.08)", fontSize: 11 }} />
+                <Tooltip
+                  formatter={(v, name, props) => {
+                    const row = props?.payload || {};
+                    if (name === "Net Revenue" && row.revenue > 0) {
+                      const gm = ((row.grossProfit / row.revenue) * 100).toFixed(1);
+                      return [`${fmt(v)} (Gross Margin: ${gm}%)`, name];
+                    }
+                    return [fmt(v), name];
+                  }}
+                  contentStyle={{ background: "#0d1e30", border: "1px solid rgba(255,255,255,0.08)", fontSize: 11 }}
+                />
                 <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }} />
-                <Bar dataKey="revenue"     name="Revenue"      fill="#34d399" radius={[3,3,0,0]} />
-                <Bar dataKey="cogs"        name="Trip Costs"   fill="#f87171" radius={[3,3,0,0]} />
-                <Bar dataKey="truckOps"    name="Truck Ops"    fill="#f59e0b" radius={[3,3,0,0]} />
-                <Bar dataKey="overhead"    name="Overhead"     fill="#ec4899" radius={[3,3,0,0]} />
-                <Bar dataKey="netProfit"   name="Net Profit"   fill="#a78bfa" radius={[3,3,0,0]} />
+                <Bar dataKey="revenue"      name="Net Revenue"  fill="#34d399" radius={[3,3,0,0]} />
+                <Bar dataKey="grossProfit"  name="Gross Profit" fill="#60a5fa" radius={[3,3,0,0]} />
+                <Bar dataKey="cogs"         name="Trip Costs"   fill="#f87171" radius={[3,3,0,0]} />
+                <Bar dataKey="truckOps"     name="Truck Ops"    fill="#f59e0b" radius={[3,3,0,0]} />
+                <Bar dataKey="overhead"     name="Overhead"     fill="#ec4899" radius={[3,3,0,0]} />
+                <Bar dataKey="netProfit"    name="Net Profit"   fill="#a78bfa" radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -3979,21 +4141,18 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
     </div>
   );
 
-  const ReportCard = ({ icon, title, description, color, buildFn, downloadFn }) => (
-    <div style={{ background: "#162030", border: `1px solid ${color}33`, borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ fontSize: 24 }}>{icon}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, color, fontWeight: 700, fontFamily: "'Montserrat', sans-serif" }}>{title}</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>{description}</div>
-        </div>
+  const ReportCard = ({ title, description, buildFn, downloadFn }) => (
+    <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div>
+        <div style={{ fontSize: 14, color: "#c8a86b", fontWeight: 700, fontFamily: "'Montserrat', sans-serif", marginBottom: 4 }}>{title}</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{description}</div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => openPreview(title, icon, color, buildFn, downloadFn)} style={{ flex: 1, background: "transparent", color, border: `1px solid ${color}66`, padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-          👁 Preview
+      <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+        <button onClick={() => openPreview(title, "", "#c8a86b", buildFn, downloadFn)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.12)", padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+          Preview
         </button>
-        <button onClick={downloadFn} style={{ flex: 1, background: color, color: "#fff", border: "none", padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-          📥 Download
+        <button onClick={downloadFn} style={{ flex: 1, background: "#c8a86b", color: "#0c1420", border: "none", padding: "8px 12px", borderRadius: 4, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+          Download
         </button>
       </div>
     </div>
@@ -4015,16 +4174,13 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
           {/* Modal header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 26 }}>{icon}</span>
-              <div>
-                <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color, fontWeight: 700 }}>{title}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Period: {periodLabel}</div>
-              </div>
+            <div>
+              <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#c8a86b", fontWeight: 700 }}>{title}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Period: {periodLabel}</div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={downloadFn} style={{ background: color, color: "#fff", border: "none", padding: "9px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                📥 Download Excel
+              <button onClick={downloadFn} style={{ background: "#c8a86b", color: "#0c1420", border: "none", padding: "9px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                Download Excel
               </button>
               <button onClick={() => setReportPreview(null)} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)", padding: "8px 14px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                 ✕ Close
@@ -4216,25 +4372,25 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
             <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Downloadable Reports</h3>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 4 }}>All reports use the date range above</div>
           </div>
-          <button onClick={downloadAll} style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12 }}>
-            📦 Download All as One File
+          <button onClick={downloadAll} style={{ background: "#c8a86b", color: "#0c1420", border: "none", padding: "10px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12 }}>
+            Download All as One File
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-          <ReportCard icon="P&L" title="Profit & Loss" description="GAAP-structured P&L with revenue, COGS, expenses, net profit" color="#34d399" buildFn={buildPL} downloadFn={() => downloadSingle("P&L", buildPL, "P&L")} />
-          <ReportCard icon="INC" title="Income Statement" description="Revenue detail from trips + summary" color="#0d1e30" buildFn={buildIncomeStatement} downloadFn={() => downloadSingle("Income_Statement", buildIncomeStatement, "Income Statement")} />
-          <ReportCard icon="CF" title="Cash Flow Statement" description="Operating, Investing & Financing activities" color="#c8a86b" buildFn={buildCashFlow} downloadFn={() => downloadSingle("Cash_Flow", buildCashFlow, "Cash Flow")} />
-          <ReportCard icon="BS" title="Balance Sheet" description="Assets, liabilities & equity snapshot" color="rgba(255,255,255,0.45)" buildFn={buildBalanceSheet} downloadFn={() => downloadSingle("Balance_Sheet", buildBalanceSheet, "Balance Sheet")} />
-          <ReportCard icon="TRP" title="Trip Log" description="Detailed trip-by-trip breakdown" color="#0d1e30" buildFn={buildTripLog} downloadFn={() => downloadSingle("Trip_Log", buildTripLog, "Trip Log")} />
-          <ReportCard icon="EXP" title="Expense Log" description="All truck & overhead expenses itemized" color="#f87171" buildFn={buildExpenseLog} downloadFn={() => downloadSingle("Expense_Log", buildExpenseLog, "Expense Log")} />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+          <ReportCard title="Profit & Loss" description="GAAP-structured P&L with revenue, COGS, expenses, net profit" buildFn={buildPL} downloadFn={() => downloadSingle("Profit_Loss", buildPL, "P&L")} />
+          <ReportCard title="Income Statement" description="Revenue detail from trips + summary income breakdown" buildFn={buildIncomeStatement} downloadFn={() => downloadSingle("Income_Statement", buildIncomeStatement, "Income Statement")} />
+          <ReportCard title="Cash Flow Statement" description="Operating, Investing & Financing activities" buildFn={buildCashFlow} downloadFn={() => downloadSingle("Cash_Flow", buildCashFlow, "Cash Flow")} />
+          <ReportCard title="Balance Sheet" description="Assets, liabilities & equity snapshot" buildFn={buildBalanceSheet} downloadFn={() => downloadSingle("Balance_Sheet", buildBalanceSheet, "Balance Sheet")} />
+          <ReportCard title="Trip Log" description="Detailed trip-by-trip breakdown with all costs and invoice amounts" buildFn={buildTripLog} downloadFn={() => downloadSingle("Trip_Log", buildTripLog, "Trip Log")} />
+          <ReportCard title="Expense Log" description="All truck & overhead expenses itemized by category" buildFn={buildExpenseLog} downloadFn={() => downloadSingle("Expense_Log", buildExpenseLog, "Expense Log")} />
         </div>
       </div>
 
       {/* Visual P&L Preview */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
         <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 24 }}>
-          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>📊 PROFIT & LOSS PREVIEW</h3>
+          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>PROFIT & LOSS PREVIEW</h3>
           <Section title="Revenue" rows={[["Freight Revenue", fTotalRevenue]]} total={fTotalRevenue} totalLabel="GROSS REVENUE" />
           <Section title="Cost of Services" rows={[["Driver Allowances", fTrips.reduce((s, t) => s + t.sangu, 0)], ["Misc Trip Costs", fTrips.reduce((s, t) => s + t.lainAmt, 0)]]} total={fTripCosts} totalLabel="TOTAL COGS" color="#f87171" />
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 15, fontWeight: 700, color: "#60a5fa", borderTop: "2px solid rgba(255,255,255,0.12)", marginTop: 8 }}>
@@ -4252,14 +4408,14 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 24 }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>💸 CASH FLOW PREVIEW</h3>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>CASH FLOW PREVIEW</h3>
             <Section title="Operating Activities" rows={[["Revenue collected", fTotalRevenue], ["Trip costs paid", -fTripCosts], ["Truck ops paid", -fTruckOpsExpenses], ["Overhead paid", -fOverheadExpenses]]} total={fTotalRevenue - fTripCosts - fTruckOpsExpenses - fOverheadExpenses} totalLabel="NET OPERATING" color="#60a5fa" />
             <Section title="Investing Activities" rows={[["Asset purchases", -fAssetsValue]]} total={-fAssetsValue} totalLabel="NET INVESTING" color="#c8a86b" />
             <Section title="Financing Activities" rows={[["Capital injection", fCapitalInjected], ["Loans received", fLoansReceived], ["Loan repayments", -fLoanPaymentsMade]]} total={fCapitalInjected + fLoansReceived - fLoanPaymentsMade} totalLabel="NET FINANCING" color="#ec4899" />
           </div>
 
           <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 24 }}>
-            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>⚖️ BALANCE SHEET SNAPSHOT</h3>
+            <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 16, color: "#c8a86b", letterSpacing: 0.3, fontWeight: 700, marginBottom: 18 }}>BALANCE SHEET SNAPSHOT</h3>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 10 }}>Cumulative position (not period-filtered)</div>
             <Section title="Assets" rows={[["Cash", kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)], ["Trucks & Equipment", totalAssetsValue]]} total={totalAssetsValue + kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)} totalLabel="TOTAL ASSETS" color="#34d399" />
             <Section title="Liabilities" rows={[["Loans Outstanding", totalLoanPrincipalRemaining]]} total={totalLoanPrincipalRemaining} totalLabel="TOTAL LIABILITIES" color="#f87171" />
