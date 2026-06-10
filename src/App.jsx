@@ -736,9 +736,9 @@ function KinKinApp() {
           {isMobile ? (
             <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#e2e8f0", fontWeight: 800, letterSpacing: 0.5 }}>Kin Kin Trukindo</div>
           ) : (
-            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#e2e8f0", letterSpacing: 1, lineHeight: 1.1, fontWeight: 800 }}>
-              <div>Kin Kin Trukindo, Ltd.</div>
-              <div style={{ fontSize: 10, color: "#c8a86b", letterSpacing: 1.5, fontFamily: "'Inter', sans-serif", fontWeight: 500, marginTop: 2 }}>FREIGHT & LOGISTICS</div>
+            <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#e2e8f0", letterSpacing: 0.5, lineHeight: 1.1, fontWeight: 800, whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 14 }}>Kin Kin Trukindo, Ltd.</div>
+              <div style={{ fontSize: 9, color: "#c8a86b", letterSpacing: 1.5, fontFamily: "'Inter', sans-serif", fontWeight: 500, marginTop: 2 }}>FREIGHT & LOGISTICS</div>
             </div>
           )}
           {/* Save status indicator */}
