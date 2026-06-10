@@ -226,7 +226,7 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         id: genId(),
         date: t.date,
         category: "Salary",
-        description: `Sangu${t.destination ? " — " + t.destination : ""}`,
+        description: `Driver Allowance${t.destination ? " — " + t.destination : ""}`,
         amount: t.sangu,
         expenseType: "driver",
         truck: t.nopol,
@@ -241,7 +241,7 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         id: genId(),
         date: t.date,
         category: categorizeExpense(item.label || "Other"),
-        description: item.label || "Lain-lain",
+        description: item.label || "Misc. Expense",
         amount: item.amount,
         expenseType: "driver",
         truck: t.nopol,
@@ -1569,7 +1569,7 @@ function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DESTINATION *</label><input placeholder="e.g. Customer warehouse name" value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>PLATE NUMBER</label><input placeholder="B9674UEJ" value={form.nopol} onChange={(e) => setForm({ ...form, nopol: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>CONTAINER NO</label><input placeholder="TEGU2917447" value={form.contNo} onChange={(e) => setForm({ ...form, contNo: e.target.value })} /></div>
-          <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DRIVER ALLOWANCE (DRIVER ALLOWANCE)</label><input type="number" placeholder="350000" value={form.sangu} onChange={(e) => setForm({ ...form, sangu: e.target.value })} /></div>
+          <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DRIVER ALLOWANCE (Rp)</label><input type="number" placeholder="350000" value={form.sangu} onChange={(e) => setForm({ ...form, sangu: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>MISC CHARGE LABEL</label><input placeholder="Port fee, toll gate, etc." value={form.lainLabel} onChange={(e) => setForm({ ...form, lainLabel: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>MISC AMOUNT</label><input type="number" placeholder="5000" value={form.lainAmt} onChange={(e) => setForm({ ...form, lainAmt: e.target.value })} /></div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>INVOICE AMOUNT *</label><input type="number" placeholder="1050000" value={form.jual} onChange={(e) => setForm({ ...form, jual: e.target.value })} /></div>
@@ -2198,8 +2198,8 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
           <div>
             <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>TYPE</label>
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              <option value="in">💚 Cash In</option>
-              <option value="out">🔴 Cash Out</option>
+              <option value="in">Cash In</option>
+              <option value="out">Cash Out</option>
             </select>
           </div>
           <div><label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>DESCRIPTION *</label><input placeholder="KAS IN / EXPENSE..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -2381,7 +2381,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>NAME *</label>
-                  <input placeholder="e.g. Martha" value={newHolderForm.name} onChange={(e) => setNewHolderForm({ ...newHolderForm, name: e.target.value })} style={inputStyle} />
+                  <input placeholder="Holder name" value={newHolderForm.name} onChange={(e) => setNewHolderForm({ ...newHolderForm, name: e.target.value })} style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, color: "#555", display: "block", marginBottom: 4 }}>NOTES</label>
@@ -2667,7 +2667,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                   {driverExp.length > 0 && (
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#1B3F60", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid #1B3F6022" }}>
-                        Trip Driver Costs — Sangu &amp; Miscellaneous
+                        Trip Driver Costs — Allowances &amp; Misc
                       </div>
                       <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                         <thead>
@@ -2701,7 +2701,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                   {otherExp.length > 0 && (
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#7C5A1E", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid #A3915922" }}>
-                        Pengeluaran Tambahan — Operational &amp; Misc Expenses
+                        Additional Expenses — Operational &amp; Misc
                       </div>
                       <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                         <thead>
@@ -4314,7 +4314,7 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
   const inputStyle = { width: "100%", padding: "8px 10px", border: "1px solid #D0D0CC", borderRadius: 5, fontSize: 13, outline: "none", boxSizing: "border-box", marginBottom: 10 };
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
       {/* Section A — Change Password */}
       <div style={card}>
         <h3 style={sectionTitle}>Change Password</h3>
@@ -4377,7 +4377,7 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
       <div style={card}>
         <h3 style={sectionTitle}>Financial Audit</h3>
         <button onClick={runAudit} disabled={auditing} style={{ background: "#1B3F60", color: "#fff", border: "none", padding: "9px 20px", borderRadius: 5, fontSize: 13, fontWeight: 700, cursor: auditing ? "not-allowed" : "pointer", opacity: auditing ? 0.7 : 1, marginBottom: auditResults ? 16 : 0 }}>
-          {auditing ? "⟳ Running..." : "Run Audit"}
+          {auditing ? "Running..." : "Run Audit"}
         </button>
         {auditResults && (
           <>
@@ -4389,21 +4389,20 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {auditResults.map((r, i) => {
                 const statusColor = r.status === "pass" ? "#10b981" : r.status === "warn" ? "#f59e0b" : "#ef4444";
-                const icon = r.status === "pass" ? "✅" : r.status === "warn" ? "⚠️" : "🔴";
+                const statusLabel = r.status === "pass" ? "PASS" : r.status === "warn" ? "WARN" : "FAIL";
                 const detailArr = Array.isArray(r.detail) ? r.detail : null;
                 return (
-                  <div key={i} style={{ border: `1px solid ${statusColor}33`, borderRadius: 6, padding: "10px 14px", background: statusColor + "08" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: detailArr ? 6 : 0 }}>
-                      <span>{icon}</span>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: statusColor, textTransform: "uppercase", letterSpacing: 0.5 }}>{r.status}</span>
-                      <span style={{ fontSize: 13, color: "#2d2d2d" }}>{r.label}</span>
+                  <div key={i} style={{ border: `1px solid ${statusColor}44`, borderRadius: 6, padding: "12px 16px", background: statusColor + "08" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: detailArr ? 8 : 2 }}>
+                      <span style={{ background: statusColor, color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "2px 8px", borderRadius: 3, minWidth: 36, textAlign: "center" }}>{statusLabel}</span>
+                      <span style={{ fontSize: 13, color: "#2d2d2d", fontWeight: 600 }}>{r.label}</span>
                     </div>
                     {detailArr ? (
-                      <ul style={{ margin: "4px 0 0 24px", padding: 0, fontSize: 12, color: "#555" }}>
-                        {detailArr.map((d, j) => <li key={j} style={{ marginBottom: 2 }}>{d}</li>)}
+                      <ul style={{ margin: "4px 0 0 46px", padding: 0, fontSize: 12, color: "#555", lineHeight: 1.6 }}>
+                        {detailArr.map((d, j) => <li key={j}>{d}</li>)}
                       </ul>
                     ) : (
-                      <div style={{ fontSize: 12, color: "#555", marginLeft: 24 }}>{r.detail}</div>
+                      <div style={{ fontSize: 12, color: "#555", marginLeft: 46 }}>{r.detail}</div>
                     )}
                   </div>
                 );
