@@ -4592,13 +4592,22 @@ function LoginGate({ onSuccess }) {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0c1420", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
-      <form onSubmit={submit} style={{ width: "100%", maxWidth: "360px", display: "flex", flexDirection: "column", alignItems: "center", background: "#162030", borderRadius: 12, padding: "40px 32px", boxShadow: "0 4px 24px rgba(27,63,96,0.10)", border: "1px solid rgba(255,255,255,0.08)" }}>
-        <img src="/logo-transparent.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 120, width: "auto", objectFit: "contain", marginBottom: 24, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }} />
-        <h1 style={{ margin: 0, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#e2e8f0", textAlign: "center" }}>
-          Kin Kin Trukindo, Ltd.
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", alignItems: "center", background: "#111e2e", borderRadius: 16, padding: "48px 36px 40px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,168,107,0.15)", border: "none" }}>
+        {/* Logo on white card */}
+        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", marginBottom: 32, boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
+          <img src="/logo-light.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 88, width: "auto", objectFit: "contain", display: "block" }} />
+        </div>
+        {/* Brand name */}
+        <h1 style={{ margin: "0 0 4px 0", fontFamily: "'Montserrat', sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: 1, color: "#e2e8f0", textAlign: "center" }}>
+          Kin Kin Trukindo
         </h1>
-        <p style={{ margin: "12px 0 28px 0", color: "rgba(255,255,255,0.45)", fontSize: 13, letterSpacing: 0.5, textAlign: "center" }}>
-          Enter Authorization Code
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#c8a86b", letterSpacing: 3, textTransform: "uppercase", marginBottom: 32 }}>
+          Freight &amp; Logistics
+        </div>
+        {/* Divider */}
+        <div style={{ width: "100%", height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 24 }} />
+        <p style={{ margin: "0 0 14px 0", color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", textAlign: "center" }}>
+          Authorization Required
         </p>
         <input
           type="password"
@@ -4607,38 +4616,41 @@ function LoginGate({ onSuccess }) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           autoFocus
+          placeholder="Enter code"
           style={{
             width: "100%",
-            padding: "12px 14px",
-            background: "#1e2d3e",
-            border: `1px solid ${focused ? "#c8a86b" : "rgba(255,255,255,0.12)"}`,
-            borderRadius: 6,
+            padding: "13px 16px",
+            background: "#0c1420",
+            border: `1.5px solid ${focused ? "#c8a86b" : "rgba(255,255,255,0.1)"}`,
+            borderRadius: 8,
             color: "#e2e8f0",
-            fontSize: 15,
+            fontSize: 16,
             textAlign: "center",
-            letterSpacing: 2,
+            letterSpacing: 4,
             outline: "none",
             boxSizing: "border-box",
             transition: "border-color 0.15s ease",
+            fontFamily: "monospace",
           }}
         />
-        {err && <div style={{ color: "#f87171", fontSize: 13, marginTop: 10, textAlign: "center" }}>{err}</div>}
+        {err && <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, textAlign: "center", fontWeight: 600 }}>{err}</div>}
         <button
           type="submit"
           style={{
             width: "100%",
-            marginTop: 20,
-            padding: "12px",
-            background: "#c8a86b",
-            color: "#0d1e30",
+            marginTop: 16,
+            padding: "13px",
+            background: "linear-gradient(135deg, #c8a86b 0%, #b8945a 100%)",
+            color: "#0c1420",
             border: "none",
-            borderRadius: 6,
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 1.5,
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 800,
+            letterSpacing: 2,
             fontFamily: "'Montserrat', sans-serif",
             cursor: "pointer",
             textTransform: "uppercase",
+            boxShadow: "0 4px 16px rgba(200,168,107,0.3)",
           }}
         >
           Authorize
