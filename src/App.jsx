@@ -361,6 +361,45 @@ const CAT_COLOR = {
 const TRUCK_CATEGORIES = ["Fuel", "Toll", "Repair", "Spare Parts", "Garage", "Other"];
 const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Insurance", "Marketing", "Other"];
 
+// ── Invoice / multi-tab helpers ────────────────────────────────────────────────
+const ROMAN_MONTHS = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+const INDO_MONTH_ABBR = { JAN:"01",FEB:"02",MAR:"03",APR:"04",MEI:"05",JUN:"06",JUNI:"06",JUL:"07",AGS:"08",AGU:"08",SEP:"09",OKT:"10",NOV:"11",DES:"12" };
+const INDO_MONTH_NAMES = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI","JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"];
+
+function parseSheetMonth(name) {
+  const m = String(name).trim().toUpperCase().match(/^([A-Z]+)\s+(\d{4})$/);
+  if (!m) return null;
+  const mo = INDO_MONTH_ABBR[m[1]];
+  return mo ? `${m[2]}-${mo}` : null;
+}
+
+function isInvoiceSheet(name) {
+  return /^KK\d+$/i.test(String(name).trim());
+}
+
+function indoDate(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-");
+  return `${parseInt(d)} ${INDO_MONTH_NAMES[parseInt(m) - 1]} ${y}`;
+}
+
+function terbilang(n) {
+  if (!n || n === 0) return "# NOL RUPIAH #";
+  const sat = ["","SATU","DUA","TIGA","EMPAT","LIMA","ENAM","TUJUH","DELAPAN","SEMBILAN","SEPULUH","SEBELAS"];
+  function say(x) {
+    if (x < 12) return sat[x];
+    if (x < 20) return sat[x - 10] + " BELAS";
+    if (x < 100) return sat[Math.floor(x/10)] + " PULUH" + (x%10 ? " " + sat[x%10] : "");
+    if (x < 200) return "SERATUS" + (x%100 ? " " + say(x%100) : "");
+    if (x < 1000) return sat[Math.floor(x/100)] + " RATUS" + (x%100 ? " " + say(x%100) : "");
+    if (x < 2000) return "SERIBU" + (x%1000 ? " " + say(x%1000) : "");
+    if (x < 1000000) return say(Math.floor(x/1000)) + " RIBU" + (x%1000 ? " " + say(x%1000) : "");
+    if (x < 1000000000) return say(Math.floor(x/1000000)) + " JUTA" + (x%1000000 ? " " + say(x%1000000) : "");
+    return say(Math.floor(x/1000000000)) + " MILYAR" + (x%1000000000 ? " " + say(x%1000000000) : "");
+  }
+  return "# " + say(Math.round(n)) + " RUPIAH #";
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -370,6 +409,7 @@ const TABS = [
   { key: "expenses",  label: "Expenses",        short: "Costs" },
   { key: "kas",       label: "Cash",            short: "Cash" },
   { key: "petty",     label: "Petty Cash",      short: "Petty" },
+  { key: "invoices",  label: "Invoices",        short: "Inv." },
   { key: "fleet",     label: "Fleet",           short: "Fleet" },
   { key: "reports",   label: "Reports",         short: "Report" },
   { key: "settings",  label: "Settings",        short: "Opts" },
@@ -386,6 +426,7 @@ function KinKinApp() {
   const [assets, setAssets] = useState([]);
   const [loanPayments, setLoanPayments] = useState([]);
   const [importLogs, setImportLogs] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [pettyHolders, setPettyHolders] = useState([]);
   const [pettyTopups, setPettyTopups] = useState([]);
   const [uploadModal, setUploadModal] = useState(null); // { file, fileName, monthYear }
@@ -417,6 +458,7 @@ function KinKinApp() {
         setAssets(saved.assets ?? []);
         setLoanPayments(saved.loanPayments ?? []);
         setImportLogs(saved.importLogs ?? []);
+        setInvoices(saved.invoices ?? []);
         setPettyHolders(saved.pettyHolders ?? []);
         setPettyTopups(saved.pettyTopups ?? []);
         setActivityLog(saved.activityLog ?? []);
@@ -464,7 +506,7 @@ function KinKinApp() {
   useEffect(() => {
     if (_skipSave.current) return;
     setSaveStatus("saving");
-    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword })
+    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, invoices, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword })
       .then(() => setSaveStatus("saved"))
       .catch(() => setSaveStatus("error"));
   }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword]);
@@ -479,55 +521,41 @@ function KinKinApp() {
     return `ALT:${t.date}|${np}|${ds}|${t.jual}`;
   };
 
-  const handleGlobalImport = (e) => {
+  const handleGlobalImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    e.target.value = "";
     const now = new Date();
     const defaultMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    setUploadModal({ file, fileName: file.name, monthYear: defaultMonthYear });
-    e.target.value = "";
+    const fileName = file.name.toLowerCase();
+
+    if (!fileName.endsWith(".csv")) {
+      try {
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: "array" });
+        const monthlySheets = wb.SheetNames
+          .filter(n => !isInvoiceSheet(n))
+          .map(n => ({ sheetName: n, monthYear: parseSheetMonth(n), selected: true }))
+          .filter(s => s.monthYear !== null);
+        if (monthlySheets.length > 1) {
+          setUploadModal({ file, fileName: file.name, monthYear: defaultMonthYear, isMultiTab: true, detectedSheets: monthlySheets });
+          return;
+        }
+      } catch { /* fall through to normal flow */ }
+    }
+    setUploadModal({ file, fileName: file.name, monthYear: defaultMonthYear, isMultiTab: false });
   };
 
   // Step 2: User confirms month/year — parse and preview
   const proceedWithUpload = async () => {
     if (!uploadModal) return;
-    const { file, monthYear } = uploadModal;
+    const { file, monthYear, isMultiTab, detectedSheets } = uploadModal;
     setImporting(true);
     try {
       const data = await file.arrayBuffer();
       const fileName = file.name.toLowerCase();
-      let allRows = [];
 
-      if (fileName.endsWith(".csv")) {
-        const text = new TextDecoder().decode(data);
-        allRows = parseCSV(text);
-      } else {
-        const wb = XLSX.read(data, { type: "array" });
-        for (const sheetName of wb.SheetNames) {
-          const ws = wb.Sheets[sheetName];
-          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-          if (rows.length > 0) {
-            allRows = rows;
-            break;
-          }
-        }
-      }
-
-      const monthDate = monthYear + "-01";
-      const result = parseMonthlySheet(allRows, monthDate);
-
-      if (result.trips.length === 0 && result.expenses.length === 0) {
-        showToast("No trips or expenses found in this file", "error");
-        setImporting(false);
-        setUploadModal(null);
-        return;
-      }
-
-      for (const t of result.trips) {
-        if (!t.date) t.date = monthDate;
-      }
-
-      // Mark duplicates at preview time so the user can see what's new vs already imported
+      // ── Build the set of existing fingerprints for dupe detection ─────────
       const previewExistingByFp = new Map(trips.map((t) => [fingerprint(t), t]));
       const previewExpFp = new Set();
       for (const e of expenses.filter((e) => e._fpKey)) {
@@ -536,15 +564,59 @@ function KinKinApp() {
         if (parts.length === 3 && e.truck) previewExpFp.add(`${parts[0]}|${e.truck}|${parts[1]}|${parts[2]}`);
       }
 
-      setUploadModal({
-        ...uploadModal,
-        previewReady: true,
-        parsed: {
-          ...result,
-          trips: result.trips.map((t) => ({ ...t, _isDuplicate: previewExistingByFp.has(fingerprint(t)) })),
-          expenses: result.expenses.map((e) => ({ ...e, usePettyCash: true, _isDuplicate: e._fpKey ? previewExpFp.has(e._fpKey) : false })),
-        },
+      const markDupes = (allTrips, allExpenses) => ({
+        trips: allTrips.map((t) => ({ ...t, _isDuplicate: previewExistingByFp.has(fingerprint(t)) })),
+        expenses: allExpenses.map((e) => ({ ...e, usePettyCash: true, _isDuplicate: e._fpKey ? previewExpFp.has(e._fpKey) : false })),
       });
+
+      if (isMultiTab && detectedSheets) {
+        // ── Multi-tab xlsx: parse every selected sheet ─────────────────────
+        const wb = XLSX.read(data, { type: "array" });
+        const selected = detectedSheets.filter(s => s.selected);
+        let allTrips = [], allExpenses = [], plates = new Set();
+        for (const sheet of selected) {
+          const ws = wb.Sheets[sheet.sheetName];
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+          const monthDate = sheet.monthYear + "-01";
+          const result = parseMonthlySheet(rows, monthDate);
+          for (const t of result.trips) { if (!t.date) t.date = monthDate; }
+          allTrips = allTrips.concat(result.trips.map(t => ({ ...t, _sourceSheet: sheet.sheetName })));
+          allExpenses = allExpenses.concat(result.expenses.map(e => ({ ...e, _sourceSheet: sheet.sheetName })));
+          if (result.truckPlate) plates.add(result.truckPlate);
+        }
+        if (allTrips.length === 0 && allExpenses.length === 0) {
+          showToast("No trips or expenses found in selected sheets", "error");
+          setImporting(false);
+          return;
+        }
+        const { trips: markedTrips, expenses: markedExpenses } = markDupes(allTrips, allExpenses);
+        setUploadModal({ ...uploadModal, previewReady: true, parsed: { trips: markedTrips, expenses: markedExpenses, truckPlate: [...plates].join(", ") } });
+      } else {
+        // ── Single sheet (CSV or single-tab xlsx) — existing flow ─────────
+        let allRows = [];
+        if (fileName.endsWith(".csv")) {
+          const text = new TextDecoder().decode(data);
+          allRows = parseCSV(text);
+        } else {
+          const wb = XLSX.read(data, { type: "array" });
+          for (const sheetName of wb.SheetNames) {
+            const ws = wb.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+            if (rows.length > 0) { allRows = rows; break; }
+          }
+        }
+        const monthDate = monthYear + "-01";
+        const result = parseMonthlySheet(allRows, monthDate);
+        if (result.trips.length === 0 && result.expenses.length === 0) {
+          showToast("No trips or expenses found in this file", "error");
+          setImporting(false);
+          setUploadModal(null);
+          return;
+        }
+        for (const t of result.trips) { if (!t.date) t.date = monthDate; }
+        const { trips: markedTrips, expenses: markedExpenses } = markDupes(result.trips, result.expenses);
+        setUploadModal({ ...uploadModal, previewReady: true, parsed: { ...result, trips: markedTrips, expenses: markedExpenses } });
+      }
     } catch (err) {
       showToast("Import failed: " + err.message, "error");
     }
@@ -635,6 +707,27 @@ function KinKinApp() {
     const msg = `✅ Imported: ${parts.join(" + ")}${skips.length ? ` (${skips.join(", ")})` : ""}`;
     showToast(msg);
     setUploadModal(null);
+
+    // ── Invoice cross-check: group imported trips by invNo, compare to invoices ──
+    if (invoices.length > 0 && newTrips.length > 0) {
+      const byInvNo = {};
+      for (const t of newTrips) {
+        const inv = (t.invNo || "").trim();
+        if (!inv) continue;
+        byInvNo[inv] = (byInvNo[inv] || 0) + (t.jual || 0);
+      }
+      const mismatches = [];
+      for (const [invNo, sheetTotal] of Object.entries(byInvNo)) {
+        const inv = invoices.find(i => i.invoiceNo === invNo);
+        if (!inv) continue;
+        if (Math.abs(inv.total - sheetTotal) > 1000) {
+          mismatches.push(`${invNo}: invoice ${fmt(inv.total)} vs sheet ${fmt(sheetTotal)}`);
+        }
+      }
+      if (mismatches.length > 0) {
+        setTimeout(() => showToast(`Revenue mismatch — ${mismatches.join(" | ")}`, "error"), 500);
+      }
+    }
   };
 
   const cancelGlobalImport = () => {
@@ -674,7 +767,7 @@ function KinKinApp() {
 
   const resetAll = () => {
     setTrips([]); setExpenses([]); setKas([]); setCapital([]); setLoans([]);
-    setAssets([]); setLoanPayments([]); setImportLogs([]); setPettyTopups([]);
+    setAssets([]); setLoanPayments([]); setImportLogs([]); setInvoices([]); setPettyTopups([]);
     setActivityLog([]);
   };
 
@@ -828,28 +921,52 @@ function KinKinApp() {
 
             {!uploadModal.previewReady ? (
               <>
-                {/* Step 1: Confirm month/year */}
-                <div style={{ background: "#0c1420", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: 20, marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Which month is this report for?</div>
-                  <input
-                    type="month"
-                    value={uploadModal.monthYear}
-                    onChange={(e) => setUploadModal({ ...uploadModal, monthYear: e.target.value })}
-                    style={{ fontSize: 15, padding: "10px 14px" }}
-                  />
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 10, lineHeight: 1.6 }}>
-                    The system will use this period to:<br />
-                    • Fill in dates for entries that don&apos;t have one<br />
-                    • Date the additional expenses (PENGELUARAN TAMBAHAN)<br />
-                    • Label this import in the log
+                {/* Step 1a: Multi-tab xlsx — show detected sheet checklist */}
+                {uploadModal.isMultiTab ? (
+                  <div style={{ background: "#0c1420", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: 20, marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Found {uploadModal.detectedSheets.length} monthly sheet{uploadModal.detectedSheets.length > 1 ? "s" : ""} — select which to import
+                    </div>
+                    {uploadModal.detectedSheets.map((s, i) => (
+                      <label key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={s.selected}
+                          onChange={(e) => setUploadModal(prev => ({
+                            ...prev,
+                            detectedSheets: prev.detectedSheets.map((ds, di) => di === i ? { ...ds, selected: e.target.checked } : ds)
+                          }))}
+                          style={{ width: "auto", accentColor: "#c8a86b", cursor: "pointer" }}
+                        />
+                        <span style={{ color: "#c8a86b", fontWeight: 600, fontSize: 13 }}>{s.sheetName}</span>
+                        <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>{s.monthYear}</span>
+                      </label>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  /* Step 1b: Single sheet — confirm month/year */
+                  <div style={{ background: "#0c1420", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: 20, marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Which month is this report for?</div>
+                    <input
+                      type="month"
+                      value={uploadModal.monthYear}
+                      onChange={(e) => setUploadModal({ ...uploadModal, monthYear: e.target.value })}
+                      style={{ fontSize: 15, padding: "10px 14px" }}
+                    />
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 10, lineHeight: 1.6 }}>
+                      The system will use this period to:<br />
+                      • Fill in dates for entries that don&apos;t have one<br />
+                      • Date the additional expenses (PENGELUARAN TAMBAHAN)<br />
+                      • Label this import in the log
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                   <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                     Cancel
                   </button>
-                  <button onClick={proceedWithUpload} disabled={importing} style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: importing ? 0.5 : 1 }}>
+                  <button onClick={proceedWithUpload} disabled={importing || (uploadModal.isMultiTab && !uploadModal.detectedSheets?.some(s => s.selected))} style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (importing || (uploadModal.isMultiTab && !uploadModal.detectedSheets?.some(s => s.selected))) ? 0.5 : 1 }}>
                     {importing ? "Parsing..." : "Parse & Preview"}
                   </button>
                 </div>
@@ -903,6 +1020,7 @@ function KinKinApp() {
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ color: "rgba(255,255,255,0.7)", background: "#1e2d3e", position: "sticky", top: 0 }}>
+                            {uploadModal.isMultiTab && <th style={{ textAlign: "left", padding: "6px 8px" }}>SHEET</th>}
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>DATE</th>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>INV NO</th>
                             <th style={{ textAlign: "left", padding: "6px 8px" }}>DESTINATION</th>
@@ -930,6 +1048,7 @@ function KinKinApp() {
                             const rowStyle = t._isDuplicate ? { borderBottom: "1px solid rgba(255,255,255,0.08)", opacity: 0.4, background: "#1e2d3e" } : { borderBottom: "1px solid rgba(255,255,255,0.08)" };
                             return (
                               <tr key={i} style={rowStyle}>
+                                {uploadModal.isMultiTab && <td style={{ padding: "4px 6px", color: "#c8a86b", fontSize: 10, whiteSpace: "nowrap" }}>{t._sourceSheet || ""}</td>}
                                 <td style={{ padding: "4px 4px" }}><input type="date" value={t.date || ""} onChange={(e) => updateTrip("date", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
                                 <td style={{ padding: "4px 4px" }}><input value={t.invNo || ""} placeholder="Inv #" onChange={(e) => updateTrip("invNo", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
                                 <td style={{ padding: "4px 4px" }}><input value={t.destination || ""} onChange={(e) => updateTrip("destination", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
@@ -1103,11 +1222,12 @@ function KinKinApp() {
       )}
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
-        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} />}
+        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} importLogs={importLogs} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} setExpenses={setExpenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "invoices" && <Invoices invoices={invoices} setInvoices={setInvoices} trips={trips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
         {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={setAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
@@ -1195,8 +1315,123 @@ function KinKinApp() {
   );
 }
 
+// ── CFO BRIEFING ──────────────────────────────────────────────────────────────
+function CFOBriefing({ trips, expenses, kas, loans, loanPayments, importLogs }) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  const thisMonth = today().slice(0, 7);
+  const monthTrips = trips.filter(t => t.date && t.date.startsWith(thisMonth));
+  const monthExpenses = expenses.filter(e => e.date && e.date.startsWith(thisMonth) && e.expenseType !== "driver");
+
+  const monthRevenue = monthTrips.reduce((s, t) => s + (t.jual || 0), 0);
+  const monthGross = monthTrips.reduce((s, t) => s + (t.profit || 0), 0);
+  const monthNet = monthGross - monthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const netMarginPct = monthRevenue > 0 ? (monthNet / monthRevenue) * 100 : null;
+
+  const monthlyDebt = loans.reduce((s, l) => s + (l.monthlyPayment || 0), 0);
+  const dscr = monthlyDebt > 0 ? monthNet / monthlyDebt : null;
+
+  // Cash runway: kasBalance / avg monthly expenses over last 3 months
+  const kasBalance = kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0);
+  const months3 = [0, 1, 2].map(offset => {
+    const d = new Date(thisMonth + "-01");
+    d.setMonth(d.getMonth() - offset);
+    return d.toISOString().slice(0, 7);
+  });
+  const burn3 = months3.map(m => expenses.filter(e => e.date && e.date.startsWith(m) && e.expenseType !== "driver").reduce((s, e) => s + (e.amount || 0), 0));
+  const avgBurn = burn3.reduce((s, v) => s + v, 0) / 3;
+  const runwayMonths = avgBurn > 0 ? kasBalance / avgBurn : null;
+
+  // Stale data check
+  const lastImportDate = importLogs.length > 0 ? importLogs.reduce((latest, l) => l.importedAt > latest ? l.importedAt : latest, importLogs[0].importedAt) : null;
+  const daysSinceImport = lastImportDate ? Math.floor((new Date() - new Date(lastImportDate)) / 86400000) : null;
+
+  // Truck utilization
+  const allTrucks = [...new Set(trips.map(t => t.nopol).filter(Boolean))];
+  const idleTrucks = allTrucks.filter(n => !monthTrips.some(t => t.nopol === n));
+
+  // Build alert list
+  const alerts = [];
+  if (dscr !== null) {
+    if (dscr < 1.0) alerts.push({ sev: "critical", label: "DSCR", msg: `${dscr.toFixed(2)}× — below 1.0, debt not covered by this month's profit` });
+    else if (dscr < 1.5) alerts.push({ sev: "watch", label: "DSCR", msg: `${dscr.toFixed(2)}× — below 1.5, thin coverage margin` });
+  }
+  if (runwayMonths !== null) {
+    if (runwayMonths < 3) alerts.push({ sev: "critical", label: "Cash", msg: `${runwayMonths.toFixed(1)} mo runway — critically low` });
+    else if (runwayMonths < 6) alerts.push({ sev: "watch", label: "Cash", msg: `${runwayMonths.toFixed(1)} mo runway — below 6-month buffer` });
+  }
+  if (netMarginPct !== null) {
+    if (netMarginPct < 0) alerts.push({ sev: "critical", label: "Margin", msg: `${netMarginPct.toFixed(1)}% — negative net margin this month` });
+    else if (netMarginPct < 15) alerts.push({ sev: "watch", label: "Margin", msg: `${netMarginPct.toFixed(1)}% — below 15% target` });
+  }
+  if (idleTrucks.length > 0) alerts.push({ sev: "watch", label: "Fleet", msg: `${idleTrucks.join(", ")} — no trips recorded this month` });
+  if (daysSinceImport !== null && daysSinceImport > 10) alerts.push({ sev: "watch", label: "Data", msg: `Last import was ${daysSinceImport} days ago — data may be stale` });
+
+  const critCount = alerts.filter(a => a.sev === "critical").length;
+  const watchCount = alerts.filter(a => a.sev === "watch").length;
+
+  const sevColor = critCount > 0 ? "#ef4444" : watchCount > 0 ? "#f59e0b" : "#10b981";
+
+  const MetricChip = ({ label, value, sev }) => {
+    const color = sev === "critical" ? "#ef4444" : sev === "watch" ? "#f59e0b" : sev === "ok" ? "#10b981" : "#6b7280";
+    return (
+      <div style={{ background: "#0c1420", border: `1px solid ${color}33`, borderRadius: 6, padding: "10px 14px", minWidth: 110, flex: 1 }}>
+        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "'Montserrat', sans-serif" }}>{value}</div>
+      </div>
+    );
+  };
+
+  const dscrSev = dscr === null ? "na" : dscr < 1.0 ? "critical" : dscr < 1.5 ? "watch" : "ok";
+  const runwaySev = runwayMonths === null ? "na" : runwayMonths < 3 ? "critical" : runwayMonths < 6 ? "watch" : "ok";
+  const marginSev = netMarginPct === null ? "na" : netMarginPct < 0 ? "critical" : netMarginPct < 15 ? "watch" : "ok";
+  const fleetSev = allTrucks.length === 0 ? "na" : idleTrucks.length > 0 ? "watch" : "ok";
+
+  if (trips.length === 0) return null;
+
+  return (
+    <div style={{ background: "#162030", border: `1px solid ${sevColor}44`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: expanded ? 14 : 0, cursor: "pointer" }} onClick={() => setExpanded(e => !e)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 1, color: sevColor, textTransform: "uppercase" }}>CFO Briefing</span>
+          {critCount > 0 && <span style={{ background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 7px" }}>{critCount} Critical</span>}
+          {watchCount > 0 && <span style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b44", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 7px" }}>{watchCount} Watch</span>}
+          {critCount === 0 && watchCount === 0 && <span style={{ background: "#10b98122", color: "#10b981", border: "1px solid #10b98144", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 7px" }}>All Clear</span>}
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{thisMonth}</span>
+        </div>
+        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{expanded ? "▲" : "▼"}</span>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <MetricChip label="DSCR" value={dscr !== null ? `${dscr.toFixed(2)}×` : "N/A"} sev={dscrSev} />
+        <MetricChip label="Cash Runway" value={runwayMonths !== null ? `${runwayMonths.toFixed(1)} mo` : "N/A"} sev={runwaySev} />
+        <MetricChip label="Net Margin" value={netMarginPct !== null ? `${netMarginPct.toFixed(1)}%` : "N/A"} sev={marginSev} />
+        <MetricChip label="Truck Util." value={allTrucks.length > 0 ? `${allTrucks.length - idleTrucks.length}/${allTrucks.length}` : "N/A"} sev={fleetSev} />
+      </div>
+
+      {expanded && alerts.length > 0 && (
+        <div style={{ marginTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          {alerts.map((a, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={{ minWidth: 52, fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3, textAlign: "center", background: a.sev === "critical" ? "#ef444422" : "#f59e0b22", color: a.sev === "critical" ? "#ef4444" : "#f59e0b", border: `1px solid ${a.sev === "critical" ? "#ef444444" : "#f59e0b44"}` }}>
+                {a.sev === "critical" ? "CRITICAL" : "WATCH"}
+              </span>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}><span style={{ color: "#e2e8f0", fontWeight: 600 }}>{a.label}:</span> {a.msg}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded && alerts.length === 0 && (
+        <div style={{ marginTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12, fontSize: 12, color: "#10b981" }}>
+          No issues detected for {thisMonth}. All metrics within healthy thresholds.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, kas }) {
+function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, kas, importLogs }) {
   const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
   const truckStats = trucks.map((t) => {
@@ -1412,6 +1647,9 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
           </div>
         </div>
       )}
+
+      {/* CFO Briefing */}
+      <CFOBriefing trips={trips} expenses={expenses} kas={kas} loans={loans} loanPayments={loanPayments} importLogs={importLogs || []} />
 
       {/* Recent Trips */}
       <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, marginTop: 20 }}>
@@ -3443,6 +3681,405 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
   );
 }
 
+
+// ── INVOICES ──────────────────────────────────────────────────────────────────
+function Invoices({ invoices, setInvoices, trips, showToast, guardedDelete, logActivity }) {
+  const isMobile = useIsMobile();
+  const [view, setView] = React.useState("list"); // "list" | "create" | "detail"
+  const [selectedId, setSelectedId] = React.useState(null);
+  const [form, setForm] = React.useState(null);
+  const [tripSearch, setTripSearch] = React.useState("");
+
+  const selectedInv = invoices.find(i => i.id === selectedId);
+
+  function openCreate() {
+    const nextSeq = invoices.length > 0
+      ? Math.max(...invoices.map(inv => parseInt((inv.invoiceNo || "0").split("/")[0]) || 0)) + 1
+      : 1;
+    const dateStr = today();
+    const mo = parseInt(dateStr.slice(5, 7));
+    const yr = dateStr.slice(0, 4);
+    setForm({
+      id: genId(),
+      invoiceNo: `${String(nextSeq).padStart(3, "0")}/KK/${ROMAN_MONTHS[mo - 1]}/${yr}`,
+      date: dateStr,
+      recipient: "BP. ALL",
+      lineItems: [],
+      status: "unpaid",
+      paidDate: null,
+      notes: "",
+    });
+    setView("create");
+  }
+
+  function openDetail(id) {
+    setSelectedId(id);
+    setView("detail");
+  }
+
+  function saveForm() {
+    if (!form) return;
+    const total = form.lineItems.reduce((s, li) => s + (li.amount || 0), 0);
+    const inv = { ...form, total };
+    if (invoices.find(i => i.id === inv.id)) {
+      setInvoices(invoices.map(i => i.id === inv.id ? inv : i));
+      showToast("Invoice updated");
+    } else {
+      setInvoices([...invoices, inv]);
+      logActivity("create", "invoice", `Created invoice ${inv.invoiceNo}`);
+      showToast(`Invoice ${inv.invoiceNo} created`);
+    }
+    setView("list");
+    setForm(null);
+  }
+
+  function markPaid(id) {
+    setInvoices(invoices.map(i => i.id === id ? { ...i, status: "paid", paidDate: today() } : i));
+    showToast("Marked as paid");
+  }
+
+  function markUnpaid(id) {
+    setInvoices(invoices.map(i => i.id === id ? { ...i, status: "unpaid", paidDate: null } : i));
+    showToast("Marked as unpaid");
+  }
+
+  function deleteInvoice(id) {
+    const inv = invoices.find(i => i.id === id);
+    guardedDelete(`Delete invoice ${inv?.invoiceNo}? This cannot be undone.`, () => {
+      setInvoices(invoices.filter(i => i.id !== id));
+      logActivity("delete", "invoice", `Deleted invoice ${inv?.invoiceNo}`);
+      showToast("Invoice deleted");
+      setView("list");
+    });
+  }
+
+  function addTripLine(trip) {
+    if (!form) return;
+    const already = form.lineItems.some(li => li.tripRef === trip.id);
+    if (already) return;
+    const li = { id: genId(), tripRef: trip.id, contNo: trip.contNo, loadDate: trip.date, destination: trip.destination, qty: 1, price: trip.jual, amount: trip.jual };
+    setForm(f => ({ ...f, lineItems: [...f.lineItems, li] }));
+  }
+
+  function addSurcharge() {
+    if (!form) return;
+    setForm(f => ({ ...f, lineItems: [...f.lineItems, { id: genId(), tripRef: null, contNo: "", loadDate: "", destination: "", label: "", qty: null, price: null, amount: 0 }] }));
+  }
+
+  function updateLineItem(id, field, val) {
+    setForm(f => ({
+      ...f,
+      lineItems: f.lineItems.map(li => {
+        if (li.id !== id) return li;
+        const updated = { ...li, [field]: field === "price" || field === "amount" || field === "qty" ? Number(val) : val };
+        if (field === "price" && li.tripRef) updated.amount = Number(val) * (updated.qty || 1);
+        if (field === "qty" && li.tripRef) updated.amount = Number(val) * (updated.price || 0);
+        if (!li.tripRef && (field === "amount")) updated.amount = Number(val);
+        return updated;
+      })
+    }));
+  }
+
+  function removeLineItem(id) {
+    setForm(f => ({ ...f, lineItems: f.lineItems.filter(li => li.id !== id) }));
+  }
+
+  function exportToXlsx(inv) {
+    const rows = [];
+    rows.push(["", "", "", "", "", "", "", ""]); // 0
+    rows.push(["", "", "", "", "", "", "", ""]); // 1
+    rows.push(["", "", "", "INVOICE", "", "", inv.status === "paid" ? "COPY" : "", ""]); // 2
+    rows.push(["", "", "", "", "", "", "", ""]); // 3
+    rows.push(["", "", "", "", "", "", "", ""]); // 4
+    rows.push(["", "", "", "", "", "", "", ""]); // 5
+    rows.push(["", "TANGGAL", "", `: ${indoDate(inv.date)}`, "", "", "", ""]); // 6
+    rows.push(["", "INVOICE NO.", "", `: ${inv.invoiceNo}`, "", "", "", ""]); // 7
+    rows.push(["", "PENERIMA", "", `: ${inv.recipient}`, "", "", "", ""]); // 8
+    rows.push(["", "", "", "", "", "", "", ""]); // 9
+    rows.push(["", "NO", "TANGGAL MUAT", "TUJUAN", "NO CONTAINER", "QTY", "HARGA", "JUMLAH"]); // 10
+    rows.push(["", "", "", "", "", "", "", ""]); // 11
+
+    let no = 1;
+    for (const li of inv.lineItems) {
+      if (li.tripRef || li.contNo) {
+        rows.push(["", no++, li.loadDate || "", li.destination || "", li.contNo || "", li.qty || 1, li.price || li.amount, li.amount]);
+      } else {
+        rows.push(["", "", "", li.label || "", "", "", "", li.amount]);
+      }
+    }
+
+    // Pad to row 25
+    while (rows.length < 25) rows.push(["", "", "", "", "", "", "", ""]);
+
+    if (inv.paidDate) {
+      const totalRow = rows[24];
+      totalRow[4] = `LUNAS TGL ${inv.paidDate.split("-").reverse().join("/")}`;
+    }
+    rows.push(["", "", "", "", "", "", "", inv.total]); // total row
+    rows.push(["", "", "", "", "", "", "", ""]);
+    rows.push(["", "", "TERBILANG :", "", "", "", "", ""]);
+    rows.push(["", "", terbilang(inv.total), "", "", "", "", ""]);
+    rows.push(["", "", "", "", "", "", "", ""]);
+    rows.push(["", "", "", "", "Penerima", "", "", "Hormat Kami,"]);
+    rows.push(["", "TRANSFER KE :", "", "", "", "", "", ""]);
+    rows.push(["", "AN. EKIN NJOTO ATMODJO", "", "", "", "", "", ""]);
+    rows.push(["", "AC. 5110187949", "", "", "", "", "", ""]);
+    rows.push(["", "BANK BCA", "", "", "", "", "", ""]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 3 }, { wch: 18 }, { wch: 16 }, { wch: 28 }, { wch: 18 }, { wch: 5 }, { wch: 13 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, inv.invoiceNo.replace(/\//g, "-"));
+    XLSX.writeFile(wb, `Invoice_${inv.invoiceNo.replace(/\//g, "_")}.xlsx`);
+    showToast(`Exported ${inv.invoiceNo}`);
+  }
+
+  const totalOutstanding = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + (i.total || 0), 0);
+  const totalPaid = invoices.filter(i => i.status === "paid").reduce((s, i) => s + (i.total || 0), 0);
+
+  const iStyle = { padding: "6px 10px", background: "#0f1c2a", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", fontSize: 12, borderRadius: 4, fontFamily: "inherit", width: "100%", outline: "none" };
+
+  if (view === "create" && form) {
+    const formTotal = form.lineItems.reduce((s, li) => s + (li.amount || 0), 0);
+    const unlinkedTrips = trips.filter(t => {
+      const q = tripSearch.toLowerCase();
+      return (!q || t.destination?.toLowerCase().includes(q) || t.contNo?.toLowerCase().includes(q) || t.date?.includes(q))
+        && !form.lineItems.some(li => li.tripRef === t.id);
+    }).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30);
+
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <button onClick={() => { setView("list"); setForm(null); }} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)", padding: "6px 14px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>← Back</button>
+          <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#e2e8f0", fontWeight: 700 }}>New Invoice</h2>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>INVOICE NO.</div>
+            <input value={form.invoiceNo} onChange={e => setForm(f => ({ ...f, invoiceNo: e.target.value }))} style={iStyle} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>DATE</div>
+            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={iStyle} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>RECIPIENT</div>
+            <input value={form.recipient} onChange={e => setForm(f => ({ ...f, recipient: e.target.value }))} style={iStyle} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>NOTES</div>
+            <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={iStyle} />
+          </div>
+        </div>
+
+        {/* Line items */}
+        <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ fontSize: 12, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Line Items</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={addSurcharge} style={{ background: "rgba(200,168,107,0.1)", color: "#c8a86b", border: "1px solid rgba(200,168,107,0.3)", padding: "5px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>+ Surcharge</button>
+            </div>
+          </div>
+
+          {form.lineItems.length === 0 && (
+            <div style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 12, padding: "20px 0" }}>No items yet — pick trips below or add a surcharge.</div>
+          )}
+
+          {form.lineItems.map((li, idx) => (
+            <div key={li.id} style={{ display: "grid", gridTemplateColumns: li.tripRef ? "1fr 1fr 80px 100px 28px" : "1fr 100px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
+              {li.tripRef ? (
+                <>
+                  <div style={{ fontSize: 11, color: "#e2e8f0" }}>
+                    <span style={{ color: "#c8a86b", fontFamily: "monospace" }}>{li.contNo}</span> · {li.destination} · {li.loadDate}
+                  </div>
+                  <div>
+                    <input type="number" value={li.price} placeholder="Price" onChange={e => updateLineItem(li.id, "price", e.target.value)} style={{ ...iStyle, textAlign: "right" }} />
+                  </div>
+                  <div style={{ textAlign: "right", fontSize: 12, color: "#34d399", fontWeight: 600, whiteSpace: "nowrap" }}>{fmt(li.amount)}</div>
+                </>
+              ) : (
+                <>
+                  <input value={li.label || ""} placeholder="Surcharge label" onChange={e => updateLineItem(li.id, "label", e.target.value)} style={iStyle} />
+                  <input type="number" value={li.amount} placeholder="Amount" onChange={e => updateLineItem(li.id, "amount", e.target.value)} style={{ ...iStyle, textAlign: "right" }} />
+                </>
+              )}
+              <button onClick={() => removeLineItem(li.id)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", borderRadius: 3, cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>✕</button>
+            </div>
+          ))}
+
+          {form.lineItems.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 10, marginTop: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#34d399" }}>Total: {fmt(formTotal)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Trip picker */}
+        <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 12, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Add Trips from Log</div>
+          <input value={tripSearch} onChange={e => setTripSearch(e.target.value)} placeholder="Search by destination, container, date…" style={{ ...iStyle, marginBottom: 10 }} />
+          <div style={{ maxHeight: 240, overflowY: "auto" }}>
+            <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ color: "rgba(255,255,255,0.4)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <th style={{ textAlign: "left", padding: "4px 6px" }}>DATE</th>
+                  <th style={{ textAlign: "left", padding: "4px 6px" }}>DESTINATION</th>
+                  <th style={{ textAlign: "left", padding: "4px 6px" }}>CONTAINER</th>
+                  <th style={{ textAlign: "right", padding: "4px 6px" }}>JUAL</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {unlinkedTrips.map(t => (
+                  <tr key={t.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <td style={{ padding: "5px 6px", color: "rgba(255,255,255,0.5)" }}>{t.date}</td>
+                    <td style={{ padding: "5px 6px" }}>{t.destination}</td>
+                    <td style={{ padding: "5px 6px", color: "#c8a86b", fontFamily: "monospace" }}>{t.contNo}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", color: "#34d399" }}>{fmt(t.jual)}</td>
+                    <td style={{ padding: "5px 6px" }}>
+                      <button onClick={() => addTripLine(t)} style={{ background: "#c8a86b22", color: "#c8a86b", border: "1px solid #c8a86b44", padding: "3px 10px", borderRadius: 3, fontSize: 10, cursor: "pointer", fontWeight: 600 }}>Add</button>
+                    </td>
+                  </tr>
+                ))}
+                {unlinkedTrips.length === 0 && (
+                  <tr><td colSpan={5} style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", padding: 16, fontSize: 11 }}>No matching trips</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={() => { setView("list"); setForm(null); }} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+          <button onClick={saveForm} disabled={form.lineItems.length === 0} style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: form.lineItems.length === 0 ? 0.5 : 1 }}>Save Invoice</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "detail" && selectedInv) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <button onClick={() => setView("list")} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)", padding: "6px 14px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>← Back</button>
+          <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, color: "#e2e8f0", fontWeight: 700 }}>{selectedInv.invoiceNo}</h2>
+          <span style={{ padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, background: selectedInv.status === "paid" ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.12)", color: selectedInv.status === "paid" ? "#34d399" : "#f87171", border: `1px solid ${selectedInv.status === "paid" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}` }}>
+            {selectedInv.status === "paid" ? `Paid ${selectedInv.paidDate || ""}` : "Unpaid"}
+          </span>
+        </div>
+
+        <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 16 }}>
+            <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>DATE</div><div style={{ fontSize: 13 }}>{selectedInv.date}</div></div>
+            <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>RECIPIENT</div><div style={{ fontSize: 13 }}>{selectedInv.recipient}</div></div>
+            <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>TOTAL</div><div style={{ fontSize: 16, fontWeight: 700, color: "#34d399" }}>{fmt(selectedInv.total)}</div></div>
+            {selectedInv.notes && <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>NOTES</div><div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>{selectedInv.notes}</div></div>}
+          </div>
+
+          <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ color: "rgba(255,255,255,0.4)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                <th style={{ textAlign: "left", padding: "6px 8px" }}>ITEM</th>
+                <th style={{ textAlign: "left", padding: "6px 8px" }}>CONTAINER</th>
+                <th style={{ textAlign: "left", padding: "6px 8px" }}>DATE</th>
+                <th style={{ textAlign: "right", padding: "6px 8px" }}>AMOUNT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(selectedInv.lineItems || []).map((li, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <td style={{ padding: "7px 8px" }}>{li.tripRef ? li.destination : <span style={{ color: "#f59e0b", fontStyle: "italic" }}>{li.label}</span>}</td>
+                  <td style={{ padding: "7px 8px", color: "#c8a86b", fontFamily: "monospace", fontSize: 11 }}>{li.contNo || "—"}</td>
+                  <td style={{ padding: "7px 8px", color: "rgba(255,255,255,0.5)" }}>{li.loadDate || "—"}</td>
+                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#34d399", fontWeight: 600 }}>{fmt(li.amount)}</td>
+                </tr>
+              ))}
+              <tr style={{ borderTop: "2px solid rgba(255,255,255,0.1)" }}>
+                <td colSpan={3} style={{ padding: "8px 8px", fontWeight: 700, color: "#e2e8f0" }}>TOTAL</td>
+                <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: "#34d399", fontSize: 14 }}>{fmt(selectedInv.total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {selectedInv.status !== "paid"
+            ? <button onClick={() => { markPaid(selectedInv.id); setView("list"); }} style={{ background: "#10b981", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 4, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Mark as Paid</button>
+            : <button onClick={() => { markUnpaid(selectedInv.id); setView("list"); }} style={{ background: "transparent", color: "#f59e0b", border: "1px solid #f59e0b44", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Mark as Unpaid</button>
+          }
+          <button onClick={() => exportToXlsx(selectedInv)} style={{ background: "#162030", color: "#c8a86b", border: "1px solid rgba(200,168,107,0.3)", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Export to Excel</button>
+          <button onClick={() => deleteInvoice(selectedInv.id)} style={{ background: "transparent", color: "#ef4444", border: "1px solid #ef444444", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>Delete</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── List view ───────────────────────────────────────────────────────────────
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: "#e2e8f0", fontWeight: 700 }}>INVOICES</h2>
+        <button onClick={openCreate} style={{ background: "#c8a86b", color: "#fff", border: "none", padding: "10px 22px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ New Invoice</button>
+      </div>
+
+      {/* Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>TOTAL INVOICES</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#c8a86b" }}>{invoices.length}</div>
+        </div>
+        <div style={{ background: "#162030", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>OUTSTANDING</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#f87171" }}>{fmt(totalOutstanding)}</div>
+        </div>
+        <div style={{ background: "#162030", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>TOTAL COLLECTED</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#34d399" }}>{fmt(totalPaid)}</div>
+        </div>
+      </div>
+
+      {invoices.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60, color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+          No invoices yet. Click <strong style={{ color: "#c8a86b" }}>+ New Invoice</strong> to create one.
+        </div>
+      ) : (
+        <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, overflowX: "auto" }}>
+          <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 540 }}>
+            <thead>
+              <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "#1e2d3e" }}>
+                <th style={{ textAlign: "left", padding: "10px 14px" }}>INVOICE NO.</th>
+                <th style={{ textAlign: "left", padding: "10px 14px" }}>DATE</th>
+                <th style={{ textAlign: "right", padding: "10px 14px" }}>TRIPS</th>
+                <th style={{ textAlign: "right", padding: "10px 14px" }}>TOTAL</th>
+                <th style={{ textAlign: "center", padding: "10px 14px" }}>STATUS</th>
+                <th style={{ padding: "10px 14px" }} />
+              </tr>
+            </thead>
+            <tbody>
+              {[...invoices].sort((a, b) => b.date.localeCompare(a.date)).map(inv => (
+                <tr key={inv.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer" }} onClick={() => openDetail(inv.id)}>
+                  <td style={{ padding: "10px 14px", color: "#c8a86b", fontWeight: 700, fontFamily: "monospace" }}>{inv.invoiceNo}</td>
+                  <td style={{ padding: "10px 14px", color: "rgba(255,255,255,0.6)" }}>{inv.date}</td>
+                  <td style={{ padding: "10px 14px", textAlign: "right" }}>{(inv.lineItems || []).filter(li => li.tripRef).length}</td>
+                  <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 600, color: "#34d399" }}>{fmt(inv.total || 0)}</td>
+                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                    <span style={{ padding: "3px 9px", borderRadius: 10, fontSize: 10, fontWeight: 700, background: inv.status === "paid" ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.12)", color: inv.status === "paid" ? "#34d399" : "#f87171", border: `1px solid ${inv.status === "paid" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}` }}>
+                      {inv.status === "paid" ? `Paid ${inv.paidDate || ""}` : "Unpaid"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "10px 14px", textAlign: "right" }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => exportToXlsx(inv)} style={{ background: "transparent", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 10px", borderRadius: 3, fontSize: 10, cursor: "pointer" }}>Excel</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── BUSINESS METRICS ──────────────────────────────────────────────────────────
 function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, capital,
