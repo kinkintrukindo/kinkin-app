@@ -220,7 +220,12 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
   }
 
   // Emit driver cost expense entries (sangu + each lain item) for Expenses tab + petty cash tracking
+  // Fingerprints include contNo (unique per trip) so two different trips that happen to share the
+  // same date/truck/amount — e.g. two drivers each paid the same Sangu on the same day — don't collide
+  // and silently drop one of them as a "duplicate". Lain items also carry their index within the trip
+  // so repeated identical charges (e.g. two "TAMBAL BAN Rp 50,000" on the same trip) stay distinct too.
   for (const t of trips) {
+    const contKey = t.contNo ? String(t.contNo).trim().toUpperCase() : `NOCONT:${t.no}`;
     if (t.sangu > 0) {
       expenses.push({
         id: genId(),
@@ -232,11 +237,11 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         truck: t.nopol,
         holderId: holderId || "unassigned",
         source: "import",
-        _fpKey: `DRIVER:${t.date}|SANGU|${t.nopol || ""}|${t.sangu}`,
+        _fpKey: `DRIVER:${t.date}|SANGU|${t.nopol || ""}|${contKey}|${t.sangu}`,
       });
     }
-    for (const item of t.lainItems) {
-      if (!item.amount || item.amount <= 0) continue;
+    t.lainItems.forEach((item, idx) => {
+      if (!item.amount || item.amount <= 0) return;
       expenses.push({
         id: genId(),
         date: t.date,
@@ -247,9 +252,9 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         truck: t.nopol,
         holderId: holderId || "unassigned",
         source: "import",
-        _fpKey: `DRIVER:${t.date}|${(item.label || "LAIN").toUpperCase()}|${t.nopol || ""}|${item.amount}`,
+        _fpKey: `DRIVER:${t.date}|${(item.label || "LAIN").toUpperCase()}|${t.nopol || ""}|${contKey}|${idx}|${item.amount}`,
       });
-    }
+    });
   }
 
   // ── Parse expenses section ──────────────────────────────────────────────
@@ -259,6 +264,13 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
     const cols = truckColumns.length > 0
       ? truckColumns
       : [{ plate: truckPlate, labelCol: 0, amtCol: 1 }, { plate: truckPlate, labelCol: 3, amtCol: 4 }];
+    // Occurrence counter per (monthYear, plate, label, amount) combo: two genuinely separate
+    // expenses that happen to share the same label + amount in the same month (e.g. two identical
+    // "TAMBAL BAN Rp 50,000" tire-patch charges) get distinct fingerprints instead of colliding and
+    // having the second one silently skipped as a "duplicate". A re-upload of the same file still
+    // regenerates the same sequence of occurrence indices in the same row order, so cross-import
+    // idempotency (skipping true duplicates) is preserved.
+    const occurrenceCount = {};
     for (let i = expStartIdx; i < endIdx; i++) {
       const row = rows[i];
       if (!row) continue;
@@ -269,6 +281,9 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         const lu = label.toUpperCase();
         if (lu === "TOTAL" || lu === "KETERANGAN" || lu === "NOMINAL") continue;
         if (amt <= 0) continue;
+        const baseKey = `EXP:${monthYear}|${plate}|${lu}|${amt}`;
+        const occIdx = occurrenceCount[baseKey] || 0;
+        occurrenceCount[baseKey] = occIdx + 1;
         expenses.push({
           id: genId(),
           date: monthYear || new Date().toISOString().slice(0, 10),
@@ -278,7 +293,7 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
           truck: plate,
           expenseType: "truck",
           source: "import",
-          _fpKey: `EXP:${monthYear}|${plate}|${lu}|${amt}`,
+          _fpKey: occIdx === 0 ? baseKey : `${baseKey}|${occIdx}`,
         });
       }
     }
@@ -557,9 +572,26 @@ function KinKinApp() {
     const { parsed, monthYear, fileName } = uploadModal;
 
     // ── Deduplicate trips against existing ────────────────────────────────────
+    // A later re-upload sometimes carries cost data (Sangu / Lain-Lain) that was missing or
+    // incomplete when the trip was first imported. Rather than silently dropping that improved
+    // data as a "duplicate" (which leaves the trip's total/profit permanently stale even though the
+    // correct driver-cost expense entries get added), patch the existing trip in place whenever the
+    // re-parsed version reports a higher total cost.
     const existingByFp = new Map(trips.map((t) => [fingerprint(t), t]));
-    const newTrips = parsed.trips.filter((t) => !existingByFp.has(fingerprint(t)));
-    const skippedCount = parsed.trips.length - newTrips.length;
+    const newTrips = [];
+    const patchedTrips = new Map(); // existing trip id -> patched fields
+    for (const t of parsed.trips) {
+      const existing = existingByFp.get(fingerprint(t));
+      if (!existing) {
+        newTrips.push(t);
+      } else if (t.total > existing.total) {
+        patchedTrips.set(existing.id, {
+          sangu: t.sangu, lainItems: t.lainItems, lainLabel: t.lainLabel, lainAmt: t.lainAmt,
+          total: t.total, profit: t.jual - t.total,
+        });
+      }
+    }
+    const skippedCount = parsed.trips.length - newTrips.length - patchedTrips.size;
 
     // ── Deduplicate expenses against existing ─────────────────────────────────
     // Build the set of existing keys, and also derive the new-format equivalent
@@ -596,7 +628,8 @@ function KinKinApp() {
     const tripIds = newTrips.map((t) => t.id);
     const expenseIds = taggedExpenses.map((e) => e.id);
 
-    setTrips([...trips, ...newTrips]);
+    const mergedTrips = trips.map((t) => (patchedTrips.has(t.id) ? { ...t, ...patchedTrips.get(t.id) } : t));
+    setTrips([...mergedTrips, ...newTrips]);
     setExpenses([...expenses, ...taggedExpenses]);
 
     // Sheet expenses (driver costs + pengeluaran tambahan) are paid by Martha
@@ -615,6 +648,7 @@ function KinKinApp() {
       kasIds,
       summary: {
         tripCount: newTrips.length,
+        patchedTrips: patchedTrips.size,
         skippedDuplicates: skippedCount,
         expenseCount: newExpenses.length,
         skippedExpenses: skippedExpCount,
@@ -624,11 +658,13 @@ function KinKinApp() {
       },
     };
     setImportLogs([log, ...importLogs]);
-    logActivity("import", "import", `Imported ${fileName} — ${newTrips.length} trips, ${taggedExpenses.length} expenses`);
+    const patchNote = patchedTrips.size > 0 ? `, ${patchedTrips.size} trips updated with corrected costs` : "";
+    logActivity("import", "import", `Imported ${fileName} — ${newTrips.length} trips, ${taggedExpenses.length} expenses${patchNote}`);
 
     const parts = [];
     if (newTrips.length > 0)    parts.push(`${newTrips.length} trips`);
     if (newExpenses.length > 0) parts.push(`${newExpenses.length} expenses`);
+    if (patchedTrips.size > 0)  parts.push(`${patchedTrips.size} trips corrected`);
     const skips = [];
     if (skippedCount > 0)    skips.push(`${skippedCount} duplicate trips skipped`);
     if (skippedExpCount > 0) skips.push(`${skippedExpCount} duplicate expenses skipped`);
