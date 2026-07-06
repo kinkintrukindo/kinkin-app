@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #F0F2F5; color: #1a1a2e; }
+
+    /* ── NAV ── */
+    .nav {
+      background: #1B3F60;
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-logo { width: 30px; height: 30px; object-fit: contain; }
+    .nav-name { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+    .nav-sub { font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 1.5px; text-transform: uppercase; display: block; }
+    .nav-tabs { display: flex; gap: 2px; }
+    .nav-tab {
+      padding: 6px 14px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5);
+      border-radius: 4px; cursor: pointer; transition: all .15s;
+      border: 1px solid transparent;
+    }
+    .nav-tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.06); }
+    .nav-tab.active {
+      color: #fff; background: rgba(200,168,107,0.18);
+      border-color: rgba(200,168,107,0.35);
+      font-weight: 600;
+    }
+
+    /* ── PAGE ── */
+    .page { padding: 24px; max-width: 1100px; }
+    .page-title { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px; }
+
+    /* ── KPI STRIP ── */
+    .kpi-strip {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    .kpi {
+      background: #fff; border-radius: 8px; padding: 16px;
+      border: 1px solid #e8eaf0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .kpi-label { font-size: 10px; font-weight: 600; color: #8a93a2; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 700; line-height: 1; }
+    .kpi-value.green { color: #16a34a; }
+    .kpi-value.gold  { color: #c8a86b; }
+    .kpi-value.red   { color: #dc2626; }
+    .kpi-value.navy  { color: #1B3F60; }
+    .kpi-sub { font-size: 10px; color: #a0aab4; margin-top: 5px; }
+    .kpi-accent { width: 3px; height: 28px; border-radius: 2px; float: right; margin-top: -36px; }
+
+    /* ── CONTENT GRID ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff; border-radius: 10px; padding: 20px;
+      border: 1px solid #e8eaf0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; color: #8a93a2;
+      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title span.badge {
+      background: #f0f2f5; color: #6b7a8d; font-size: 10px;
+      padding: 2px 8px; border-radius: 20px;
+    }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead tr { border-bottom: 1px solid #e8eaf0; }
+    thead th { padding: 6px 10px; color: #8a93a2; font-weight: 600; text-align: left; font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; }
+    tbody tr { border-bottom: 1px solid #f4f5f8; transition: background .1s; }
+    tbody tr:hover { background: #f8f9fc; }
+    tbody td { padding: 10px 10px; color: #2d3748; font-size: 12px; }
+    .plate-badge {
+      background: #eef2ff; color: #3b5bdb; font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 4px; font-family: monospace;
+    }
+    .amount-pos { color: #16a34a; font-weight: 600; }
+    .amount-neg { color: #dc2626; font-weight: 600; }
+    .amount-gold { color: #c8a86b; font-weight: 600; }
+
+    /* ── FORM SECTION ── */
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 10px; font-weight: 600; color: #8a93a2; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 8px 10px; border: 1px solid #e2e5ed; border-radius: 6px;
+      font-size: 12px; font-family: 'Inter', sans-serif; color: #2d3748;
+      background: #fafbfc; outline: none; transition: border .15s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #c8a86b; background: #fff; }
+    .btn-primary {
+      background: #1B3F60; color: #fff; border: none; padding: 9px 20px;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-gold {
+      background: #c8a86b; color: #fff; border: none; padding: 9px 20px;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* ── CASH SUMMARY ── */
+    .cash-row {
+      display: flex; align-items: center; gap: 0;
+      background: #fff; border-radius: 10px; border: 1px solid #e8eaf0;
+      overflow: hidden; margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .cash-cell { flex: 1; padding: 18px 20px; border-right: 1px solid #f0f2f5; }
+    .cash-cell:last-child { border-right: none; }
+    .cash-cell-label { font-size: 10px; font-weight: 600; color: #8a93a2; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .cash-cell-value { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 700; }
+    .cash-bar { height: 3px; margin-top: 8px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- ── OPTION A: REFINED LIGHT ── -->
+<div style="position:fixed;top:8px;right:12px;background:#1B3F60;color:#fff;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Montserrat',sans-serif;letter-spacing:1px;z-index:999">OPTION A — Refined Light</div>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <img src="/logo-transparent.png" class="nav-logo">
+    <div>
+      <span class="nav-name">Kin Kin Trukindo</span>
+      <span class="nav-sub">Freight & Logistics</span>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active">Dashboard</div>
+    <div class="nav-tab">Trips</div>
+    <div class="nav-tab">Expenses</div>
+    <div class="nav-tab">Cash</div>
+    <div class="nav-tab">Petty Cash</div>
+    <div class="nav-tab">Fleet</div>
+    <div class="nav-tab">Reports</div>
+    <div class="nav-tab">Settings</div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-title">Dashboard Overview</div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value navy">Rp 31.375.000</div>
+      <div class="kpi-accent" style="background:#1B3F60"></div>
+      <div class="kpi-sub">21 trips</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value green">Rp 15.892.000</div>
+      <div class="kpi-accent" style="background:#16a34a"></div>
+      <div class="kpi-sub">from trips</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Net Profit</div>
+      <div class="kpi-value red">-Rp 19.743.400</div>
+      <div class="kpi-accent" style="background:#dc2626"></div>
+      <div class="kpi-sub">after all expenses</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Truck Expenses</div>
+      <div class="kpi-value gold">Rp 28.135.400</div>
+      <div class="kpi-accent" style="background:#c8a86b"></div>
+      <div class="kpi-sub">operational</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Overhead</div>
+      <div class="kpi-value" style="color:#6b7a8d">Rp 7.500.000</div>
+      <div class="kpi-accent" style="background:#6b7a8d"></div>
+      <div class="kpi-sub">admin & legal</div>
+    </div>
+    <div class="kpi" style="border-color:#c8a86b44; background:#fffdf7">
+      <div class="kpi-label">Cash Balance</div>
+      <div class="kpi-value gold">Rp 180.340.000</div>
+      <div class="kpi-accent" style="background:#c8a86b"></div>
+      <div class="kpi-sub">available</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Truck Performance -->
+    <div class="card">
+      <div class="card-title">Truck Performance <span class="badge">2 trucks</span></div>
+      <table>
+        <thead><tr><th>Plate</th><th>Trips</th><th>Revenue</th><th>Net P&amp;L</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="plate-badge">B9674UEJ</span></td>
+            <td>21</td>
+            <td class="amount-pos">Rp 31.375.000</td>
+            <td class="amount-neg">-Rp 16.196.400</td>
+          </tr>
+          <tr>
+            <td><span class="plate-badge">E9129YB</span></td>
+            <td>0</td>
+            <td>Rp 0</td>
+            <td class="amount-neg">-Rp 11.530.000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Expense Breakdown -->
+    <div class="card">
+      <div class="card-title">Expense Breakdown</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:2px;background:#c8a86b"></div>
+            <span style="font-size:12px;color:#555">Admin</span>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:#2d3748">Rp 7.500.000</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:2px;background:#3b82f6"></div>
+            <span style="font-size:12px;color:#555">Spare Parts</span>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:#2d3748">Rp 14.680.400</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:2px;background:#10b981"></div>
+            <span style="font-size:12px;color:#555">Repair / Misc</span>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:#2d3748">Rp 13.455.000</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Trips -->
+  <div class="card">
+    <div class="card-title">Recent Trips <span class="badge">Last 5</span></div>
+    <table>
+      <thead><tr><th>Date</th><th>Destination</th><th>Plate</th><th>Container</th><th>Invoice</th><th>Profit</th></tr></thead>
+      <tbody>
+        <tr><td>2026-06-07</td><td>Tanjung Priok</td><td><span class="plate-badge">B9674UEJ</span></td><td>TCKU1234567</td><td class="amount-navy" style="color:#1B3F60">Rp 1.100.000</td><td class="amount-pos">Rp 750.000</td></tr>
+        <tr><td>2026-06-05</td><td>AKR Margomulyo</td><td><span class="plate-badge">B9674UEJ</span></td><td>TEGU2917447</td><td style="color:#1B3F60">Rp 1.050.000</td><td class="amount-pos">Rp 700.000</td></tr>
+        <tr><td>2026-05-28</td><td>Tanjung Priok</td><td><span class="plate-badge">B9674UEJ</span></td><td>MSDU8821004</td><td style="color:#1B3F60">Rp 1.150.000</td><td class="amount-pos">Rp 800.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

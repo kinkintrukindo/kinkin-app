@@ -1780,14 +1780,16 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const dateFiltered = expenses.filter((e) => inDateRange(e.date));
   const truckTotal = dateFiltered.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + e.amount, 0);
   const overheadTotal = dateFiltered.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + e.amount, 0);
-  const pettyTotal = dateFiltered.filter((e) => e.expenseType === "petty").reduce((s, e) => s + e.amount, 0);
-  const grandTotal = truckTotal + overheadTotal + pettyTotal;
+  const grandTotal = truckTotal + overheadTotal;
   const periodLabel = filterPeriod === 'all' ? 'All time' : filterPeriod === 'custom' ? `${effectiveFrom || 'earliest'} → ${effectiveTo || 'today'}` : filterPeriod.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-  // Aggregate by category for pie chart
+  // Aggregate by category for pie chart (only truck + overhead, excluding petty cash top-ups)
   const byCategory = {};
   for (const e of dateFiltered) {
-    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+    const type = e.expenseType || "truck";
+    if (type === "truck" || type === "overhead") {
+      byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+    }
   }
   const categoryEntries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
 

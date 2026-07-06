@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #0c1420;
+      --surface: #111e2e;
+      --card:   #162030;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(200,168,107,0.2);
+      --gold:   #c8a86b;
+      --gold2:  #e8c87b;
+      --text:   #e2e8f0;
+      --muted:  rgba(255,255,255,0.38);
+      --green:  #34d399;
+      --red:    #f87171;
+      --blue:   #60a5fa;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── NAV ── */
+    .nav {
+      background: var(--surface);
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-logo { width: 30px; height: 30px; object-fit: contain; }
+    .nav-name { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+    .nav-sub { font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; display: block; }
+    .nav-tabs { display: flex; gap: 2px; }
+    .nav-tab {
+      padding: 6px 13px; font-size: 12px; font-weight: 500; color: var(--muted);
+      border-radius: 5px; cursor: pointer; transition: all .15s;
+    }
+    .nav-tab:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.05); }
+    .nav-tab.active {
+      color: var(--gold2); background: rgba(200,168,107,0.12);
+      font-weight: 600;
+    }
+
+    /* ── PAGE ── */
+    .page { padding: 24px; max-width: 1100px; }
+    .page-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; }
+
+    /* ── KPI STRIP ── */
+    .kpi-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 18px; }
+    .kpi {
+      background: var(--card); border-radius: 8px; padding: 14px 16px;
+      border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .kpi::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--kpi-accent, var(--gold));
+    }
+    .kpi-label { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 700; line-height: 1.2; }
+    .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card); border-radius: 10px; padding: 20px;
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .badge {
+      background: rgba(255,255,255,0.07); color: var(--muted); font-size: 10px;
+      padding: 2px 8px; border-radius: 20px;
+    }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    thead th { padding: 6px 10px; color: var(--muted); font-weight: 600; text-align: left; font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background .1s; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody td { padding: 10px 10px; font-size: 12px; color: var(--text); }
+    .plate-badge {
+      background: rgba(96,165,250,0.12); color: var(--blue); font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 4px; font-family: monospace; letter-spacing: 0.5px;
+    }
+    .amount-pos { color: var(--green); font-weight: 600; }
+    .amount-neg { color: var(--red); font-weight: 600; }
+    .amount-gold { color: var(--gold); font-weight: 600; }
+    .amount-muted { color: var(--text); }
+
+    /* ── GRID ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+    /* ── CASH SUMMARY ── */
+    .cash-strip {
+      display: flex; gap: 0; background: var(--card);
+      border-radius: 10px; border: 1px solid var(--border);
+      overflow: hidden; margin-bottom: 14px;
+    }
+    .cash-cell { flex: 1; padding: 16px 20px; border-right: 1px solid var(--border); }
+    .cash-cell:last-child { border-right: none; background: rgba(200,168,107,0.06); }
+    .cash-label { font-size: 9px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; }
+    .cash-value { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div style="position:fixed;top:8px;right:12px;background:rgba(200,168,107,0.9);color:#0c1420;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:800;font-family:'Montserrat',sans-serif;letter-spacing:1px;z-index:999">OPTION B — Dark Professional</div>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <img src="/logo-transparent.png" class="nav-logo">
+    <div>
+      <span class="nav-name">Kin Kin Trukindo</span>
+      <span class="nav-sub">Freight & Logistics</span>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active">Dashboard</div>
+    <div class="nav-tab">Trips</div>
+    <div class="nav-tab">Expenses</div>
+    <div class="nav-tab">Cash</div>
+    <div class="nav-tab">Petty Cash</div>
+    <div class="nav-tab">Fleet</div>
+    <div class="nav-tab">Reports</div>
+    <div class="nav-tab">Settings</div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-title">Dashboard Overview</div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi" style="--kpi-accent:#60a5fa">
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-value" style="color:#60a5fa">Rp 31.375.000</div>
+      <div class="kpi-sub">21 trips invoiced</div>
+    </div>
+    <div class="kpi" style="--kpi-accent:#34d399">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value" style="color:#34d399">Rp 15.892.000</div>
+      <div class="kpi-sub">50.7% margin</div>
+    </div>
+    <div class="kpi" style="--kpi-accent:#f87171">
+      <div class="kpi-label">Net Profit</div>
+      <div class="kpi-value" style="color:#f87171">-Rp 19.743.400</div>
+      <div class="kpi-sub">after all costs</div>
+    </div>
+    <div class="kpi" style="--kpi-accent:#c8a86b">
+      <div class="kpi-label">Truck Costs</div>
+      <div class="kpi-value" style="color:#c8a86b">Rp 28.135.400</div>
+      <div class="kpi-sub">operational</div>
+    </div>
+    <div class="kpi" style="--kpi-accent:rgba(255,255,255,0.2)">
+      <div class="kpi-label">Overhead</div>
+      <div class="kpi-value" style="color:rgba(255,255,255,0.55)">Rp 7.500.000</div>
+      <div class="kpi-sub">admin & legal</div>
+    </div>
+    <div class="kpi" style="--kpi-accent:#e8c87b; border-color:rgba(200,168,107,0.25)">
+      <div class="kpi-label">Cash Balance</div>
+      <div class="kpi-value" style="color:#e8c87b">Rp 180.340.000</div>
+      <div class="kpi-sub">available now</div>
+    </div>
+  </div>
+
+  <!-- Cash Summary Strip -->
+  <div class="cash-strip">
+    <div class="cash-cell">
+      <div class="cash-label">Total Cash In</div>
+      <div class="cash-value" style="color:#34d399">Rp 509.950.000</div>
+    </div>
+    <div class="cash-cell">
+      <div class="cash-label">Total Cash Out</div>
+      <div class="cash-value" style="color:#f87171">Rp 329.610.000</div>
+    </div>
+    <div class="cash-cell">
+      <div class="cash-label">Net Balance</div>
+      <div class="cash-value" style="color:#e8c87b">Rp 180.340.000</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Truck Performance -->
+    <div class="card">
+      <div class="card-title">Truck Performance <span class="badge">2 trucks</span></div>
+      <table>
+        <thead><tr><th>Plate</th><th>Trips</th><th>Revenue</th><th>P&amp;L</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="plate-badge">B9674UEJ</span></td>
+            <td style="color:rgba(255,255,255,0.6)">21</td>
+            <td class="amount-gold">Rp 31.375.000</td>
+            <td class="amount-neg">-Rp 16.196.400</td>
+          </tr>
+          <tr>
+            <td><span class="plate-badge">E9129YB</span></td>
+            <td style="color:rgba(255,255,255,0.6)">0</td>
+            <td style="color:rgba(255,255,255,0.3)">Rp 0</td>
+            <td class="amount-neg">-Rp 11.530.000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Expense Breakdown -->
+    <div class="card">
+      <div class="card-title">Expense Breakdown</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;color:rgba(255,255,255,0.6)">Admin</span>
+              <span style="font-size:11px;font-weight:600;color:#e2e8f0">Rp 7.500.000</span>
+            </div>
+            <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:2px">
+              <div style="height:3px;background:#c8a86b;border-radius:2px;width:21%"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;color:rgba(255,255,255,0.6)">Spare Parts</span>
+              <span style="font-size:11px;font-weight:600;color:#e2e8f0">Rp 14.680.400</span>
+            </div>
+            <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:2px">
+              <div style="height:3px;background:#60a5fa;border-radius:2px;width:41%"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;color:rgba(255,255,255,0.6)">Repair / Misc</span>
+              <span style="font-size:11px;font-weight:600;color:#e2e8f0">Rp 13.455.000</span>
+            </div>
+            <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:2px">
+              <div style="height:3px;background:#34d399;border-radius:2px;width:38%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Trips -->
+  <div class="card">
+    <div class="card-title">Recent Trips <span class="badge">Last 5</span></div>
+    <table>
+      <thead><tr><th>Date</th><th>Destination</th><th>Plate</th><th>Container</th><th>Invoice</th><th>Profit</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--muted)">2026-06-07</td><td>Tanjung Priok</td><td><span class="plate-badge">B9674UEJ</span></td><td style="color:var(--muted);font-family:monospace;font-size:11px">TCKU1234567</td><td class="amount-gold">Rp 1.100.000</td><td class="amount-pos">Rp 750.000</td></tr>
+        <tr><td style="color:var(--muted)">2026-06-05</td><td>AKR Margomulyo</td><td><span class="plate-badge">B9674UEJ</span></td><td style="color:var(--muted);font-family:monospace;font-size:11px">TEGU2917447</td><td class="amount-gold">Rp 1.050.000</td><td class="amount-pos">Rp 700.000</td></tr>
+        <tr><td style="color:var(--muted)">2026-05-28</td><td>Tanjung Priok</td><td><span class="plate-badge">B9674UEJ</span></td><td style="color:var(--muted);font-family:monospace;font-size:11px">MSDU8821004</td><td class="amount-gold">Rp 1.150.000</td><td class="amount-pos">Rp 800.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
