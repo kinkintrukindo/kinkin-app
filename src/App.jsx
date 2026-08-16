@@ -7,6 +7,7 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
+const READ_ONLY = import.meta.env.VITE_READ_ONLY === "true";
 
 // ── Utility helpers ──────────────────────────────────────────────────────────
 const fmt = (n) =>
@@ -344,13 +345,10 @@ async function loadState() {
 }
 
 async function saveState(state) {
-  try {
-    await supabase
-      .from("kinkin_state")
-      .upsert({ key: STORE_KEY, value: state, updated_at: new Date().toISOString() });
-  } catch (e) {
-    console.warn("Storage save failed:", e);
-  }
+  const { error } = await supabase
+    .from("kinkin_state")
+    .upsert({ key: STORE_KEY, value: state, updated_at: new Date().toISOString() });
+  if (error) throw error;
 }
 
 
@@ -442,7 +440,7 @@ function KinKinApp() {
         // truck and overhead expenses that were logged before the cash-deduction fix.
         const existingKas = saved.kas ?? [];
         const existingExpenses = saved.expenses ?? [];
-        if (!saved.cashBackfillDone) {
+        if (!saved.cashBackfillDone && !READ_ONLY) {
           const manual = existingExpenses.filter(
             (e) => (e.expenseType === "truck" || e.expenseType === "overhead") && e.source !== "import"
           );
@@ -478,6 +476,10 @@ function KinKinApp() {
   // Auto-save whenever any data changes
   useEffect(() => {
     if (_skipSave.current) return;
+    if (READ_ONLY) {
+      setSaveStatus("read-only");
+      return;
+    }
     setSaveStatus("saving");
     saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword })
       .then(() => setSaveStatus("saved"))
@@ -568,6 +570,7 @@ function KinKinApp() {
 
   // Step 3: User confirms preview — actually commit + create log entry
   const confirmGlobalImport = () => {
+    if (READ_ONLY) { showToast("Staging is read-only; imports cannot be saved.", "error"); return; }
     if (!uploadModal || !uploadModal.parsed) return;
     const { parsed, monthYear, fileName } = uploadModal;
 
@@ -680,6 +683,7 @@ function KinKinApp() {
 
   // Undo a specific import — delete all trips and expenses tied to that log
   const undoImport = (logId) => {
+    if (READ_ONLY) { showToast("Staging is read-only; imports cannot be changed.", "error"); return; }
     const log = importLogs.find((l) => l.id === logId);
     if (!log) return;
     setConfirmModal({
@@ -709,16 +713,31 @@ function KinKinApp() {
   };
 
   const resetAll = () => {
+    if (READ_ONLY) { showToast("Staging is read-only; production data cannot be reset.", "error"); return; }
     setTrips([]); setExpenses([]); setKas([]); setCapital([]); setLoans([]);
     setAssets([]); setLoanPayments([]); setImportLogs([]); setPettyTopups([]);
     setActivityLog([]);
   };
 
   const guardedDelete = (message, onConfirm) => {
+    if (READ_ONLY) { showToast("Staging is read-only; records cannot be deleted.", "error"); return; }
     setDeleteGuard({ message, onConfirm });
     setDeleteGuardCode("");
     setDeleteGuardErr(false);
   };
+
+  const rejectMutation = () => showToast("Staging is read-only; production data cannot be changed.", "error");
+  const protectedSetter = (setter) => READ_ONLY ? rejectMutation : setter;
+  const protectedSetTrips = protectedSetter(setTrips);
+  const protectedSetExpenses = protectedSetter(setExpenses);
+  const protectedSetKas = protectedSetter(setKas);
+  const protectedSetCapital = protectedSetter(setCapital);
+  const protectedSetLoans = protectedSetter(setLoans);
+  const protectedSetAssets = protectedSetter(setAssets);
+  const protectedSetLoanPayments = protectedSetter(setLoanPayments);
+  const protectedSetPettyHolders = protectedSetter(setPettyHolders);
+  const protectedSetPettyTopups = protectedSetter(setPettyTopups);
+  const protectedSetAppPassword = protectedSetter(setAppPassword);
 
   // ── Aggregates ──────────────────────────────────────────────────────────────
   const totalRevenue = trips.reduce((s, t) => s + t.jual, 0);
@@ -791,11 +810,11 @@ function KinKinApp() {
           <div style={{
             fontSize: 9, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase",
             padding: "2px 8px", borderRadius: 20, marginLeft: 6,
-            background: saveStatus === "saved" ? "rgba(52,211,153,0.15)" : saveStatus === "saving" ? "rgba(200,168,107,0.15)" : "rgba(248,113,113,0.15)",
-            color: saveStatus === "saved" ? "#34d399" : saveStatus === "saving" ? "#c8a86b" : "#f87171",
-            border: `1px solid ${saveStatus === "saved" ? "rgba(52,211,153,0.3)" : saveStatus === "saving" ? "rgba(200,168,107,0.3)" : "rgba(248,113,113,0.3)"}`,
+            background: saveStatus === "saved" ? "rgba(52,211,153,0.15)" : saveStatus === "saving" ? "rgba(200,168,107,0.15)" : saveStatus === "read-only" ? "rgba(96,165,250,0.15)" : "rgba(248,113,113,0.15)",
+            color: saveStatus === "saved" ? "#34d399" : saveStatus === "saving" ? "#c8a86b" : saveStatus === "read-only" ? "#60a5fa" : "#f87171",
+            border: `1px solid ${saveStatus === "saved" ? "rgba(52,211,153,0.3)" : saveStatus === "saving" ? "rgba(200,168,107,0.3)" : saveStatus === "read-only" ? "rgba(96,165,250,0.3)" : "rgba(248,113,113,0.3)"}`,
           }}>
-            {saveStatus === "saved" ? "Saved" : saveStatus === "saving" ? "Saving..." : "Save failed"}
+            {saveStatus === "saved" ? "Saved" : saveStatus === "saving" ? "Saving..." : saveStatus === "read-only" ? "Staging · Read only" : "Save failed"}
           </div>
         </div>
         {!isMobile && (
@@ -829,6 +848,12 @@ function KinKinApp() {
           Reset
         </button>
       </div>
+
+      {READ_ONLY && (
+        <div style={{ background: "#1e3a5f", color: "#dbeafe", padding: "9px 24px", textAlign: "center", fontSize: 12, fontWeight: 600, borderBottom: "1px solid rgba(96,165,250,0.45)" }}>
+          STAGING — live production data is displayed read-only. Changes cannot be saved here.
+        </div>
+      )}
 
       {/* Mobile bottom navigation */}
       {isMobile && (
@@ -1144,17 +1169,17 @@ function KinKinApp() {
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
         {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} />}
-        {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
-        {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
-        {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
-        {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} setExpenses={setExpenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
-        {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "trips" && <Trips trips={trips} setTrips={protectedSetTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "expenses" && <Expenses expenses={expenses} setExpenses={protectedSetExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={protectedSetPettyTopups} pettyTopups={pettyTopups} setKas={protectedSetKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "kas" && <Kas kas={kas} setKas={protectedSetKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={protectedSetPettyHolders} pettyTopups={pettyTopups} setPettyTopups={protectedSetPettyTopups} expenses={expenses} setExpenses={protectedSetExpenses} kas={kas} setKas={protectedSetKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
+        {tab === "fleet" && <Fleet loans={loans} setLoans={protectedSetLoans} assets={assets} setAssets={protectedSetAssets} loanPayments={loanPayments} setLoanPayments={protectedSetLoanPayments} capital={capital} setCapital={protectedSetCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={protectedSetKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
-        {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={setAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
+        {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={protectedSetAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
       </div>
 
       {/* ── GLOBAL FAB ── */}
-      {!uploadModal && (
+      {!READ_ONLY && !uploadModal && (
         <div style={{ position:"fixed", bottom:isMobile?80:24, right:20, zIndex:900, display:"flex", flexDirection:"column-reverse", alignItems:"flex-end", gap:10 }}>
           {fabOpen && !fabMode && (
             <div style={{ background:"#162030", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:8, boxShadow:"0 8px 24px rgba(0,0,0,0.4)", marginBottom:6 }}>
