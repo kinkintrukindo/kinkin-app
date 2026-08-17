@@ -1384,7 +1384,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
               .filter((t) => monthKey(t.date) === key)
               .reduce((s, t) => s + t.profit, 0);
             const truckAdditionalExpenses = expenses
-              .filter((e) => monthKey(e.date) === key && trucks.includes(e.truck) && !["Fuel", "Toll"].includes(e.category))
+              .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck")
               .reduce((s, e) => s + e.amount, 0);
             const loanMonthlyTotal = loanObligationsForMonth(key);
             const operationalProfit = tripGrossProfit - truckAdditionalExpenses - loanMonthlyTotal;
@@ -1934,9 +1934,14 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const grandTotal = truckTotal + overheadTotal;
   const periodLabel = filterPeriod === 'all' ? 'All time' : filterPeriod === 'custom' ? `${effectiveFrom || 'earliest'} → ${effectiveTo || 'today'}` : filterPeriod.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-  // Aggregate by category for pie chart
+  // Aggregate by category for pie chart — same scope as grandTotal
+  // (Truck + Overhead only) so percentages can never exceed 100%.
+  // Driver-type entries (Salary, per-trip misc charges) are deliberately
+  // excluded here since they duplicate costs already reflected in trip
+  // profit, and were never part of grandTotal to begin with.
   const byCategory = {};
   for (const e of dateFiltered) {
+    if ((e.expenseType || "truck") === "driver") continue;
     byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
   }
   const categoryEntries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
