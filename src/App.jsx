@@ -211,7 +211,7 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
 
   // Consolidate lainItems into a single lainLabel/lainAmt for backward compat
   for (const t of trips) {
-    const totalLain = t.lainItems.reduce((s, x) => s + x.amount, 0);
+    const totalLain = t.lainItems.reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const labels = t.lainItems.filter((x) => x.label).map((x) => x.label).join(" + ");
     t.lainLabel = labels;
     t.lainAmt = totalLain;
@@ -358,8 +358,8 @@ const CAT_COLOR = {
   Other: "#6b7280",
 };
 
-const TRUCK_CATEGORIES = ["Fuel", "Toll", "Repair", "Spare Parts", "Garage", "Other"];
-const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Insurance", "Marketing", "Other"];
+const TRUCK_CATEGORIES = ["Fuel", "Toll", "Repair", "Spare Parts", "Garage", "Other", "Overhead Spareparts", "Overhead Garage", "Overhead Admin", "Overhead Others"];
+const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Tax", "Insurance", "Marketing", "Other"];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
@@ -620,7 +620,7 @@ function KinKinApp() {
         skippedExpenses: skippedExpCount,
         totalRevenue: newTrips.reduce((s, t) => s + t.jual, 0),
         totalCosts: newTrips.reduce((s, t) => s + t.total, 0),
-        totalExpenses: newExpenses.reduce((s, e) => s + e.amount, 0),
+        totalExpenses: newExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0),
       },
     };
     setImportLogs([log, ...importLogs]);
@@ -686,22 +686,22 @@ function KinKinApp() {
 
   // ── Aggregates ──────────────────────────────────────────────────────────────
   const totalRevenue = trips.reduce((s, t) => s + t.jual, 0);
-  const totalExpenses = expenses.filter((e) => e.expenseType !== "driver").reduce((s, e) => s + e.amount, 0);
-  const truckOpsExpenses = expenses.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + e.amount, 0);
-  const overheadExpenses = expenses.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + e.amount, 0);
+  const totalExpenses = expenses.filter((e) => e.expenseType !== "driver").reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const truckOpsExpenses = expenses.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const overheadExpenses = expenses.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const tripCosts = trips.reduce((s, t) => s + t.total, 0);
   const grossProfit = trips.reduce((s, t) => s + t.profit, 0);
   const netProfit = grossProfit - totalExpenses;
   const kasBalance = kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0);
 
   // Financing aggregates
-  const totalCapitalInjected = capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0);
-  const totalLoansReceived = capital.filter((c) => c.type === "loan").reduce((s, c) => s + c.amount, 0);
+  const totalCapitalInjected = capital.filter((c) => c.type === "capital").reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const totalLoansReceived = capital.filter((c) => c.type === "loan").reduce((s, c) => s + (Number(c.amount) || 0), 0);
   const totalLoanPrincipalRemaining = loans.reduce((s, l) => {
     const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((sum, p) => sum + p.amount, 0);
     return s + Math.max(0, l.principal - paid);
   }, 0);
-  const totalLoanPaymentsMade = loanPayments.reduce((s, p) => s + p.amount, 0);
+  const totalLoanPaymentsMade = loanPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
   const totalAssetsValue = assets.reduce((s, a) => s + (a.purchasePrice || 0), 0);
 
   const trucks = [...new Set([...trips.map((t) => t.nopol), ...expenses.map((e) => e.truck)])].filter(Boolean);
@@ -1206,13 +1206,13 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
       nopol: t,
       trips: tTrips.length,
       revenue: tTrips.reduce((s, x) => s + x.jual, 0),
-      profit: tTrips.reduce((s, x) => s + x.profit, 0) - tExp.reduce((s, x) => s + x.amount, 0),
+      profit: tTrips.reduce((s, x) => s + x.profit, 0) - tExp.reduce((s, x) => s + (Number(x.amount) || 0), 0),
     };
   });
 
   const expByCategory = {};
   for (const e of expenses) {
-    expByCategory[e.category] = (expByCategory[e.category] || 0) + e.amount;
+    expByCategory[e.category] = (expByCategory[e.category] || 0) + (Number(e.amount) || 0);
   }
 
   return (
@@ -1272,7 +1272,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             label: "Truck Ops Expenses", value: fmt(truckOpsExpenses), color: "#c8a86b", icon: "▼",
             breakdown: (() => {
               const byCat = {};
-              expenses.filter((e) => (e.expenseType || "truck") === "truck").forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
+              expenses.filter((e) => (e.expenseType || "truck") === "truck").forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + (Number(e.amount) || 0); });
               const rows = Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => [cat, fmt(amt)]);
               return rows.length === 0 ? [["No expenses yet", ""]] : [...rows, ["─────────", ""], ["TOTAL", fmt(truckOpsExpenses)]];
             })(),
@@ -1281,7 +1281,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             label: "Overhead Expenses", value: fmt(overheadExpenses), color: "rgba(255,255,255,0.45)", icon: "▼",
             breakdown: (() => {
               const byCat = {};
-              expenses.filter((e) => e.expenseType === "overhead").forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
+              expenses.filter((e) => e.expenseType === "overhead").forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + (Number(e.amount) || 0); });
               const rows = Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => [cat, fmt(amt)]);
               return rows.length === 0 ? [["No overhead yet", ""]] : [...rows, ["─────────", ""], ["TOTAL", fmt(overheadExpenses)]];
             })(),
@@ -1302,8 +1302,8 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
           {
             label: "Cash Balance", value: fmt(kasBalance), color: "#c8a86b", icon: "◈",
             breakdown: (() => {
-              const totalIn = kas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0);
-              const totalOut = kas.filter((k) => k.type === "out").reduce((s, k) => s + k.amount, 0);
+              const totalIn = kas.filter((k) => k.type === "in").reduce((s, k) => s + (Number(k.amount) || 0), 0);
+              const totalOut = kas.filter((k) => k.type === "out").reduce((s, k) => s + (Number(k.amount) || 0), 0);
               return [
                 ["Total Cash In", fmt(totalIn)],
                 ["Total Cash Out", fmt(-totalOut)],
@@ -1384,8 +1384,8 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
               .filter((t) => monthKey(t.date) === key)
               .reduce((s, t) => s + t.profit, 0);
             const truckAdditionalExpenses = expenses
-              .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck")
-              .reduce((s, e) => s + e.amount, 0);
+              .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck" && !e.category?.startsWith("Overhead"))
+              .reduce((s, e) => s + (Number(e.amount) || 0), 0);
             const loanMonthlyTotal = loanObligationsForMonth(key);
             const operationalProfit = tripGrossProfit - truckAdditionalExpenses - loanMonthlyTotal;
             return { key, label: monthLabel(key), tripGrossProfit, truckAdditionalExpenses, loanMonthlyTotal, operationalProfit };
@@ -1482,7 +1482,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
             
             <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>LOAN PRINCIPAL REMAINING</div><div style={{ fontSize: 15, color: "#f87171" }}>{fmt(totalLoanPrincipalRemaining)}</div></div>
             <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>TOTAL ASSETS</div><div style={{ fontSize: 15, color: "#c8a86b" }}>{fmt(totalAssetsValue)}</div></div>
-            <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>ACTIVE LOANS</div><div style={{ fontSize: 15, color: "#a78bfa" }}>{loans.filter((l) => { const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0); return paid < l.principal; }).length} / {loans.length}</div></div>
+            <div><div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>ACTIVE LOANS</div><div style={{ fontSize: 15, color: "#a78bfa" }}>{loans.filter((l) => { const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((s, p) => s + (Number(p.amount) || 0), 0); return paid < l.principal; }).length} / {loans.length}</div></div>
           </div>
         </div>
       )}
@@ -1929,8 +1929,8 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
   // ── Filtered data for chart + analysis ─────────────────────────────────────
   const dateFiltered = expenses.filter((e) => inDateRange(e.date));
-  const truckTotal = dateFiltered.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + e.amount, 0);
-  const overheadTotal = dateFiltered.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + e.amount, 0);
+  const truckTotal = dateFiltered.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const overheadTotal = dateFiltered.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const grandTotal = truckTotal + overheadTotal;
   const periodLabel = filterPeriod === 'all' ? 'All time' : filterPeriod === 'custom' ? `${effectiveFrom || 'earliest'} → ${effectiveTo || 'today'}` : filterPeriod.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
@@ -1942,7 +1942,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const byCategory = {};
   for (const e of dateFiltered) {
     if ((e.expenseType || "truck") === "driver") continue;
-    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+    byCategory[e.category] = (byCategory[e.category] || 0) + (Number(e.amount) || 0);
   }
   const categoryEntries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
 
@@ -2029,7 +2029,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
         </div>
         <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>PETTY CASH TOP-UPS</div>
-          <div style={{ fontSize: 18, color: "#c8a86b" }}>{fmt(dateFiltered.filter(e => e.expenseType === "petty").reduce((s, e) => s + e.amount, 0))}</div>
+          <div style={{ fontSize: 18, color: "#c8a86b" }}>{fmt(dateFiltered.filter(e => e.expenseType === "petty").reduce((s, e) => s + (Number(e.amount) || 0), 0))}</div>
         </div>
         <div style={{ background: "#162030", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>TOTAL EXPENSES</div>
@@ -2362,8 +2362,8 @@ function Kas({ kas, setKas, showToast, kasBalance, guardedDelete, logActivity })
         return true;
       });
 
-  const periodCashIn  = filteredRows.filter(k => k.type === "in").reduce((s, k) => s + k.amount, 0);
-  const periodCashOut = filteredRows.filter(k => k.type === "out").reduce((s, k) => s + k.amount, 0);
+  const periodCashIn  = filteredRows.filter(k => k.type === "in").reduce((s, k) => s + (Number(k.amount) || 0), 0);
+  const periodCashOut = filteredRows.filter(k => k.type === "out").reduce((s, k) => s + (Number(k.amount) || 0), 0);
 
   return (
     <div>
@@ -2502,10 +2502,10 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
   // ── Calculations ─────────────────────────────────────────────────────────
   const getHolderStats = (holder) => {
     const topups = pettyTopups.filter((t) => t.holderId === holder.id).sort((a, b) => a.date.localeCompare(b.date));
-    const totalTopup = topups.reduce((s, t) => s + t.amount, 0);
+    const totalTopup = topups.reduce((s, t) => s + (Number(t.amount) || 0), 0);
     // Spending = all expenses tagged to this holder (manual or imported)
     const holderExpenses = expenses.filter((e) => e.holderId === holder.id).sort((a, b) => a.date.localeCompare(b.date));
-    const spending = holderExpenses.reduce((s, e) => s + e.amount, 0);
+    const spending = holderExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
     const balance = totalTopup - spending;
     return { topups, totalTopup, spending, balance, holderExpenses };
   };
@@ -2514,7 +2514,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
   const unassignedExpenses = expenses.filter((e) => e.holderId === "unassigned");
 
   // Grand totals
-  const grandTopup   = pettyTopups.reduce((s, t) => s + t.amount, 0);
+  const grandTopup   = pettyTopups.reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const grandBalance = pettyHolders.filter((h) => h.active).reduce((s, h) => {
     const { balance } = getHolderStats(h);
     return s + balance;
@@ -2660,7 +2660,7 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                   <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>⚠ {unassignedExpenses.length} Unassigned Expense{unassignedExpenses.length !== 1 ? "s" : ""}</div>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>These were imported but could not be auto-assigned (multiple active holders). Assign them to a holder below.</div>
                 </div>
-                <div style={{ fontSize: 14, color: "#f59e0b", fontWeight: 700 }}>{fmt(unassignedExpenses.reduce((s,e) => s + e.amount, 0))}</div>
+                <div style={{ fontSize: 14, color: "#f59e0b", fontWeight: 700 }}>{fmt(unassignedExpenses.reduce((s,e) => s + (Number(e.amount) || 0), 0))}</div>
               </div>
               <div style={{ maxHeight: 160, overflowY: "auto" }}>
                 {unassignedExpenses.map((e) => (
@@ -2821,8 +2821,8 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
 
         const driverExp = filtered.filter(e => e.expenseType === "driver").sort((a, b) => a.date.localeCompare(b.date));
         const otherExp  = filtered.filter(e => e.expenseType !== "driver").sort((a, b) => a.date.localeCompare(b.date));
-        const driverTotal = driverExp.reduce((s, e) => s + e.amount, 0);
-        const otherTotal  = otherExp.reduce((s, e) => s + e.amount, 0);
+        const driverTotal = driverExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+        const otherTotal  = otherExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
         const filteredTotal = driverTotal + otherTotal;
 
         return (
@@ -3099,7 +3099,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
 
   const getLoanStats = (loan) => {
     const payments = loanPayments.filter((p) => p.loanId === loan.id).sort((a, b) => a.date.localeCompare(b.date));
-    const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+    const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
     const dpPaid = loan.principal - (loan.vehicleValue || loan.principal);
     const financedAmount = loan.vehicleValue || loan.principal;
     const remaining = Math.max(0, financedAmount - totalPaid);
@@ -3233,11 +3233,11 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
             <div style={{ background: "#162030", border: "1px solid rgba(52,211,153,0.25)", borderRadius: 8, padding: 16 }}>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>TOTAL OWNER CAPITAL</div>
-              <div style={{ fontSize: 18, color: "#34d399", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0))}</div>
+              <div style={{ fontSize: 18, color: "#34d399", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "capital").reduce((s, c) => s + (Number(c.amount) || 0), 0))}</div>
             </div>
             <div style={{ background: "#162030", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 8, padding: 16 }}>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>OTHER LOANS RECEIVED</div>
-              <div style={{ fontSize: 18, color: "#60a5fa", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "loan").reduce((s, c) => s + c.amount, 0))}</div>
+              <div style={{ fontSize: 18, color: "#60a5fa", fontWeight: 600 }}>{fmt(capital.filter((c) => c.type === "loan").reduce((s, c) => s + (Number(c.amount) || 0), 0))}</div>
             </div>
             <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 16 }}>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>TOTAL INJECTED</div>
@@ -3329,7 +3329,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
                 <tfoot>
                   <tr style={{ borderTop: "2px solid rgba(255,255,255,0.08)" }}>
                     <td colSpan={4} style={{ padding: "8px 8px", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>Total</td>
-                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#c8a86b", fontWeight: 700, fontSize: 13 }}>{fmt(capital.reduce((s, c) => s + c.amount, 0))}</td>
+                    <td style={{ padding: "8px 8px", textAlign: "right", color: "#c8a86b", fontWeight: 700, fontSize: 13 }}>{fmt(capital.reduce((s, c) => s + (Number(c.amount) || 0), 0))}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -3386,7 +3386,7 @@ function Fleet({ loans, setLoans, assets, setAssets, loanPayments, setLoanPaymen
         </div>
         <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 16 }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>TOTAL PAID SO FAR</div>
-          <div style={{ fontSize: 16, color: "#60a5fa" }}>{fmt(loanPayments.reduce((s, p) => s + p.amount, 0))}</div>
+          <div style={{ fontSize: 16, color: "#60a5fa" }}>{fmt(loanPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0))}</div>
         </div>
         <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 16 }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>MONTHLY OBLIGATIONS</div>
@@ -4078,22 +4078,22 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
   const fTotalRevenue = fTrips.reduce((s, t) => s + t.jual, 0);
   const fTripCosts = fTrips.reduce((s, t) => s + t.total, 0);
   const fGrossProfit = fTrips.reduce((s, t) => s + t.profit, 0);
-  const fTruckOpsExpenses = fExpenses.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + e.amount, 0);
-  const fOverheadExpenses = fExpenses.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + e.amount, 0);
+  const fTruckOpsExpenses = fExpenses.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const fOverheadExpenses = fExpenses.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const fTotalExpenses = fTruckOpsExpenses + fOverheadExpenses;
   const fNetProfit = fGrossProfit - fTotalExpenses;
-  const fCapitalInjected = fCapital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0);
-  const fLoansReceived = fCapital.filter((c) => c.type === "loan").reduce((s, c) => s + c.amount, 0);
-  const fLoanPaymentsMade = fLoanPayments.reduce((s, p) => s + p.amount, 0);
+  const fCapitalInjected = fCapital.filter((c) => c.type === "capital").reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const fLoansReceived = fCapital.filter((c) => c.type === "loan").reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const fLoanPaymentsMade = fLoanPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
   const fAssetsValue = fAssets.reduce((s, a) => s + (a.purchasePrice || 0), 0);
-  const fKasIn = fKas.filter((k) => k.type === "in").reduce((s, k) => s + k.amount, 0);
-  const fKasOut = fKas.filter((k) => k.type === "out").reduce((s, k) => s + k.amount, 0);
+  const fKasIn = fKas.filter((k) => k.type === "in").reduce((s, k) => s + (Number(k.amount) || 0), 0);
+  const fKasOut = fKas.filter((k) => k.type === "out").reduce((s, k) => s + (Number(k.amount) || 0), 0);
   const fKasBalance = fKasIn - fKasOut;
 
   const fTruckExpByCategory = {};
-  for (const e of fExpenses.filter((x) => (x.expenseType || "truck") === "truck")) fTruckExpByCategory[e.category] = (fTruckExpByCategory[e.category] || 0) + e.amount;
+  for (const e of fExpenses.filter((x) => (x.expenseType || "truck") === "truck")) fTruckExpByCategory[e.category] = (fTruckExpByCategory[e.category] || 0) + (Number(e.amount) || 0);
   const fOverheadExpByCategory = {};
-  for (const e of fExpenses.filter((x) => x.expenseType === "overhead")) fOverheadExpByCategory[e.category] = (fOverheadExpByCategory[e.category] || 0) + e.amount;
+  for (const e of fExpenses.filter((x) => x.expenseType === "overhead")) fOverheadExpByCategory[e.category] = (fOverheadExpByCategory[e.category] || 0) + (Number(e.amount) || 0);
 
   const periodLabel = (dateFrom || dateTo) ? `${dateFrom || "earliest"} to ${dateTo || "today"}` : "All time";
   const fileLabel = (dateFrom || dateTo) ? `${dateFrom || "all"}_to_${dateTo || "today"}` : "all_time";
@@ -4192,7 +4192,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
     // Simplified balance sheet
     const totalAssetsAcrossAll = totalAssetsValue; // use ALL assets (B/S is cumulative)
     const netCashAcrossAll = kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0);
-    const allCapital = capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0);
+    const allCapital = capital.filter((c) => c.type === "capital").reduce((s, c) => s + (Number(c.amount) || 0), 0);
     const allLoanPrincipalRemaining = loans.reduce((s, l) => {
       const paid = loanPayments.filter((p) => p.loanId === l.id).reduce((sum, p) => sum + p.amount, 0);
       return s + Math.max(0, l.principal - paid);
@@ -4575,7 +4575,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 10 }}>Cumulative position (not period-filtered)</div>
             <Section title="Assets" rows={[["Cash", kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)], ["Trucks & Equipment", totalAssetsValue]]} total={totalAssetsValue + kas.reduce((s, k) => s + (k.type === "in" ? k.amount : -k.amount), 0)} totalLabel="TOTAL ASSETS" color="#34d399" />
             <Section title="Liabilities" rows={[["Loans Outstanding", totalLoanPrincipalRemaining]]} total={totalLoanPrincipalRemaining} totalLabel="TOTAL LIABILITIES" color="#f87171" />
-            <Section title="Equity" rows={[["Owner Capital", capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0)]]} total={capital.filter((c) => c.type === "capital").reduce((s, c) => s + c.amount, 0)} totalLabel="TOTAL EQUITY" color="#60a5fa" />
+            <Section title="Equity" rows={[["Owner Capital", capital.filter((c) => c.type === "capital").reduce((s, c) => s + (Number(c.amount) || 0), 0)]]} total={capital.filter((c) => c.type === "capital").reduce((s, c) => s + (Number(c.amount) || 0), 0)} totalLabel="TOTAL EQUITY" color="#60a5fa" />
           </div>
         </div>
       </div>
@@ -4644,8 +4644,8 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
       const activeHolders = pettyHolders.filter((h) => h.active);
       const pettyIssues = [];
       for (const h of activeHolders) {
-        const topups = pettyTopups.filter((t) => t.holderId === h.id).reduce((s, t) => s + t.amount, 0);
-        const spending = expenses.filter((e) => e.holderId === h.id).reduce((s, e) => s + e.amount, 0);
+        const topups = pettyTopups.filter((t) => t.holderId === h.id).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+        const spending = expenses.filter((e) => e.holderId === h.id).reduce((s, e) => s + (Number(e.amount) || 0), 0);
         if (topups - spending < 0) pettyIssues.push(`${h.name}: topups ${fmt(topups)}, spending ${fmt(spending)}, balance ${fmt(topups - spending)}`);
       }
       results.push({ label: "Petty Cash Reconciliation", status: pettyIssues.length === 0 ? "pass" : "warn", detail: pettyIssues.length === 0 ? "All active holders have non-negative balances." : pettyIssues });
@@ -4657,7 +4657,7 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
       // Check 7 — Loan overpayment
       const loanIssues = [];
       for (const loan of loans) {
-        const paid = loanPayments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+        const paid = loanPayments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + (Number(p.amount) || 0), 0);
         if (paid > loan.principal) loanIssues.push(`${loan.lender}: principal ${fmt(loan.principal)}, paid ${fmt(paid)}`);
       }
       results.push({ label: "Loan Overpayment", status: loanIssues.length === 0 ? "pass" : "fail", detail: loanIssues.length === 0 ? "No loans overpaid." : loanIssues });
