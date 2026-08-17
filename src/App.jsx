@@ -358,8 +358,8 @@ const CAT_COLOR = {
   Other: "#6b7280",
 };
 
-const TRUCK_CATEGORIES = ["Fuel", "Toll", "Repair", "Spare Parts", "Garage", "Other", "Overhead Spareparts", "Overhead Garage", "Overhead Admin", "Overhead Others"];
-const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Tax", "Insurance", "Marketing", "Other"];
+const TRUCK_CATEGORIES = ["Fuel", "Toll", "Repair", "Spare Parts", "Garage", "Other"];
+const OVERHEAD_CATEGORIES = ["Salary", "Office Rent", "Utilities", "Admin", "Tax", "Insurance", "Marketing", "Prepaid Spareparts - Non Operating", "Prepaid Garage - Non Operating", "Prepaid Others - Non Operating", "Other"];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
@@ -1384,7 +1384,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
               .filter((t) => monthKey(t.date) === key)
               .reduce((s, t) => s + t.profit, 0);
             const truckAdditionalExpenses = expenses
-              .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck" && !e.category?.startsWith("Overhead"))
+              .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck")
               .reduce((s, e) => s + (Number(e.amount) || 0), 0);
             const loanMonthlyTotal = loanObligationsForMonth(key);
             const operationalProfit = tripGrossProfit - truckAdditionalExpenses - loanMonthlyTotal;
@@ -1931,17 +1931,15 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
   const dateFiltered = expenses.filter((e) => inDateRange(e.date));
   const truckTotal = dateFiltered.filter((e) => (e.expenseType || "truck") === "truck").reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const overheadTotal = dateFiltered.filter((e) => e.expenseType === "overhead").reduce((s, e) => s + (Number(e.amount) || 0), 0);
-  const grandTotal = truckTotal + overheadTotal;
+  const driverTotal = dateFiltered.filter((e) => e.expenseType === "driver").reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const grandTotal = truckTotal + overheadTotal + driverTotal;
   const periodLabel = filterPeriod === 'all' ? 'All time' : filterPeriod === 'custom' ? `${effectiveFrom || 'earliest'} → ${effectiveTo || 'today'}` : filterPeriod.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-  // Aggregate by category for pie chart — same scope as grandTotal
-  // (Truck + Overhead only) so percentages can never exceed 100%.
-  // Driver-type entries (Salary, per-trip misc charges) are deliberately
-  // excluded here since they duplicate costs already reflected in trip
-  // profit, and were never part of grandTotal to begin with.
+  // Aggregate by category for pie chart — now matches grandTotal's scope
+  // (Truck + Overhead + Driver), so every expense counts and percentages
+  // sum to exactly 100%.
   const byCategory = {};
   for (const e of dateFiltered) {
-    if ((e.expenseType || "truck") === "driver") continue;
     byCategory[e.category] = (byCategory[e.category] || 0) + (Number(e.amount) || 0);
   }
   const categoryEntries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
@@ -2027,6 +2025,10 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>OVERHEAD</div>
           <div style={{ fontSize: 18, color: "#ec4899" }}>{fmt(overheadTotal)}</div>
         </div>
+        <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 18 }}>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>DRIVER / ALLOWANCE</div>
+          <div style={{ fontSize: 18, color: "#a78bfa" }}>{fmt(driverTotal)}</div>
+        </div>
         <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 18 }}>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>PETTY CASH TOP-UPS</div>
           <div style={{ fontSize: 18, color: "#c8a86b" }}>{fmt(dateFiltered.filter(e => e.expenseType === "petty").reduce((s, e) => s + (Number(e.amount) || 0), 0))}</div>
@@ -2036,6 +2038,7 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
           <div style={{ fontSize: 18, color: "#f87171", fontWeight: 600 }}>{fmt(grandTotal)}</div>
         </div>
       </div>
+
 
       {/* Pie Chart + Breakdown */}
       {grandTotal > 0 && (
