@@ -1253,10 +1253,16 @@ function OperationalProfitTable({ trips, expenses, loans, assets, loanMonthOverr
       const loanMonthlyTotal = loanObligationsForMonth(key);
       const profitBeforeLoans = tripGrossProfit - truckAdditionalExpenses;
       const operationalProfit = profitBeforeLoans - loanMonthlyTotal;
-      // % of profit-before-loans needed to cover this month's loan payments.
-      // If there's no profit before loans, a percentage isn't meaningful.
-      const runRate = profitBeforeLoans > 0 ? (loanMonthlyTotal / profitBeforeLoans) * 100 : null;
-      return { key, label: monthLabel(key), tripGrossProfit, truckAdditionalExpenses, loanMonthlyTotal, operationalProfit, runRate };
+      // Debt Service Coverage Ratio (DSCR) — standard accounting metric:
+      // profit before debt service ÷ debt obligation for the period.
+      // 1.0x means profit exactly covers the obligation; below 1.0x means
+      // it doesn't; above 1.0x shows the actual cushion (uncapped, unlike
+      // a simple coverage percentage). Negative profit yields a negative
+      // DSCR, which is itself meaningful (operations lost money before
+      // debt was even considered). Null when there's no obligation that
+      // month — nothing to measure coverage against.
+      const dscr = loanMonthlyTotal > 0 ? profitBeforeLoans / loanMonthlyTotal : null;
+      return { key, label: monthLabel(key), tripGrossProfit, truckAdditionalExpenses, loanMonthlyTotal, operationalProfit, dscr };
     });
 
   return (
@@ -1277,7 +1283,7 @@ function OperationalProfitTable({ trips, expenses, loans, assets, loanMonthOverr
               <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRIP GROSS PROFIT</th>
               <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRUCK ADDITIONAL EXPENSES</th>
               <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>LOAN OBLIGATIONS</th>
-              <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>OBLIGATION RUN RATE</th>
+              <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>DSCR</th>
               <th style={{ textAlign: "right", padding: "6px 0 6px 10px", fontSize: 11, letterSpacing: 0.5 }}>OPERATIONAL PROFIT</th>
             </tr>
           </thead>
@@ -1342,8 +1348,8 @@ function OperationalProfitTable({ trips, expenses, loans, assets, loanMonthOverr
                       </div>
                     )}
                   </td>
-                  <td style={{ textAlign: "right", padding: "10px", color: "rgba(255,255,255,0.45)" }}>
-                    {r.runRate === null ? "N/A" : `${r.runRate.toFixed(0)}%`}
+                  <td style={{ textAlign: "right", padding: "10px", fontWeight: 600, color: r.dscr === null ? "rgba(255,255,255,0.45)" : r.dscr >= 1 ? "#34d399" : "#f87171" }}>
+                    {r.dscr === null ? "N/A" : `${r.dscr.toFixed(2)}x`}
                   </td>
                   <td style={{ textAlign: "right", padding: "10px 0 10px 10px", fontWeight: 700, color: r.operationalProfit >= 0 ? "#34d399" : "#f87171" }}>
                     {fmt(r.operationalProfit)}
