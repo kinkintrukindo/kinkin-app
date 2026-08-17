@@ -1354,6 +1354,80 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
         ))}
       </div>
 
+      {/* Operational Profit Table — Month, Trip Gross Profit, Truck Additional Expenses, Loan Obligations, Operational Profit */}
+      {(() => {
+        const monthKey = (dateStr) => (dateStr || "").slice(0, 7);
+        const monthLabel = (key) => {
+          const [y, m] = key.split("-").map(Number);
+          if (!y || !m) return key;
+          return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        };
+
+        // Only count a loan's monthly payment starting from the month its
+        // repayment actually began — new loans added later automatically
+        // apply from their own startDate onward, nothing else needed.
+        const loanObligationsForMonth = (key) =>
+          loans
+            .filter((l) => l.startDate && monthKey(l.startDate) <= key)
+            .reduce((s, l) => s + (l.monthlyPayment || 0), 0);
+
+        const months = new Set([
+          ...trips.map((t) => monthKey(t.date)),
+          ...expenses.map((e) => monthKey(e.date)),
+        ]);
+        months.delete("");
+
+        const monthlyRows = Array.from(months)
+          .sort((a, b) => b.localeCompare(a)) // newest first
+          .map((key) => {
+            const tripGrossProfit = trips
+              .filter((t) => monthKey(t.date) === key)
+              .reduce((s, t) => s + t.profit, 0);
+            const truckAdditionalExpenses = expenses
+              .filter((e) => monthKey(e.date) === key && trucks.includes(e.truck))
+              .reduce((s, e) => s + e.amount, 0);
+            const loanMonthlyTotal = loanObligationsForMonth(key);
+            const operationalProfit = tripGrossProfit - truckAdditionalExpenses - loanMonthlyTotal;
+            return { key, label: monthLabel(key), tripGrossProfit, truckAdditionalExpenses, loanMonthlyTotal, operationalProfit };
+          });
+
+        return (
+          <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, marginBottom: 20, overflowX: "auto" }}>
+            <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>
+              Operational Profit by Month
+            </h3>
+            {monthlyRows.length === 0 ? (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>No trips or expenses recorded yet.</div>
+            ) : (
+              <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", minWidth: 640 }}>
+                <thead>
+                  <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                    <th style={{ textAlign: "left", padding: "6px 10px 6px 0", fontSize: 11, letterSpacing: 0.5 }}>MONTH</th>
+                    <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRIP GROSS PROFIT</th>
+                    <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRUCK ADDITIONAL EXPENSES</th>
+                    <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>LOAN OBLIGATIONS</th>
+                    <th style={{ textAlign: "right", padding: "6px 0 6px 10px", fontSize: 11, letterSpacing: 0.5 }}>OPERATIONAL PROFIT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyRows.map((r) => (
+                    <tr key={r.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <td style={{ padding: "10px 10px 10px 0", color: "#e2e8f0", fontWeight: 600, whiteSpace: "nowrap" }}>{r.label}</td>
+                      <td style={{ textAlign: "right", padding: "10px", color: "rgba(255,255,255,0.75)" }}>{fmt(r.tripGrossProfit)}</td>
+                      <td style={{ textAlign: "right", padding: "10px", color: "#f87171" }}>−{fmt(r.truckAdditionalExpenses)}</td>
+                      <td style={{ textAlign: "right", padding: "10px", color: "#f87171" }}>−{fmt(r.loanMonthlyTotal)}</td>
+                      <td style={{ textAlign: "right", padding: "10px 0 10px 10px", fontWeight: 700, color: r.operationalProfit >= 0 ? "#34d399" : "#f87171" }}>
+                        {fmt(r.operationalProfit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Truck Performance Table */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
         <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20 }}>
