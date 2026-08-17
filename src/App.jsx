@@ -1384,7 +1384,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
               .filter((t) => monthKey(t.date) === key)
               .reduce((s, t) => s + t.profit, 0);
             const truckAdditionalExpenses = expenses
-              .filter((e) => monthKey(e.date) === key && trucks.includes(e.truck))
+              .filter((e) => monthKey(e.date) === key && trucks.includes(e.truck) && !["Fuel", "Toll"].includes(e.category))
               .reduce((s, e) => s + e.amount, 0);
             const loanMonthlyTotal = loanObligationsForMonth(key);
             const operationalProfit = tripGrossProfit - truckAdditionalExpenses - loanMonthlyTotal;
@@ -1527,6 +1527,51 @@ function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
   const [editForm, setEditForm] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // Period filter
+  const [filterPeriod, setFilterPeriod] = useState("all"); // "all"|"this-month"|"last-month"|"this-quarter"|"custom"
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const getPeriodBounds = (period) => {
+    const t = today();
+    const [y, m] = t.split('-').map(Number);
+    if (period === 'this-month') return { from: `${y}-${String(m).padStart(2,'0')}-01`, to: t };
+    if (period === 'last-month') {
+      const lm = m === 1 ? 12 : m - 1;
+      const ly = m === 1 ? y - 1 : y;
+      const lastDay = new Date(y, m - 1, 0).getDate();
+      return { from: `${ly}-${String(lm).padStart(2,'0')}-01`, to: `${ly}-${String(lm).padStart(2,'0')}-${lastDay}` };
+    }
+    if (period === 'this-quarter') {
+      const qStart = Math.floor((m - 1) / 3) * 3 + 1;
+      return { from: `${y}-${String(qStart).padStart(2,'0')}-01`, to: t };
+    }
+    return { from: '', to: '' };
+  };
+
+  const selectPeriod = (period) => {
+    setFilterPeriod(period);
+    if (period !== 'custom') {
+      const bounds = getPeriodBounds(period);
+      setDateFrom(bounds.from);
+      setDateTo(bounds.to);
+    }
+  };
+
+  const effectiveFrom = filterPeriod === 'all' ? '' : filterPeriod === 'custom' ? dateFrom : getPeriodBounds(filterPeriod).from;
+  const effectiveTo   = filterPeriod === 'all' ? '' : filterPeriod === 'custom' ? dateTo   : getPeriodBounds(filterPeriod).to;
+
+  const inDateRange = (dateStr) => {
+    if (!dateStr) return true;
+    if (effectiveFrom && dateStr < effectiveFrom) return false;
+    if (effectiveTo   && dateStr > effectiveTo)   return false;
+    return true;
+  };
+
+  const periodLabel = filterPeriod === 'all' ? 'All time' : filterPeriod === 'custom' ? `${effectiveFrom || 'earliest'} → ${effectiveTo || 'today'}` : filterPeriod.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  const dateFiltered = trips.filter((t) => inDateRange(t.date));
+
   const total = (Number(form.sangu) || 0) + (Number(form.lainAmt) || 0);
   const profit = (Number(form.jual) || 0) - total;
 
@@ -1598,7 +1643,39 @@ function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
         </button>
       </div>
 
-      {/* Add Trip Form — only when open */}
+      {/* Period Filter */}
+      <div style={{ background: "#162030", border: "1px solid rgba(200,168,107,0.3)", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ fontSize: 12, color: "#c8a86b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Period Filter</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{periodLabel} · {dateFiltered.length} entries</div>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+          {[
+            { key: "all",          label: "All Time" },
+            { key: "this-month",   label: "This Month" },
+            { key: "last-month",   label: "Last Month" },
+            { key: "this-quarter", label: "This Quarter" },
+            { key: "custom",       label: "Custom" },
+          ].map((p) => (
+            <button key={p.key} onClick={() => selectPeriod(p.key)} style={{
+              background: filterPeriod === p.key ? "#c8a86b" : "#1e2d3e",
+              color: filterPeriod === p.key ? "#162030" : "rgba(255,255,255,0.45)",
+              border: `1px solid ${filterPeriod === p.key ? "#c8a86b" : "rgba(255,255,255,0.12)"}`,
+              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer"
+            }}>
+              {p.label}
+            </button>
+          ))}
+          {filterPeriod === 'custom' && (
+            <>
+              <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setFilterPeriod("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>→</span>
+              <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setFilterPeriod("custom"); }} style={{ width: 130, padding: "5px 8px", fontSize: 11 }} />
+            </>
+          )}
+        </div>
+      </div>
+
       {showAddForm && (
       <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <h3 style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Add New Trip</h3>
@@ -1627,10 +1704,10 @@ function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
       <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, overflowX: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
           <div>
-            <h3 style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: 1 }}>All Trips ({trips.length})</h3>
+            <h3 style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: 1 }}>All Trips ({dateFiltered.length})</h3>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>Duplicates detected by date + Container # — re-uploads safe</div>
           </div>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>Total Profit: <span style={{ color: "#34d399" }}>{fmt(trips.reduce((s, t) => s + t.profit, 0))}</span></span>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>Total Profit: <span style={{ color: "#34d399" }}>{fmt(dateFiltered.reduce((s, t) => s + t.profit, 0))}</span></span>
         </div>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 800 }}>
           <thead>
@@ -1641,7 +1718,7 @@ function Trips({ trips, setTrips, showToast, guardedDelete, logActivity }) {
             </tr>
           </thead>
           <tbody>
-            {[...trips].sort((a, b) => a.date.localeCompare(b.date)).map((t) => {
+            {[...dateFiltered].sort((a, b) => a.date.localeCompare(b.date)).map((t) => {
               const isEditing = editingId === t.id;
               if (isEditing) {
                 const editTotal = (Number(editForm.sangu) || 0) + (Number(editForm.lainAmt) || 0);
