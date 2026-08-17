@@ -388,6 +388,7 @@ function KinKinApp() {
   const [importLogs, setImportLogs] = useState([]);
   const [pettyHolders, setPettyHolders] = useState([]);
   const [pettyTopups, setPettyTopups] = useState([]);
+  const [loanMonthOverrides, setLoanMonthOverrides] = useState({}); // { "YYYY-MM": ["loanId1", ...] }
   const [uploadModal, setUploadModal] = useState(null); // { file, fileName, monthYear }
   const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm }
   const [toast, setToast] = useState(null);
@@ -419,6 +420,7 @@ function KinKinApp() {
         setImportLogs(saved.importLogs ?? []);
         setPettyHolders(saved.pettyHolders ?? []);
         setPettyTopups(saved.pettyTopups ?? []);
+        setLoanMonthOverrides(saved.loanMonthOverrides ?? {});
         setActivityLog(saved.activityLog ?? []);
         setCashBackfillDone(saved.cashBackfillDone ?? false);
         if (saved.appPassword) { setAppPassword(saved.appPassword); _runtimePassword = saved.appPassword; }
@@ -464,10 +466,10 @@ function KinKinApp() {
   useEffect(() => {
     if (_skipSave.current) return;
     setSaveStatus("saving");
-    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword })
+    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides })
       .then(() => setSaveStatus("saved"))
       .catch(() => setSaveStatus("error"));
-  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword]);
+  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides]);
 
   // Step 1: User picks a file — open modal asking for month/year
   // ── Fingerprint for deduplication — container # is physically unique ────────
@@ -1103,7 +1105,7 @@ function KinKinApp() {
       )}
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
-        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} globalFileRef={globalFileRef} importing={importing} />}
+        {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} assets={assets} loanMonthOverrides={loanMonthOverrides} setLoanMonthOverrides={setLoanMonthOverrides} globalFileRef={globalFileRef} importing={importing} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "kas" && <Kas kas={kas} setKas={setKas} showToast={showToast} kasBalance={kasBalance} guardedDelete={guardedDelete} logActivity={logActivity} />}
@@ -1196,7 +1198,167 @@ function KinKinApp() {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, globalFileRef, importing, kas }) {
+// ── OPERATIONAL PROFIT BY MONTH ────────────────────────────────────────────
+// Editable per-month loan obligations: by default, a loan counts starting
+// from its own startDate, but the user can override which loans apply to
+// any specific month (e.g. a truck bought mid-year shouldn't have its loan
+// counted in earlier months even if startDate was set incorrectly).
+function OperationalProfitTable({ trips, expenses, loans, assets, loanMonthOverrides, setLoanMonthOverrides }) {
+  const [editingMonth, setEditingMonth] = useState(null);
+
+  const monthKey = (dateStr) => (dateStr || "").slice(0, 7);
+  const monthLabel = (key) => {
+    const [y, m] = key.split("-").map(Number);
+    if (!y || !m) return key;
+    return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  const loanLabel = (loan) => {
+    const asset = (assets || []).find((a) => a.id === loan.truckId);
+    return asset?.nopol || asset?.name || loan.lender || loan.purpose || "Loan";
+  };
+
+  // Default set of loans for a month if the user hasn't manually overridden it.
+  const defaultLoanIdsForMonth = (key) =>
+    loans.filter((l) => l.startDate && monthKey(l.startDate) <= key).map((l) => l.id);
+
+  const effectiveLoanIdsForMonth = (key) => loanMonthOverrides[key] ?? defaultLoanIdsForMonth(key);
+
+  const loanObligationsForMonth = (key) => {
+    const ids = effectiveLoanIdsForMonth(key);
+    return loans.filter((l) => ids.includes(l.id)).reduce((s, l) => s + (Number(l.monthlyPayment) || 0), 0);
+  };
+
+  const toggleLoanForMonth = (key, loanId) => {
+    const current = effectiveLoanIdsForMonth(key);
+    const next = current.includes(loanId) ? current.filter((id) => id !== loanId) : [...current, loanId];
+    setLoanMonthOverrides({ ...loanMonthOverrides, [key]: next });
+  };
+
+  const months = new Set([
+    ...trips.map((t) => monthKey(t.date)),
+    ...expenses.map((e) => monthKey(e.date)),
+  ]);
+  months.delete("");
+
+  const monthlyRows = Array.from(months)
+    .sort((a, b) => b.localeCompare(a)) // newest first
+    .map((key) => {
+      const tripGrossProfit = trips
+        .filter((t) => monthKey(t.date) === key)
+        .reduce((s, t) => s + t.profit, 0);
+      const truckAdditionalExpenses = expenses
+        .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck")
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const loanMonthlyTotal = loanObligationsForMonth(key);
+      const profitBeforeLoans = tripGrossProfit - truckAdditionalExpenses;
+      const operationalProfit = profitBeforeLoans - loanMonthlyTotal;
+      // % of profit-before-loans needed to cover this month's loan payments.
+      // If there's no profit before loans, a percentage isn't meaningful.
+      const runRate = profitBeforeLoans > 0 ? (loanMonthlyTotal / profitBeforeLoans) * 100 : null;
+      return { key, label: monthLabel(key), tripGrossProfit, truckAdditionalExpenses, loanMonthlyTotal, operationalProfit, runRate };
+    });
+
+  return (
+    <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, marginBottom: 20, overflowX: "auto", position: "relative" }}>
+      {/* Backdrop to close the edit popover on outside click */}
+      {editingMonth && <div onClick={() => setEditingMonth(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 199 }} />}
+
+      <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>
+        Operational Profit by Month
+      </h3>
+      {monthlyRows.length === 0 ? (
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>No trips or expenses recorded yet.</div>
+      ) : (
+        <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", minWidth: 760 }}>
+          <thead>
+            <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <th style={{ textAlign: "left", padding: "6px 10px 6px 0", fontSize: 11, letterSpacing: 0.5 }}>MONTH</th>
+              <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRIP GROSS PROFIT</th>
+              <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRUCK ADDITIONAL EXPENSES</th>
+              <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>LOAN OBLIGATIONS</th>
+              <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>OBLIGATION RUN RATE</th>
+              <th style={{ textAlign: "right", padding: "6px 0 6px 10px", fontSize: 11, letterSpacing: 0.5 }}>OPERATIONAL PROFIT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {monthlyRows.map((r) => {
+              const activeLoanIds = effectiveLoanIdsForMonth(r.key);
+              return (
+                <tr key={r.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <td style={{ padding: "10px 10px 10px 0", color: "#e2e8f0", fontWeight: 600, whiteSpace: "nowrap" }}>{r.label}</td>
+                  <td style={{ textAlign: "right", padding: "10px", color: "rgba(255,255,255,0.75)" }}>{fmt(r.tripGrossProfit)}</td>
+                  <td style={{ textAlign: "right", padding: "10px", color: "#f87171" }}>−{fmt(r.truckAdditionalExpenses)}</td>
+                  <td style={{ textAlign: "right", padding: "10px", position: "relative" }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingMonth(editingMonth === r.key ? null : r.key); }}
+                      style={{
+                        background: "transparent", border: "none", padding: 0, cursor: "pointer",
+                        color: "#f87171", fontSize: 13, textDecoration: "underline dotted",
+                      }}
+                      title="Click to choose which loans apply to this month"
+                    >
+                      −{fmt(r.loanMonthlyTotal)}
+                    </button>
+                    {editingMonth === r.key && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 200,
+                          background: "#0d1e30", border: "1px solid rgba(200,168,107,0.4)", borderRadius: 8,
+                          padding: "12px 14px", minWidth: 240, boxShadow: "0 8px 32px rgba(0,0,0,0.7)", textAlign: "left",
+                        }}
+                      >
+                        <div style={{ fontSize: 10, color: "#c8a86b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                          Loans applying to {r.label}
+                        </div>
+                        {loans.length === 0 ? (
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>No loans set up in Fleet yet.</div>
+                        ) : (
+                          loans.map((l) => (
+                            <label key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", fontSize: 12, color: "rgba(255,255,255,0.75)", cursor: "pointer" }}>
+                              <input
+                                type="checkbox"
+                                checked={activeLoanIds.includes(l.id)}
+                                onChange={() => toggleLoanForMonth(r.key, l.id)}
+                              />
+                              <span style={{ flex: 1 }}>{loanLabel(l)}</span>
+                              <span style={{ color: "rgba(255,255,255,0.45)" }}>{fmt(l.monthlyPayment)}</span>
+                            </label>
+                          ))
+                        )}
+                        {loanMonthOverrides[r.key] && (
+                          <button
+                            onClick={() => {
+                              const next = { ...loanMonthOverrides };
+                              delete next[r.key];
+                              setLoanMonthOverrides(next);
+                            }}
+                            style={{ marginTop: 8, fontSize: 10, color: "rgba(255,255,255,0.4)", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "3px 8px", cursor: "pointer" }}
+                          >
+                            Reset to automatic
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ textAlign: "right", padding: "10px", color: "rgba(255,255,255,0.45)" }}>
+                    {r.runRate === null ? "N/A" : `${r.runRate.toFixed(0)}%`}
+                  </td>
+                  <td style={{ textAlign: "right", padding: "10px 0 10px 10px", fontWeight: 700, color: r.operationalProfit >= 0 ? "#34d399" : "#f87171" }}>
+                    {fmt(r.operationalProfit)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, assets, loanMonthOverrides, setLoanMonthOverrides, globalFileRef, importing, kas }) {
   const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
   const truckStats = trucks.map((t) => {
@@ -1354,79 +1516,15 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
         ))}
       </div>
 
-      {/* Operational Profit Table — Month, Trip Gross Profit, Truck Additional Expenses, Loan Obligations, Operational Profit */}
-      {(() => {
-        const monthKey = (dateStr) => (dateStr || "").slice(0, 7);
-        const monthLabel = (key) => {
-          const [y, m] = key.split("-").map(Number);
-          if (!y || !m) return key;
-          return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-        };
-
-        // Only count a loan's monthly payment starting from the month its
-        // repayment actually began — new loans added later automatically
-        // apply from their own startDate onward, nothing else needed.
-        const loanObligationsForMonth = (key) =>
-          loans
-            .filter((l) => l.startDate && monthKey(l.startDate) <= key)
-            .reduce((s, l) => s + (l.monthlyPayment || 0), 0);
-
-        const months = new Set([
-          ...trips.map((t) => monthKey(t.date)),
-          ...expenses.map((e) => monthKey(e.date)),
-        ]);
-        months.delete("");
-
-        const monthlyRows = Array.from(months)
-          .sort((a, b) => b.localeCompare(a)) // newest first
-          .map((key) => {
-            const tripGrossProfit = trips
-              .filter((t) => monthKey(t.date) === key)
-              .reduce((s, t) => s + t.profit, 0);
-            const truckAdditionalExpenses = expenses
-              .filter((e) => monthKey(e.date) === key && (e.expenseType || "truck") === "truck")
-              .reduce((s, e) => s + (Number(e.amount) || 0), 0);
-            const loanMonthlyTotal = loanObligationsForMonth(key);
-            const operationalProfit = tripGrossProfit - truckAdditionalExpenses - loanMonthlyTotal;
-            return { key, label: monthLabel(key), tripGrossProfit, truckAdditionalExpenses, loanMonthlyTotal, operationalProfit };
-          });
-
-        return (
-          <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20, marginBottom: 20, overflowX: "auto" }}>
-            <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>
-              Operational Profit by Month
-            </h3>
-            {monthlyRows.length === 0 ? (
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>No trips or expenses recorded yet.</div>
-            ) : (
-              <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", minWidth: 640 }}>
-                <thead>
-                  <tr style={{ color: "rgba(255,255,255,0.45)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                    <th style={{ textAlign: "left", padding: "6px 10px 6px 0", fontSize: 11, letterSpacing: 0.5 }}>MONTH</th>
-                    <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRIP GROSS PROFIT</th>
-                    <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>TRUCK ADDITIONAL EXPENSES</th>
-                    <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, letterSpacing: 0.5 }}>LOAN OBLIGATIONS</th>
-                    <th style={{ textAlign: "right", padding: "6px 0 6px 10px", fontSize: 11, letterSpacing: 0.5 }}>OPERATIONAL PROFIT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthlyRows.map((r) => (
-                    <tr key={r.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                      <td style={{ padding: "10px 10px 10px 0", color: "#e2e8f0", fontWeight: 600, whiteSpace: "nowrap" }}>{r.label}</td>
-                      <td style={{ textAlign: "right", padding: "10px", color: "rgba(255,255,255,0.75)" }}>{fmt(r.tripGrossProfit)}</td>
-                      <td style={{ textAlign: "right", padding: "10px", color: "#f87171" }}>−{fmt(r.truckAdditionalExpenses)}</td>
-                      <td style={{ textAlign: "right", padding: "10px", color: "#f87171" }}>−{fmt(r.loanMonthlyTotal)}</td>
-                      <td style={{ textAlign: "right", padding: "10px 0 10px 10px", fontWeight: 700, color: r.operationalProfit >= 0 ? "#34d399" : "#f87171" }}>
-                        {fmt(r.operationalProfit)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        );
-      })()}
+      {/* Operational Profit Table — Month, Trip Gross Profit, Truck Additional Expenses, Loan Obligations, Obligation Run Rate, Operational Profit */}
+      <OperationalProfitTable
+        trips={trips}
+        expenses={expenses}
+        loans={loans}
+        assets={assets}
+        loanMonthOverrides={loanMonthOverrides}
+        setLoanMonthOverrides={setLoanMonthOverrides}
+      />
 
       {/* Truck Performance Table */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
