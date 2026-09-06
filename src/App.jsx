@@ -2178,24 +2178,35 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
 
             {/* Legend */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {categoryEntries.map(([cat, amt], i) => {
-                const pct = grandTotal > 0 ? (amt / grandTotal) * 100 : 0;
-                const color = CAT_COLOR[cat] || "#6b7280";
-                return (
-                  <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 14, height: 14, background: color, borderRadius: 2, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                        <span style={{ color: "#e2e8f0" }}>{cat}</span>
-                        <span style={{ color, fontWeight: 600 }}>{fmt(amt)} <span style={{ color: "rgba(255,255,255,0.45)", fontWeight: 400 }}>({pct.toFixed(1)}%)</span></span>
-                      </div>
-                      <div style={{ background: "rgba(255,255,255,0.08)", height: 4, borderRadius: 2 }}>
-                        <div style={{ width: `${pct}%`, background: color, height: 4, borderRadius: 2, transition: "width .4s" }} />
+              {(() => {
+                const maxAmt = Math.max(...categoryEntries.map(([, a]) => a), 1);
+                return categoryEntries.map(([cat, amt], i) => {
+                  const pct = grandTotal > 0 ? (amt / grandTotal) * 100 : 0;
+                  // Bar width uses a sqrt scale relative to the largest category,
+                  // not a linear share of the total. A linear scale means one
+                  // dominant category (e.g. Salary at ~49% of total) stretches
+                  // nearly full-width while everything under ~5% becomes an
+                  // invisible sliver. Sqrt compresses that range so small
+                  // categories stay visibly present without changing the
+                  // actual displayed percentage (still % of total).
+                  const barPct = Math.sqrt(amt) / Math.sqrt(maxAmt) * 100;
+                  const color = CAT_COLOR[cat] || "#6b7280";
+                  return (
+                    <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 14, height: 14, background: color, borderRadius: 2, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: "#e2e8f0" }}>{cat}</span>
+                          <span style={{ color, fontWeight: 600 }}>{fmt(amt)} <span style={{ color: "rgba(255,255,255,0.45)", fontWeight: 400 }}>({pct.toFixed(1)}%)</span></span>
+                        </div>
+                        <div style={{ background: "rgba(255,255,255,0.08)", height: 4, borderRadius: 2 }}>
+                          <div style={{ width: `${barPct}%`, background: color, height: 4, borderRadius: 2, transition: "width .4s" }} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>
