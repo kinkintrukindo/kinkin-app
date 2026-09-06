@@ -1364,7 +1364,7 @@ function OperationalProfitTable({ trips, expenses, loans, assets, loanMonthOverr
   );
 }
 
-function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, totalExpenses, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, assets, loanMonthOverrides, setLoanMonthOverrides, globalFileRef, importing, kas }) {
+function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, assets, loanMonthOverrides, setLoanMonthOverrides, globalFileRef, importing, kas }) {
   const isMobile = useIsMobile();
   const [kpiPopup, setKpiPopup] = useState(null);
   const truckStats = trucks.map((t) => {
@@ -1560,20 +1560,27 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
 
         <div style={{ background: "#162030", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 20 }}>
           <h3 style={{ fontSize: 13, color: "#c8a86b", marginBottom: 14, letterSpacing: 1, textTransform: "uppercase" }}>Expense Breakdown</h3>
-          {Object.entries(expByCategory).map(([cat, amt]) => {
-            const pct = totalExpenses > 0 ? (amt / totalExpenses) * 100 : 0;
-            return (
-              <div key={cat} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                  <span style={{ color: CAT_COLOR[cat] || "rgba(255,255,255,0.45)" }}>{cat}</span>
-                  <span>{fmt(amt)}</span>
+          {(() => {
+            const entries = Object.entries(expByCategory);
+            const maxAmt = Math.max(...entries.map(([, a]) => a), 1);
+            return entries.map(([cat, amt]) => {
+              // Sqrt scale relative to max, same reasoning as the Expenses
+              // tab's chart: a linear scale lets one dominant category (e.g.
+              // Salary) stretch full-width while small categories vanish.
+              const barPct = Math.sqrt(amt) / Math.sqrt(maxAmt) * 100;
+              return (
+                <div key={cat} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: CAT_COLOR[cat] || "rgba(255,255,255,0.45)" }}>{cat}</span>
+                    <span>{fmt(amt)}</span>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 2, height: 4 }}>
+                    <div style={{ width: `${barPct}%`, background: CAT_COLOR[cat] || "rgba(255,255,255,0.45)", height: 4, borderRadius: 2, transition: "width .5s" }} />
+                  </div>
                 </div>
-                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 2, height: 4 }}>
-                  <div style={{ width: `${pct}%`, background: CAT_COLOR[cat] || "rgba(255,255,255,0.45)", height: 4, borderRadius: 2, transition: "width .5s" }} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </div>
 
