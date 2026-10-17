@@ -62,6 +62,70 @@ function parseCSV(text) {
 // Each trip can span multiple rows (sub-rows for extra LAIN-LAIN charges).
 // Returns { trips, expenses, truckPlate } — truckPlate is auto-detected.
 
+const importText = (value) => String(value ?? "").trim().toUpperCase().replace(/\s+/g, " ");
+function importTripKey(t) {
+  const base = `${t.date}|${importText(t.nopol)}`;
+  return t.contNo ? `CONT:${base}|${importText(t.contNo)}` : `ALT:${base}|${importText(t.destination)}|${importText(t.invNo)}`;
+}
+function importExpenseLabel(e) {
+  const label = importText(e.description);
+  return /^(DRIVER ALLOWANCE|SANGU)(\s|$)/.test(label) ? "SANGU" : label;
+}
+function importExpenseKey(e, withAmount = true) {
+  const date = e.expenseType === "driver" ? e.date : String(e.date).slice(0, 7);
+  return JSON.stringify([e.expenseType, date, importText(e.truck), importExpenseLabel(e), ...(withAmount ? [Number(e.amount)] : [])]);
+}
+function importTripValues(t) {
+  return JSON.stringify([t.date, t.invNo, t.destination, t.nopol, t.contNo, t.sangu, t.jual, t.total, t.profit, t.lainAmt, t.lainLabel, t.lainItems]);
+}
+function planMonthlyImport(trips, expenses, parsed) {
+  const byTrip = new Map();
+  for (const t of trips) {
+    const key = importTripKey(t);
+    if (!byTrip.has(key)) byTrip.set(key, []);
+    byTrip.get(key).push(t);
+  }
+  const seenTrips = new Set();
+  const tripPlan = parsed.trips.map((t) => {
+    const key = importTripKey(t);
+    if (seenTrips.has(key)) throw new Error("Repeated trip in the sheet. Review its date, plate and container before importing.");
+    seenTrips.add(key);
+    const matches = byTrip.get(key) || [];
+    if (matches.length > 1) throw new Error("Multiple existing trips match a sheet trip. Resolve the duplicates before importing.");
+    const before = matches[0];
+    return { incoming: t, before, action: !before ? "add" : importTripValues(before) === importTripValues(t) ? "skip" : "update" };
+  });
+  const available = new Set(expenses.filter((e) => e.source === "import" || e._fpKey).map((e) => e.id));
+  const expensePlan = parsed.expenses.map((e) => {
+    const candidates = expenses.filter((old) => available.has(old.id));
+    const linked = e._importLineKey ? candidates.filter((old) => old._importLineKey === e._importLineKey) : [];
+    if (linked.length > 1) throw new Error("Multiple expenses match an imported line. Review duplicates before importing.");
+    const before = linked[0] || candidates.find((old) => !old._importLineKey && importExpenseKey(old) === importExpenseKey(e));
+    if (before) {
+      available.delete(before.id);
+      return { incoming: e, before, action: importExpenseKey(before) === importExpenseKey(e) ? "skip" : "update" };
+    }
+    // Legacy keys omit containers and changed format over time. Do not guess which
+    // old line a changed amount belongs to, or silently append a second payment.
+    if (candidates.some((old) => !old._importLineKey && importExpenseKey(old, false) === importExpenseKey(e, false))) {
+      throw new Error(`Changed legacy expense needs review: ${e.date} ${e.truck} ${e.description}. Reconcile it before importing.`);
+    }
+    return { incoming: e, action: "add" };
+  });
+  return { tripPlan, expensePlan };
+}
+
+function selectMonthlyRows(sheets, monthYear) {
+  const candidates = sheets.filter(({ rows }) => rows.some((r) => importText(r[0]) === "NO" && importText(r[1]).includes("TANGGAL")));
+  const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUNI", "JULI", "AGST", "SEPT", "OKT", "NOV", "DES"];
+  const [year, month] = monthYear.split("-");
+  const expected = `${monthNames[Number(month) - 1]} ${year}`;
+  const selected = candidates.filter((s) => importText(s.name) === expected);
+  if (selected.length === 1) return selected[0].rows;
+  if (candidates.length === 1) return candidates[0].rows;
+  throw new Error("Select the month matching a monthly trip tab, or upload that tab as CSV.");
+}
+
 function parseMonthlySheet(rows, monthYear, holderId = "") {
   // Helper to parse currency strings like "  1,050,000 " -> 1050000
   const num = (v) => {
@@ -215,6 +279,12 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
     const labels = t.lainItems.filter((x) => x.label).map((x) => x.label).join(" + ");
     t.lainLabel = labels;
     t.lainAmt = totalLain;
+    t.total = t.sangu + totalLain;
+    t.profit = t.jual - t.total;
+    if (t.date && t.date.slice(0, 7) !== monthYear.slice(0, 7)) {
+      throw new Error(`Trip date ${t.date} is outside ${monthYear.slice(0, 7)}. Correct the sheet date or selected month.`);
+    }
+    if (!t.date) throw new Error("A trip date is missing. Fill it in the sheet before importing.");
     t.id = genId();
     t.source = "import";
   }
@@ -233,9 +303,10 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         holderId: holderId || "unassigned",
         source: "import",
         _fpKey: `DRIVER:${t.date}|SANGU|${t.nopol || ""}|${t.sangu}`,
+        _importLineKey: `${importTripKey(t)}|SANGU`,
       });
     }
-    for (const item of t.lainItems) {
+    for (const [itemIndex, item] of t.lainItems.entries()) {
       if (!item.amount || item.amount <= 0) continue;
       expenses.push({
         id: genId(),
@@ -248,6 +319,7 @@ function parseMonthlySheet(rows, monthYear, holderId = "") {
         holderId: holderId || "unassigned",
         source: "import",
         _fpKey: `DRIVER:${t.date}|${(item.label || "LAIN").toUpperCase()}|${t.nopol || ""}|${item.amount}`,
+        _importLineKey: `${importTripKey(t)}|LAIN|${itemIndex}|${importText(item.label || "Misc. Expense")}`,
       });
     }
   }
@@ -472,15 +544,6 @@ function KinKinApp() {
   }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides]);
 
   // Step 1: User picks a file — open modal asking for month/year
-  // ── Fingerprint for deduplication — container # is physically unique ────────
-  const fingerprint = (t) => {
-    const cn = t.contNo != null ? String(t.contNo).trim() : "";
-    if (cn) return `CONT:${t.date}|${cn.toUpperCase()}`;
-    const np = String(t.nopol || "").toUpperCase();
-    const ds = String(t.destination || "").toUpperCase();
-    return `ALT:${t.date}|${np}|${ds}|${t.jual}`;
-  };
-
   const handleGlobalImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -505,14 +568,9 @@ function KinKinApp() {
         allRows = parseCSV(text);
       } else {
         const wb = XLSX.read(data, { type: "array" });
-        for (const sheetName of wb.SheetNames) {
-          const ws = wb.Sheets[sheetName];
-          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-          if (rows.length > 0) {
-            allRows = rows;
-            break;
-          }
-        }
+        allRows = selectMonthlyRows(wb.SheetNames.map((name) => ({
+          name, rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" }),
+        })), monthYear);
       }
 
       const monthDate = monthYear + "-01";
@@ -529,22 +587,13 @@ function KinKinApp() {
         if (!t.date) t.date = monthDate;
       }
 
-      // Mark duplicates at preview time so the user can see what's new vs already imported
-      const previewExistingByFp = new Map(trips.map((t) => [fingerprint(t), t]));
-      const previewExpFp = new Set();
-      for (const e of expenses.filter((e) => e._fpKey)) {
-        previewExpFp.add(e._fpKey);
-        const parts = e._fpKey.split("|");
-        if (parts.length === 3 && e.truck) previewExpFp.add(`${parts[0]}|${e.truck}|${parts[1]}|${parts[2]}`);
-      }
-
+      const { tripPlan, expensePlan } = planMonthlyImport(trips, expenses, result);
       setUploadModal({
-        ...uploadModal,
-        previewReady: true,
+        ...uploadModal, previewReady: true,
         parsed: {
           ...result,
-          trips: result.trips.map((t) => ({ ...t, _isDuplicate: previewExistingByFp.has(fingerprint(t)) })),
-          expenses: result.expenses.map((e) => ({ ...e, usePettyCash: true, _isDuplicate: e._fpKey ? previewExpFp.has(e._fpKey) : false })),
+          trips: tripPlan.map(({ incoming, before, action }) => ({ ...incoming, _isDuplicate: action === "skip", _importAction: action, _previousTotal: before?.total })),
+          expenses: expensePlan.map(({ incoming, action }) => ({ ...incoming, usePettyCash: true, _isDuplicate: action === "skip", _importAction: action })),
         },
       });
     } catch (err) {
@@ -558,48 +607,39 @@ function KinKinApp() {
     if (!uploadModal || !uploadModal.parsed) return;
     const { parsed, monthYear, fileName } = uploadModal;
 
-    // ── Deduplicate trips against existing ────────────────────────────────────
-    const existingByFp = new Map(trips.map((t) => [fingerprint(t), t]));
-    const newTrips = parsed.trips.filter((t) => !existingByFp.has(fingerprint(t)));
-    const skippedCount = parsed.trips.length - newTrips.length;
-
-    // ── Deduplicate expenses against existing ─────────────────────────────────
-    // Build the set of existing keys, and also derive the new-format equivalent
-    // for expenses that were saved with the old key format (no plate in key),
-    // so re-uploading a month doesn't create duplicates for already-imported rows.
-    const existingExpFp = new Set();
-    for (const e of expenses.filter((e) => e._fpKey)) {
-      existingExpFp.add(e._fpKey);
-      // Old format: EXP:{date}|{LABEL}|{amt}  (3 pipe-separated parts)
-      // New format: EXP:{date}|{plate}|{LABEL}|{amt}  (4 parts)
-      // If old format and we have a truck plate, also register the new-format key
-      const parts = e._fpKey.split("|");
-      if (parts.length === 3 && e.truck) {
-        existingExpFp.add(`${parts[0]}|${e.truck}|${parts[1]}|${parts[2]}`);
-      }
-    }
-    const newExpenses = parsed.expenses.filter((e) => {
-      if (!e._fpKey) return true;
-      if (existingExpFp.has(e._fpKey)) return false;
-      existingExpFp.add(e._fpKey);
-      return true;
-    });
-    const skippedExpCount = parsed.expenses.length - newExpenses.length;
+    let plan;
+    try { plan = planMonthlyImport(trips, expenses, parsed); }
+    catch (err) { showToast(err.message, "error"); return; }
+    const clean = ({ _isDuplicate, _importAction, _previousTotal, usePettyCash, ...value }) => {
+      void _isDuplicate; void _importAction; void _previousTotal; void usePettyCash;
+      return value;
+    };
+    const newTrips = plan.tripPlan.filter((p) => p.action === "add").map((p) => clean(p.incoming));
+    const tripUpdates = plan.tripPlan.filter((p) => p.action === "update").map((p) => ({
+      before: p.before, after: { ...p.before, ...clean(p.incoming), id: p.before.id },
+    }));
+    const expenseUpdates = plan.expensePlan.filter((p) => p.action === "update").map((p) => ({
+      before: p.before, after: { ...p.before, ...clean(p.incoming), id: p.before.id, holderId: p.before.holderId },
+    }));
+    const newExpenses = plan.expensePlan.filter((p) => p.action === "add").map((p) => p.incoming);
+    const skippedCount = plan.tripPlan.filter((p) => p.action === "skip").length;
+    const skippedExpCount = plan.expensePlan.filter((p) => p.action === "skip").length;
 
     // Assign holderId based on per-expense usePettyCash flag set in the preview
     const activeHolders = pettyHolders.filter((h) => h.active);
     const autoHolderId = activeHolders.length === 1 ? activeHolders[0].id : "unassigned";
     const taggedExpenses = newExpenses.map((e) => {
       if (e.source !== "import") return e;
-      const { usePettyCash: _flag, ...rest } = e;
+      const _flag = e.usePettyCash;
+      const rest = clean(e);
       return { ...rest, holderId: _flag !== false ? autoHolderId : "" };
     });
 
     const tripIds = newTrips.map((t) => t.id);
     const expenseIds = taggedExpenses.map((e) => e.id);
 
-    setTrips([...trips, ...newTrips]);
-    setExpenses([...expenses, ...taggedExpenses]);
+    setTrips([...trips.map((t) => tripUpdates.find((u) => u.before.id === t.id)?.after || t), ...newTrips]);
+    setExpenses([...expenses.map((e) => expenseUpdates.find((u) => u.before.id === e.id)?.after || e), ...taggedExpenses]);
 
     // Sheet expenses (driver costs + pengeluaran tambahan) are paid by Martha
     // from her petty cash — they do NOT touch the main cash balance directly.
@@ -614,9 +654,13 @@ function KinKinApp() {
       truckPlate: parsed.truckPlate || "—",
       tripIds,
       expenseIds,
+      tripUpdates,
+      expenseUpdates,
       kasIds,
       summary: {
         tripCount: newTrips.length,
+        updatedTripCount: tripUpdates.length,
+        updatedExpenseCount: expenseUpdates.length,
         skippedDuplicates: skippedCount,
         expenseCount: newExpenses.length,
         skippedExpenses: skippedExpCount,
@@ -626,11 +670,13 @@ function KinKinApp() {
       },
     };
     setImportLogs([log, ...importLogs]);
-    logActivity("import", "import", `Imported ${fileName} — ${newTrips.length} trips, ${taggedExpenses.length} expenses`);
+    logActivity("import", "import", `Imported ${fileName} — ${newTrips.length} new trips, ${taggedExpenses.length} new expenses, ${tripUpdates.length} updated trips, ${expenseUpdates.length} updated expenses`);
 
     const parts = [];
     if (newTrips.length > 0)    parts.push(`${newTrips.length} trips`);
     if (newExpenses.length > 0) parts.push(`${newExpenses.length} expenses`);
+    if (tripUpdates.length) parts.push(`${tripUpdates.length} trips updated`);
+    if (expenseUpdates.length) parts.push(`${expenseUpdates.length} expenses updated`);
     const skips = [];
     if (skippedCount > 0)    skips.push(`${skippedCount} duplicate trips skipped`);
     if (skippedExpCount > 0) skips.push(`${skippedExpCount} duplicate expenses skipped`);
@@ -650,12 +696,17 @@ function KinKinApp() {
     if (!log) return;
     setConfirmModal({
       title: "Delete this import?",
-      message: `This will remove all ${log.summary.tripCount} trips and ${log.summary.expenseCount} expenses from this import.`,
+      message: `Remove ${log.summary.tripCount} added trips and ${log.summary.expenseCount} added expenses, and restore ${(log.tripUpdates || []).length} trip and ${(log.expenseUpdates || []).length} expense corrections.`,
       details: `File: ${log.fileName}\nPeriod: ${log.monthYear}`,
       warning: "This cannot be undone.",
       onConfirm: () => {
-        setTrips(trips.filter((t) => !log.tripIds.includes(t.id)));
-        setExpenses(expenses.filter((e) => !log.expenseIds.includes(e.id)));
+        const tripUpdates = log.tripUpdates || [];
+        const expenseUpdates = log.expenseUpdates || [];
+        const changed = tripUpdates.some((u) => JSON.stringify(trips.find((t) => t.id === u.after.id)) !== JSON.stringify(u.after))
+          || expenseUpdates.some((u) => JSON.stringify(expenses.find((e) => e.id === u.after.id)) !== JSON.stringify(u.after));
+        if (changed) { showToast("Some corrected records changed after this import. Review them before undoing.", "error"); return; }
+        setTrips(trips.filter((t) => !log.tripIds.includes(t.id)).map((t) => tripUpdates.find((u) => u.after.id === t.id)?.before || t));
+        setExpenses(expenses.filter((e) => !log.expenseIds.includes(e.id)).map((e) => expenseUpdates.find((u) => u.after.id === e.id)?.before || e));
         if (log.kasIds?.length) setKas(kas.filter((k) => !log.kasIds.includes(k.id)));
         setImportLogs(importLogs.filter((l) => l.id !== logId));
         logActivity("undo", "import", `Undone import: ${log.fileName}`);
@@ -897,8 +948,8 @@ function KinKinApp() {
                   <details open style={{ marginBottom: 14 }}>
                     <summary style={{ cursor: "pointer", color: "#34d399", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
                       Trips ({uploadModal.parsed.trips.length}) —{" "}
-                      <span style={{ color: "#34d399" }}>{newCount} new</span>
-                      {skipCount > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>, {skipCount} already imported (will skip)</span>}
+                      <span style={{ color: "#34d399" }}>{newCount} new or updated</span>
+                      {skipCount > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>, {skipCount} unchanged (will skip)</span>}
                       <span style={{ color: "#c8a86b", fontWeight: 400 }}> — all fields editable below</span>
                     </summary>
                     <div style={{ background: "#0c1420", borderRadius: 4, maxHeight: 300, overflowY: "auto", marginTop: 6 }}>
@@ -940,6 +991,7 @@ function KinKinApp() {
                                 <td style={{ padding: "4px 4px" }}><input type="number" value={t.jual ?? ""} onChange={(e) => updateTrip("jual", e.target.value)} style={{ ...iStyle, textAlign: "right" }} disabled={t._isDuplicate} /></td>
                                 <td style={{ padding: "4px 8px", textAlign: "right", color: (t.profit || 0) >= 0 ? "#34d399" : "#f87171", whiteSpace: "nowrap" }}>
                                   {t._isDuplicate ? <span style={{ color: "#bbb", fontSize: 10 }}>skip</span> : fmt(t.profit || 0)}
+                                  {t._importAction === "update" && <div style={{ color: "#fbbf24", fontSize: 10 }}>Cost: {fmt(t._previousTotal)} → {fmt(t.total)}</div>}
                                 </td>
                               </tr>
                             );
@@ -959,8 +1011,8 @@ function KinKinApp() {
                   <details style={{ marginBottom: 14 }}>
                     <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
                       Additional Expenses ({uploadModal.parsed.expenses.length}) —{" "}
-                      <span style={{ color: "#34d399" }}>{newCount} new</span>
-                      {skipCount > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>, {skipCount} already imported (will skip)</span>}
+                      <span style={{ color: "#34d399" }}>{newCount} new or updated</span>
+                      {skipCount > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>, {skipCount} unchanged (will skip)</span>}
                     </summary>
                     <div style={{ background: "#0c1420", borderRadius: 4, maxHeight: 260, overflowY: "auto", marginTop: 6 }}>
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
