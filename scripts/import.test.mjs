@@ -136,3 +136,64 @@ test('missing, conflicting or reused cash links block mutations', () => {
 test('invalid top-up amounts do not mutate either ledger', () => {
   for (const amount of [0, -1, NaN, Infinity]) assert.throws(() => planTopupChange(topups, cashEntries, 't1', { date: '2026-09-08', amount }), /positive/);
 });
+
+const { parseStructuredImport, readImportControls, buildImportReview } = vm.runInContext('({parseStructuredImport, readImportControls, buildImportReview})', context);
+function structured() {
+  return [
+    {name:'Trips',rows:[['trip_id','date','invoice','truck','container','destination','revenue'],['T1','2026-08-03','001','TEST-A','C1','Depot',1000]]},
+    {name:'Expenses',rows:[['expense_id','date','trip_id','truck','description','category','amount','paid_by','holder_id','cash_entry_id'],['E1','2026-08-03','T1','TEST-A','Fuel','Fuel',100,'petty_cash','h1','']]},
+    {name:'Month Control',rows:[['month','holder_id','coverage_through','opening','transfers','spending','closing'],['2026-08','h1','2026-08-13',0,500,100,400]]},
+  ];
+}
+function reviewInput() {
+  const sheets=structured();
+  return {trips:[],expenses:[],pettyTopups:[{id:'p1',holderId:'h1',date:'2026-08-01',amount:500,kasId:'k1'}],kas:[{id:'k1',type:'out',date:'2026-08-01',amount:500}],pettyHolders:[{id:'h1',active:true}],assets:[{nopol:'TEST-A'}],parsed:parseStructuredImport(sheets,'2026-08'),month:'2026-08',controls:readImportControls(sheets,'2026-08'),importLogs:[],acknowledged:true};
+}
+test('structured balanced import requires acknowledgment and repeats without inserts',()=>{
+ const a=reviewInput(); assert.equal(buildImportReview({...a,acknowledged:false}).ready,false);
+ const r=buildImportReview(a); assert.equal(r.ready,true, r.errors.join(';'));
+ const repeated=buildImportReview({...a,trips:r.projectedTrips,expenses:r.projectedExpenses});
+ assert.equal(repeated.ready,true);assert.ok([...repeated.plan.tripPlan,...repeated.plan.expensePlan].every(p=>p.action==='skip'));
+});
+test('control blank, arithmetic, source detail, opening and funding mismatches block',()=>{
+ for(const controls of [{spending:''},{closing:401},{spending:101,closing:399},{opening:1,closing:401},{transfers:600,closing:500}]){
+  const a=reviewInput();const r=buildImportReview({...a,controls:{...a.controls,...controls}});assert.equal(r.ready,false);assert.ok(r.errors.length);
+ }
+ assert.equal(buildImportReview({...reviewInput(),controls:null}).ready,false);
+});
+test('duplicate permanent IDs, malformed dates and missing trip references fail parsing',()=>{
+ for(const mutate of [s=>s[1].rows.push([...s[1].rows[1]]),s=>s[0].rows[1][1]='2026-02-30',s=>s[1].rows[1][2]='missing',s=>s[1].rows[1][6]='oops']){
+ const s=structured();mutate(s);assert.throws(()=>parseStructuredImport(s,'2026-08'));
+ }
+});
+test('stable IDs update corrected values without duplication and reject cross-month moves',()=>{
+ const a=reviewInput();const old=a.parsed;
+ const sheets=structured();sheets[1].rows[1][6]=120;
+ const corrected=parseStructuredImport(sheets,'2026-08');
+ const p=planMonthlyImport(old.trips,old.expenses,corrected);
+ assert.equal(p.tripPlan[0].action,'update');assert.equal(p.expensePlan[0].action,'update');
+ assert.throws(()=>planMonthlyImport(old.trips.map(t=>({...t,date:'2026-07-03'})),old.expenses,corrected),/between months/);
+});
+test('unknown fleet, holder conflicts and transactions beyond cutoff block',()=>{
+ const a=reviewInput();
+ assert.equal(buildImportReview({...a,assets:[]}).ready,false);
+ assert.equal(buildImportReview({...a,holderId:'other'}).ready,false);
+ assert.equal(buildImportReview({...a,controls:{...a.controls,through:'2026-08-02'}}).ready,false);
+});
+test('partial imports retain later records without affecting period controls',()=>{
+ const a=reviewInput();const later={id:'later',date:'2026-08-20',amount:50,holderId:'h1'};
+ const r=buildImportReview({...a,expenses:[later]});assert.equal(r.ready,true);assert.ok(r.projectedExpenses.includes(later));
+});
+test('transfer date mismatch and reused cash links block even with equal totals',()=>{
+ const a=reviewInput();assert.equal(buildImportReview({...a,controls:{...a.controls,transferRows:[{date:'2026-08-02',amount:500}]}}).ready,false);
+ a.parsed.expenses[0]={...a.parsed.expenses[0],paidBy:'main_cash',holderId:'',cashEntryId:'k2'};
+ a.controls={...a.controls,spending:0,closing:500};a.kas.push({id:'k2',type:'out',date:'2026-08-03',amount:100});
+ assert.equal(buildImportReview(a).ready,true);
+ assert.equal(buildImportReview({...a,expenses:[{id:'other',cashEntryId:'k2'}]}).ready,false);
+});
+test('negative balances and legacy matching require a recorded reason',()=>{
+ const a=reviewInput();a.pettyTopups=[];a.kas=[];a.controls={...a.controls,transfers:0,closing:-100};
+ assert.equal(buildImportReview(a).ready,false);assert.equal(buildImportReview({...a,reason:'Owner advance pending reconciliation'}).ready,true);
+ const b=reviewInput();b.parsed.structured=false;
+ assert.equal(buildImportReview(b).ready,false);assert.equal(buildImportReview({...b,reason:'Reviewed source and legacy matches'}).ready,true);
+});
