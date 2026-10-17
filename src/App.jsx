@@ -372,6 +372,30 @@ function categorizeExpense(desc) {
 
 
 
+function planTopupChange(topups, cashEntries, id, changes) {
+  const topup = topups.find((t) => t.id === id);
+  const linked = topup?.kasId ? cashEntries.filter((c) => c.id === topup.kasId) : [];
+  if (!topup || linked.length !== 1 || topups.some((t) => t.id !== id && t.kasId === topup.kasId)) {
+    throw new Error("This top-up needs its cash entry linked before editing or deleting.");
+  }
+  const cash = linked[0];
+  if (cash.type !== "out" || cash.date !== topup.date || Number(cash.amount) !== Number(topup.amount)) {
+    throw new Error("The top-up and cash entry differ. Reconcile them before editing or deleting.");
+  }
+  if (changes === null) return {
+    topups: topups.filter((t) => t.id !== id),
+    cashEntries: cashEntries.filter((c) => c.id !== cash.id),
+  };
+  const amount = Number(changes.amount);
+  if (!Number.isFinite(amount) || amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(changes.date || "")) {
+    throw new Error("Enter a valid date and a positive top-up amount.");
+  }
+  return {
+    topups: topups.map((t) => t.id === id ? { ...t, date: changes.date, amount, note: changes.note } : t),
+    cashEntries: cashEntries.map((c) => c.id === cash.id ? { ...c, date: changes.date, amount, description: changes.description } : c),
+  };
+}
+
 // ── XLSX download helper ──────────────────────────────────────────────────────
 function downloadExcel(filename, sheetData) {
   // sheetData: { sheetName: [[row],[row],...] }
@@ -2035,9 +2059,10 @@ function Expenses({ expenses, setExpenses, trucks, pettyHolders, setPettyTopups,
     // AND a cash ledger entry
     if (form.expenseType === "petty") {
       const holder = pettyHolders.find((h) => h.id === form.holderId);
-      const topup = { id: genId(), holderId: form.holderId, date: form.date, amount: Number(form.amount), note: form.description };
+      const kasId = genId();
+      const topup = { id: genId(), kasId, holderId: form.holderId, date: form.date, amount: Number(form.amount), note: form.description };
       setPettyTopups([...pettyTopups, topup]);
-      setKas([...kas, { id: genId(), date: form.date, description: `Petty cash — ${holder?.name || "holder"}${form.description ? ": " + form.description : ""}`, amount: Number(form.amount), type: "out" }]);
+      setKas([...kas, { id: kasId, date: form.date, description: `Petty cash — ${holder?.name || "holder"}${form.description ? ": " + form.description : ""}`, amount: Number(form.amount), type: "out" }]);
       showToast(`Petty cash recorded for ${holder?.name || "holder"} + added to cash ledger!`);
     } else {
       // Truck and overhead expenses are paid from main cash balance
@@ -2743,29 +2768,44 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
   };
 
   const addTopup = () => {
-    if (!topupForm.holderId || !topupForm.amount) { showToast("Select a holder and enter amount", "error"); return; }
+    if (!topupForm.holderId || !Number.isFinite(Number(topupForm.amount)) || Number(topupForm.amount) <= 0) { showToast("Select a holder and enter amount", "error"); return; }
     const holderName = pettyHolders.find(h=>h.id===topupForm.holderId)?.name || "";
-    const newTopup = { id: genId(), holderId: topupForm.holderId, date: topupForm.date, amount: Number(topupForm.amount), note: topupForm.note };
+    const kasId = genId();
+    const newTopup = { id: genId(), kasId, holderId: topupForm.holderId, date: topupForm.date, amount: Number(topupForm.amount), note: topupForm.note };
     setPettyTopups([...pettyTopups, newTopup]);
     // Also record as cash-out in the main cash ledger
-    setKas([...kas, { id: genId(), date: topupForm.date, description: `Petty cash top-up — ${holderName}${topupForm.note ? " · " + topupForm.note : ""}`, amount: Number(topupForm.amount), type: "out" }]);
+    setKas([...kas, { id: kasId, date: topupForm.date, description: `Petty cash top-up — ${holderName}${topupForm.note ? " · " + topupForm.note : ""}`, amount: Number(topupForm.amount), type: "out" }]);
     logActivity("add", "petty topup", `Top-up for ${holderName}${topupForm.note ? ": " + topupForm.note : ""}`);
     setTopupForm({ holderId: topupForm.holderId, date: today(), amount: "", note: "" });
     showToast("Top-up recorded + added to cash ledger!");
   };
 
   const saveEditTopup = () => {
-    setPettyTopups(pettyTopups.map((t) => t.id === editTopupId ? { ...t, date: editTopupForm.date, amount: Number(editTopupForm.amount) || 0, note: editTopupForm.note } : t));
-    setEditTopupId(null);
-    showToast("Top-up updated!");
+    const topup = pettyTopups.find((t) => t.id === editTopupId);
+    const holderName = pettyHolders.find((h) => h.id === topup?.holderId)?.name || "";
+    try {
+      const next = planTopupChange(pettyTopups, kas, editTopupId, {
+        ...editTopupForm,
+        description: `Petty cash top-up — ${holderName}${editTopupForm.note ? " · " + editTopupForm.note : ""}`,
+      });
+      setPettyTopups(next.topups);
+      setKas(next.cashEntries);
+      logActivity("edit", "petty topup", `Updated top-up and cash entry for ${holderName}`);
+      setEditTopupId(null);
+      showToast("Top-up and cash ledger updated!");
+    } catch (err) { showToast(err.message, "error"); }
   };
 
   const deleteTopup = (id) => {
     const topup = pettyTopups.find((t) => t.id === id);
-    guardedDelete("Delete this top-up? The matching cash ledger entry is NOT automatically removed.", () => {
-      setPettyTopups(pettyTopups.filter((t) => t.id !== id));
-      logActivity("delete", "petty topup", `Top-up deleted${topup?.note ? ": " + topup.note : ""}`);
-      showToast("Top-up deleted");
+    guardedDelete("Delete this top-up and its linked cash ledger entry?", () => {
+      try {
+        const next = planTopupChange(pettyTopups, kas, id, null);
+        setPettyTopups(next.topups);
+        setKas(next.cashEntries);
+        logActivity("delete", "petty topup", `Deleted top-up and cash entry${topup?.note ? ": " + topup.note : ""}`);
+        showToast("Top-up and cash ledger entry deleted");
+      } catch (err) { showToast(err.message, "error"); }
     });
   };
 
@@ -2968,10 +3008,11 @@ function PettyCash({ pettyHolders, setPettyHolders, pettyTopups, setPettyTopups,
                           onClick={() => {
                             const amt = Number(document.getElementById(`quick-topup-amt-${h.id}`)?.value);
                             const note = document.getElementById(`quick-topup-note-${h.id}`)?.value || "";
-                            if (!amt) return;
-                            const newTopup = { id: genId(), holderId: h.id, date: today(), amount: amt, note };
+                            if (!Number.isFinite(amt) || amt <= 0) return;
+                            const kasId = genId();
+                            const newTopup = { id: genId(), kasId, holderId: h.id, date: today(), amount: amt, note };
                             setPettyTopups([...pettyTopups, newTopup]);
-                            setKas([...kas, { id: genId(), date: today(), description: `Petty cash top-up — ${h.name}${note ? " · "+note : ""}`, amount: amt, type: "out" }]);
+                            setKas([...kas, { id: kasId, date: today(), description: `Petty cash top-up — ${h.name}${note ? " · "+note : ""}`, amount: amt, type: "out" }]);
                             logActivity("add", "petty topup", `Quick top-up for ${h.name}`);
                             if (document.getElementById(`quick-topup-amt-${h.id}`)) document.getElementById(`quick-topup-amt-${h.id}`).value = "";
                             if (document.getElementById(`quick-topup-note-${h.id}`)) document.getElementById(`quick-topup-note-${h.id}`).value = "";
