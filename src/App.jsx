@@ -76,7 +76,7 @@ function importExpenseKey(e, withAmount = true) {
   return JSON.stringify([e.expenseType, date, importText(e.truck), importExpenseLabel(e), ...(withAmount ? [Number(e.amount)] : [])]);
 }
 function importTripValues(t) {
-  return JSON.stringify([t.date, t.invNo, t.destination, t.nopol, t.contNo, t.sangu, t.jual, t.total, t.profit, t.lainAmt, t.lainLabel, t.lainItems]);
+  return JSON.stringify([t.date, t.invNo, t.destination, t.nopol, t.contNo, t.sangu, t.jual, t.total, t.profit, t.lainAmt, t.lainLabel, t.lainItems, t.sourceId || ""]);
 }
 function planMonthlyImport(trips, expenses, parsed) {
   const byTrip = new Map();
@@ -86,24 +86,38 @@ function planMonthlyImport(trips, expenses, parsed) {
     byTrip.get(key).push(t);
   }
   const seenTrips = new Set();
+  const seenTripIds = new Set();
   const tripPlan = parsed.trips.map((t) => {
     const key = importTripKey(t);
     if (seenTrips.has(key)) throw new Error("Repeated trip in the sheet. Review its date, plate and container before importing.");
     seenTrips.add(key);
-    const matches = byTrip.get(key) || [];
+    if (t.sourceId && seenTripIds.has(t.sourceId)) throw new Error("Repeated trip ID in the sheet.");
+    seenTripIds.add(t.sourceId);
+    const byId = t.sourceId ? trips.filter((old) => old.sourceId === t.sourceId) : [];
+    const semantic = byTrip.get(key) || [];
+    if (t.sourceId && semantic.some((old) => old.sourceId && old.sourceId !== t.sourceId)) throw new Error("Trip identity conflicts with a different permanent ID.");
+    if (byId.length && semantic.some((old) => old.id !== byId[0].id)) throw new Error("Trip ID correction collides with another existing trip.");
+    const matches = byId.length ? byId : semantic;
     if (matches.length > 1) throw new Error("Multiple existing trips match a sheet trip. Resolve the duplicates before importing.");
     const before = matches[0];
+    if (before && before.date.slice(0, 7) !== t.date.slice(0, 7)) throw new Error("A trip ID moved between months. Reconcile both periods before importing.");
     return { incoming: t, before, action: !before ? "add" : importTripValues(before) === importTripValues(t) ? "skip" : "update" };
   });
   const available = new Set(expenses.filter((e) => e.source === "import" || e._fpKey).map((e) => e.id));
+  const seenExpenseIds = new Set();
   const expensePlan = parsed.expenses.map((e) => {
+    if (e.sourceId && seenExpenseIds.has(e.sourceId)) throw new Error("Repeated expense ID in the sheet.");
+    seenExpenseIds.add(e.sourceId);
     const candidates = expenses.filter((old) => available.has(old.id));
-    const linked = e._importLineKey ? candidates.filter((old) => old._importLineKey === e._importLineKey) : [];
+    const byId = e.sourceId ? expenses.filter((old) => old.sourceId === e.sourceId) : [];
+    const linked = byId.length ? byId : e._importLineKey ? candidates.filter((old) => old._importLineKey === e._importLineKey) : [];
+    if (byId.length && !available.has(byId[0].id)) throw new Error("Expense ID is claimed more than once.");
     if (linked.length > 1) throw new Error("Multiple expenses match an imported line. Review duplicates before importing.");
-    const before = linked[0] || candidates.find((old) => !old._importLineKey && importExpenseKey(old) === importExpenseKey(e));
+    const before = linked[0] || candidates.find((old) => !old._importLineKey && !old.sourceId && importExpenseKey(old) === importExpenseKey(e));
     if (before) {
+      if (before.date.slice(0, 7) !== e.date.slice(0, 7)) throw new Error("An expense ID moved between months. Reconcile both periods before importing.");
       available.delete(before.id);
-      return { incoming: e, before, action: importExpenseKey(before) === importExpenseKey(e) ? "skip" : "update" };
+      return { incoming: e, before, action: expenseImportValues(before) === expenseImportValues(e) ? "skip" : "update" };
     }
     // Legacy keys omit containers and changed format over time. Do not guess which
     // old line a changed amount belongs to, or silently append a second payment.
@@ -115,6 +129,152 @@ function planMonthlyImport(trips, expenses, parsed) {
   return { tripPlan, expensePlan };
 }
 
+function validImportDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "") && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+}
+function importNumber(value, label) {
+  if (value === "" || value == null || typeof value === "boolean" || !Number.isFinite(Number(value))) throw new Error(`${label} must be a number; blank is not zero.`);
+  return Number(value);
+}
+function importRows(rows, required, name) {
+  const headers = (rows[0] || []).map((x) => String(x).trim().toLowerCase());
+  if (new Set(headers).size !== headers.length || required.some((h) => !headers.includes(h))) throw new Error(`${name}: missing or duplicate column headers.`);
+  return rows.slice(1).map((r, i) => ({ r, i })).filter(({ r }) => r.some((v) => v !== "" && v != null)).map(({ r, i }) => ({ ...Object.fromEntries(headers.map((h, j) => [h, r[j] ?? ""])), _row: i + 2 }));
+}
+function readImportControls(sheets, month) {
+  const normalized = sheets.find((s) => importText(s.name) === "MONTH CONTROL");
+  if (normalized) {
+    const rows = importRows(normalized.rows, ["month", "holder_id", "coverage_through", "opening", "transfers", "spending", "closing"], "Month Control").filter((r) => r.month === month);
+    if (rows.length !== 1) throw new Error("Month Control requires exactly one row for the selected month.");
+    const row = rows[0];
+    return { month, holderId: row.holder_id, through: row.coverage_through, opening: row.opening, transfers: row.transfers, spending: row.spending, closing: row.closing, sourceRef: `Month Control!${row._row}` };
+  }
+  const kas = sheets.find((s) => importText(s.name) === "KAS");
+  if (!kas) return null;
+  const blocks = []; let block = null;
+  for (const [i, row] of kas.rows.entries()) {
+    if (importText(row[0]) === "TANGGAL" && importText(row[1]) === "KETERANGAN") { block = { rows: [], row: i + 1 }; blocks.push(block); }
+    else if (block && (importText(row[1]) === "KAS" || importText(row[1]).startsWith("SISA KAS") || importText(row[1]) === "PENGELUARAN")) block.rows.push({ row, index: i + 1 });
+  }
+  const date = (v) => typeof v === "number" ? new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10) : String(v || "").slice(0, 10);
+  const matching = blocks.filter((b) => b.rows.some(({ row }) => date(row[0]).slice(0, 7) === month) && date(b.rows[0]?.row[0]).slice(0, 7) === month);
+  if (matching.length !== 1) throw new Error("KAS month cannot be identified uniquely from its transaction dates.");
+  const b = matching[0]; const opening = b.rows.find(({ row }) => importText(row[1]).startsWith("SISA KAS"));
+  const spends = b.rows.filter(({ row }) => importText(row[1]) === "PENGELUARAN");
+  if (spends.length !== 1) throw new Error("KAS needs one expense summary for this month.");
+  const transfers = b.rows.filter(({ row }) => importText(row[1]) === "KAS");
+  if (transfers.some(({ row }) => !validImportDate(date(row[0])) || date(row[0]).slice(0, 7) !== month)) throw new Error("KAS includes a transfer outside its month. Correct the source period before importing.");
+  const end = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+  return { month, holderId: "", through: `${month}-${end}`, opening: opening ? Number(opening.row[2] || 0) - Number(opening.row[3] || 0) : 0, transfers: transfers.reduce((s, { row }) => s + importNumber(row[2], "KAS transfer"), 0), spending: spends[0].row[3] ?? "", closing: spends[0].row[4] ?? "", sourceRef: `KAS!D${spends[0].index}:E${spends[0].index}`, transferRows: transfers.map(({ row }) => ({ date: date(row[0]), amount: Number(row[2]) })) };
+}
+function parseStructuredImport(sheets, month) {
+  const find = (name) => sheets.find((s) => importText(s.name) === name);
+  if (!find("TRIPS") && !find("EXPENSES")) return null;
+  if (!find("TRIPS") || !find("EXPENSES")) throw new Error("Structured workbooks require both Trips and Expenses tables.");
+  const tripRows = importRows(find("TRIPS").rows, ["trip_id", "date", "invoice", "truck", "container", "destination", "revenue"], "Trips");
+  const expenseRows = importRows(find("EXPENSES").rows, ["expense_id", "date", "trip_id", "truck", "description", "category", "amount", "paid_by", "holder_id"], "Expenses");
+  for (const [rows, field] of [[tripRows, "trip_id"], [expenseRows, "expense_id"]]) {
+    const ids = new Set();
+    for (const r of rows) {
+      const id = String(r[field]).trim();
+      if (!id || ids.has(id)) throw new Error(`Missing or duplicate ${field} at row ${r._row}.`);
+      ids.add(id);
+      if (!validImportDate(r.date)) throw new Error(`Invalid ISO date at row ${r._row}. Use YYYY-MM-DD text.`);
+    }
+  }
+  const trips = tripRows.filter((r) => r.date.startsWith(month)).map((r) => ({ id: genId(), sourceId: String(r.trip_id).trim(), date: r.date, invNo: r.invoice, nopol: importText(r.truck), contNo: r.container, destination: r.destination, jual: importNumber(r.revenue, "Revenue"), source: "import", sourceRef: `Trips!${r._row}` }));
+  const expenses = expenseRows.filter((r) => r.date.startsWith(month)).map((r) => ({ id: genId(), sourceId: String(r.expense_id).trim(), tripSourceId: String(r.trip_id).trim(), date: r.date, truck: importText(r.truck), description: r.description, category: r.category || "Other", amount: importNumber(r.amount, "Expense amount"), paidBy: r.paid_by, holderId: String(r.holder_id).trim(), cashEntryId: r.cash_entry_id || "", expenseType: r.trip_id ? "driver" : r.truck ? "truck" : "overhead", source: "import", sourceRef: `Expenses!${r._row}` }));
+  for (const e of expenses) if (e.tripSourceId && !trips.some((t) => t.sourceId === e.tripSourceId)) throw new Error(`Expense ${e.sourceId} references a trip outside this import month or missing from Trips.`);
+  for (const t of trips) {
+    const linked = expenses.filter((e) => e.tripSourceId === t.sourceId);
+    if (linked.some((e) => e.date !== t.date || e.truck !== t.nopol)) throw new Error(`Driver expenses must have the trip date and truck: ${t.sourceId}.`);
+    t.sangu = 0; t.lainItems = linked.map((e) => ({ label: e.description, amount: e.amount }));
+    t.lainAmt = linked.reduce((s, e) => s + e.amount, 0); t.lainLabel = t.lainItems.map((x) => x.label).join(" + ");
+    t.total = t.lainAmt; t.profit = t.jual - t.total;
+  }
+  return { trips, expenses, structured: true, truckPlate: trips[0]?.nopol || "" };
+}
+function expenseImportValues(e) {
+  return JSON.stringify([importExpenseKey(e), e.date, e.description, e.category, e.sourceId || "", e.paidBy || "", e.holderId || "", e.cashEntryId || "", e.tripSourceId || ""]);
+}
+function buildImportReview({ trips, expenses, pettyTopups, kas, pettyHolders, assets, parsed, month, controls, holderId, importLogs, reason = "", acknowledged = false }) {
+  const errors = [], warnings = [];
+  let plan = { tripPlan: [], expensePlan: [] };
+  const active = pettyHolders.filter((h) => h.active);
+  const selected = holderId || controls?.holderId || (active.length === 1 ? active[0].id : "");
+  const prepared = { ...parsed, trips: parsed.trips.map((t) => ({ ...t })), expenses: parsed.expenses.map((e) => ({ ...e, paidBy: e.paidBy || (e.usePettyCash === false ? "main_cash" : "petty_cash"), holderId: e.paidBy === "petty_cash" ? (e.holderId || (!parsed.structured ? selected : "")) : !e.paidBy && e.usePettyCash !== false ? selected : "" })) };
+  const knownTrucks = new Set([...assets.filter((a) => a.nopol).map((a) => importText(a.nopol)), ...trips.map((t) => importText(t.nopol))].filter(Boolean));
+  if (!knownTrucks.size) errors.push("Configure the fleet before importing; unknown truck plates cannot be approved.");
+  if (controls?.holderId && controls.holderId !== selected) errors.push("Selected holder differs from Month Control.");
+  if (!active.some((h) => h.id === selected)) errors.push("Select an active petty-cash holder for this reconciliation.");
+  for (const t of prepared.trips) {
+    if (!validImportDate(t.date) || !t.date.startsWith(month)) errors.push(`Invalid or out-of-month trip date: ${t.date}.`);
+    if (!knownTrucks.has(importText(t.nopol))) errors.push(`Unknown truck: ${t.nopol || "blank"}. Correct the source or fleet.`);
+    if (![t.jual, t.total, t.profit].every(Number.isFinite) || t.jual < 0 || t.total < 0 || t.profit !== t.jual - t.total) errors.push("Trip revenue, costs and profit must be valid and reconcile.");
+  }
+  for (const e of prepared.expenses) {
+    if (!validImportDate(e.date) || !e.date.startsWith(month)) errors.push(`Invalid or out-of-month expense date: ${e.date}.`);
+    if (!Number.isFinite(e.amount) || e.amount <= 0) errors.push(`Expense must have a positive amount: ${e.description}.`);
+    if (e.truck && !knownTrucks.has(importText(e.truck))) errors.push(`Unknown truck: ${e.truck}. Correct the source or fleet.`);
+    if (!["petty_cash", "main_cash", "personal_advance"].includes(e.paidBy)) errors.push(`Choose paid_by for ${e.description}.`);
+    if (e.paidBy === "petty_cash" && e.holderId !== selected) errors.push(`Petty expense must belong to the selected holder: ${e.description}.`);
+    if (e.paidBy === "main_cash") {
+      const cash = kas.filter((k) => k.id === e.cashEntryId && k.type === "out" && k.amount === e.amount && k.date === e.date);
+      if (cash.length !== 1) errors.push(`Link an existing matching main-cash payment for ${e.description}.`);
+    }
+    if (e.paidBy === "personal_advance") warnings.push("Personal advances require reimbursement review; no petty-cash or main-cash payment will be created.");
+  }
+  const cashIds = prepared.expenses.filter((e) => e.cashEntryId).map((e) => e.cashEntryId);
+  if (new Set(cashIds).size !== cashIds.length) errors.push("A main-cash payment is linked to multiple imported expenses.");
+  if (!parsed.structured) warnings.push("Legacy sheet has no permanent transaction IDs. Matching uses existing values; correct legacy ambiguities before saving.");
+  try { plan = planMonthlyImport(trips, expenses, prepared); } catch (e) { errors.push(e.message); }
+  const projectedTrips = [...trips.map((t) => { const p = plan.tripPlan.find((p) => p.before?.id === t.id); return p?.action === "update" ? { ...t, ...p.incoming, id: t.id } : t; }), ...plan.tripPlan.filter((p) => p.action === "add").map((p) => p.incoming)];
+  const projectedExpenses = [...expenses.map((e) => { const p = plan.expensePlan.find((p) => p.before?.id === e.id); return p?.action === "update" ? { ...e, ...p.incoming, id: e.id } : e; }), ...plan.expensePlan.filter((p) => p.action === "add").map((p) => p.incoming)];
+  for (const p of plan.expensePlan) if (p.incoming.cashEntryId && (pettyTopups.some((t) => t.kasId === p.incoming.cashEntryId) || expenses.some((e) => e.id !== p.before?.id && e.cashEntryId === p.incoming.cashEntryId))) errors.push("Main-cash payment is already allocated to another expense or top-up.");
+  let amounts = null;
+  if (!controls) errors.push("A Month Control or KAS sheet is required. Missing controls cannot be treated as zero.");
+  else try {
+    if (!validImportDate(controls.through) || !controls.through.startsWith(month)) throw new Error("Enter a coverage-through date within the selected month.");
+    const opening = importNumber(controls.opening, "Opening balance"), transfers = importNumber(controls.transfers, "Transfers"), spending = importNumber(controls.spending, "KAS spending"), closing = importNumber(controls.closing, "Closing balance");
+    if (transfers < 0 || spending < 0) throw new Error("Transfer and spending totals cannot be negative.");
+    const inPeriod = (x) => x.date?.startsWith(month) && x.date <= controls.through;
+    if ([...prepared.trips, ...prepared.expenses].some((x) => x.date > controls.through)) errors.push("Source rows extend beyond the declared coverage date.");
+    const matchesHolder = (e) => e.holderId === selected;
+    const sum = (a) => a.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const priorOpening = sum(pettyTopups.filter((t) => t.holderId === selected && t.date < `${month}-01`)) - sum(expenses.filter((e) => matchesHolder(e) && e.date < `${month}-01`));
+    const transferRows = pettyTopups.filter((t) => t.holderId === selected && inPeriod(t));
+    const actualTransfers = sum(transferRows);
+    const beforeSpending = sum(expenses.filter((e) => matchesHolder(e) && inPeriod(e)));
+    const afterSpending = sum(projectedExpenses.filter((e) => matchesHolder(e) && inPeriod(e)));
+    const sourceSpending = sum(prepared.expenses.filter((e) => matchesHolder(e) && inPeriod(e)));
+    const afterClosing = priorOpening + actualTransfers - afterSpending;
+    amounts = { opening, priorOpening, transfers, actualTransfers, spending, sourceSpending, beforeSpending, afterSpending, closing, afterClosing, difference: afterClosing - closing };
+    if (opening + transfers - spending !== closing) errors.push("Source opening + transfers − spending does not equal source closing.");
+    if (opening !== priorOpening) errors.push("Source opening differs from the website's prior-period closing. Reconcile the earlier period first.");
+    if (actualTransfers !== transfers) errors.push("Source transfers differ from recorded petty top-ups. Record or reconcile transfers first.");
+    if (sourceSpending !== spending) errors.push("Source expense detail does not equal KAS spending. Resolve the source discrepancy before approval.");
+    if (afterSpending !== spending || afterClosing !== closing) errors.push("The resulting website balance or spending differs from the sheet. Review retained website records.");
+    const linkedIds = new Set();
+    for (const t of transferRows) {
+      const c = kas.filter((c) => c.id === t.kasId && c.type === "out" && c.date === t.date && c.amount === t.amount);
+      if (c.length !== 1 || linkedIds.has(t.kasId)) errors.push("A top-up is missing, sharing or differing from its linked main-cash entry.");
+      linkedIds.add(t.kasId);
+    }
+    if (controls.transferRows) {
+      const keys = (rows) => rows.map((t) => `${t.date}|${t.amount}`).sort().join(";");
+      if (keys(controls.transferRows) !== keys(transferRows)) errors.push("KAS transfer dates/amounts differ from website top-ups, even if their totals agree.");
+    }
+    const missingTrips = trips.filter((t) => inPeriod(t) && !plan.tripPlan.some((p) => p.before?.id === t.id));
+    const missingExpenses = expenses.filter((e) => matchesHolder(e) && inPeriod(e) && !plan.expensePlan.some((p) => p.before?.id === e.id));
+    if (missingTrips.length || missingExpenses.length) warnings.push(`${missingTrips.length} website trips and ${missingExpenses.length} holder expenses are absent from this upload and will be retained.`);
+    if (closing < 0) warnings.push("Negative closing balance: explain the advance, funding gap or timing difference.");
+    const priorApproval = importLogs.find((l) => l.monthYear === month && l.reconciliation?.holderId === selected);
+    if (priorApproval && [...plan.tripPlan, ...plan.expensePlan].some((p) => p.action !== "skip")) warnings.push("This changes a previously reconciled month. Record a correction reason.");
+  } catch (e) { errors.push(e.message); }
+  const uniqueWarnings = [...new Set(warnings)];
+  return { errors: [...new Set(errors)], warnings: uniqueWarnings, plan, amounts, holderId: selected, projectedTrips, projectedExpenses, ready: !errors.length && acknowledged && (!uniqueWarnings.length || reason.trim().length >= 10) };
+}
+
 function selectMonthlyRows(sheets, monthYear) {
   const candidates = sheets.filter(({ rows }) => rows.some((r) => importText(r[0]) === "NO" && importText(r[1]).includes("TANGGAL")));
   const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUNI", "JULI", "AGST", "SEPT", "OKT", "NOV", "DES"];
@@ -123,16 +283,18 @@ function selectMonthlyRows(sheets, monthYear) {
   const selected = candidates.filter((s) => importText(s.name) === expected);
   if (selected.length === 1) return selected[0].rows;
   if (candidates.length === 1) return candidates[0].rows;
-  throw new Error("Select the month matching a monthly trip tab, or upload that tab as CSV.");
+  throw new Error("Select the month matching a monthly trip tab, or use the structured workbook format.");
 }
 
 function parseMonthlySheet(rows, monthYear, holderId = "") {
   // Helper to parse currency strings like "  1,050,000 " -> 1050000
   const num = (v) => {
     if (v == null || v === "") return 0;
-    if (typeof v === "number") return v;
-    const cleaned = String(v).replace(/[^0-9.-]/g, "");
-    return cleaned === "" || cleaned === "-" ? 0 : Number(cleaned);
+    if (typeof v === "number") return importNumber(v, "Amount");
+    const text = String(v).trim().replace(/^Rp\.?\s*/i, "");
+    if (text === "-") return 0;
+    if (!/^-?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(text)) throw new Error(`Invalid or ambiguous amount: ${v}. Use numeric Excel cells.`);
+    return importNumber(text.replace(/,/g, ""), "Amount");
   };
   const str = (v) => (v == null ? "" : String(v).trim());
 
@@ -587,19 +749,21 @@ function KinKinApp() {
       const data = await file.arrayBuffer();
       const fileName = file.name.toLowerCase();
       let allRows = [];
+      let sheets = [];
 
       if (fileName.endsWith(".csv")) {
         const text = new TextDecoder().decode(data);
         allRows = parseCSV(text);
       } else {
         const wb = XLSX.read(data, { type: "array" });
-        allRows = selectMonthlyRows(wb.SheetNames.map((name) => ({
-          name, rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" }),
-        })), monthYear);
+        sheets = wb.SheetNames.map((name) => ({ name, rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" }) }));
       }
 
       const monthDate = monthYear + "-01";
-      const result = parseMonthlySheet(allRows, monthDate);
+      const structured = parseStructuredImport(sheets, monthYear);
+      if (!structured && sheets.length) allRows = selectMonthlyRows(sheets, monthYear);
+      const result = structured || parseMonthlySheet(allRows, monthDate);
+      const controls = readImportControls(sheets, monthYear);
 
       if (result.trips.length === 0 && result.expenses.length === 0) {
         showToast("No trips or expenses found in this file", "error");
@@ -612,13 +776,15 @@ function KinKinApp() {
         if (!t.date) t.date = monthDate;
       }
 
-      const { tripPlan, expensePlan } = planMonthlyImport(trips, expenses, result);
+      let tripPlan, expensePlan;
+      try { ({ tripPlan, expensePlan } = planMonthlyImport(trips, expenses, result)); }
+      catch { tripPlan = result.trips.map((incoming) => ({ incoming, action: "review" })); expensePlan = result.expenses.map((incoming) => ({ incoming, action: "review" })); }
       setUploadModal({
-        ...uploadModal, previewReady: true,
+        ...uploadModal, previewReady: true, controls, acknowledged: false, reason: "", error: "",
         parsed: {
           ...result,
           trips: tripPlan.map(({ incoming, before, action }) => ({ ...incoming, _isDuplicate: action === "skip", _importAction: action, _previousTotal: before?.total })),
-          expenses: expensePlan.map(({ incoming, action }) => ({ ...incoming, usePettyCash: true, _isDuplicate: action === "skip", _importAction: action })),
+          expenses: expensePlan.map(({ incoming, action }) => ({ ...incoming, usePettyCash: incoming.paidBy ? incoming.paidBy === "petty_cash" : true, _isDuplicate: action === "skip", _importAction: action })),
         },
       });
     } catch (err) {
@@ -628,14 +794,20 @@ function KinKinApp() {
     setImporting(false);
   };
 
+  const importReview = uploadModal?.previewReady ? buildImportReview({
+    trips, expenses, pettyTopups, kas, pettyHolders, assets, parsed: uploadModal.parsed,
+    month: uploadModal.monthYear, controls: uploadModal.controls, holderId: uploadModal.holderId,
+    importLogs, reason: uploadModal.reason, acknowledged: uploadModal.acknowledged,
+  }) : null;
+
   // Step 3: User confirms preview — actually commit + create log entry
   const confirmGlobalImport = () => {
     if (!uploadModal || !uploadModal.parsed) return;
     const { parsed, monthYear, fileName } = uploadModal;
 
-    let plan;
-    try { plan = planMonthlyImport(trips, expenses, parsed); }
-    catch (err) { showToast(err.message, "error"); return; }
+    const review = buildImportReview({ trips, expenses, pettyTopups, kas, pettyHolders, assets, parsed, month: monthYear, controls: uploadModal.controls, holderId: uploadModal.holderId, importLogs, reason: uploadModal.reason, acknowledged: uploadModal.acknowledged });
+    if (!review.ready) { showToast("Resolve reconciliation errors and acknowledge the review before saving.", "error"); return; }
+    const plan = review.plan;
     const clean = ({ _isDuplicate, _importAction, _previousTotal, usePettyCash, ...value }) => {
       void _isDuplicate; void _importAction; void _previousTotal; void usePettyCash;
       return value;
@@ -645,21 +817,13 @@ function KinKinApp() {
       before: p.before, after: { ...p.before, ...clean(p.incoming), id: p.before.id },
     }));
     const expenseUpdates = plan.expensePlan.filter((p) => p.action === "update").map((p) => ({
-      before: p.before, after: { ...p.before, ...clean(p.incoming), id: p.before.id, holderId: p.before.holderId },
+      before: p.before, after: { ...p.before, ...clean(p.incoming), id: p.before.id },
     }));
     const newExpenses = plan.expensePlan.filter((p) => p.action === "add").map((p) => p.incoming);
     const skippedCount = plan.tripPlan.filter((p) => p.action === "skip").length;
     const skippedExpCount = plan.expensePlan.filter((p) => p.action === "skip").length;
 
-    // Assign holderId based on per-expense usePettyCash flag set in the preview
-    const activeHolders = pettyHolders.filter((h) => h.active);
-    const autoHolderId = activeHolders.length === 1 ? activeHolders[0].id : "unassigned";
-    const taggedExpenses = newExpenses.map((e) => {
-      if (e.source !== "import") return e;
-      const _flag = e.usePettyCash;
-      const rest = clean(e);
-      return { ...rest, holderId: _flag !== false ? autoHolderId : "" };
-    });
+    const taggedExpenses = newExpenses.map((e) => clean(e));
 
     const tripIds = newTrips.map((t) => t.id);
     const expenseIds = taggedExpenses.map((e) => e.id);
@@ -667,14 +831,13 @@ function KinKinApp() {
     setTrips([...trips.map((t) => tripUpdates.find((u) => u.before.id === t.id)?.after || t), ...newTrips]);
     setExpenses([...expenses.map((e) => expenseUpdates.find((u) => u.before.id === e.id)?.after || e), ...taggedExpenses]);
 
-    // Sheet expenses (driver costs + pengeluaran tambahan) are paid by Martha
-    // from her petty cash — they do NOT touch the main cash balance directly.
-    // Main cash only reduces when Martha receives a top-up from the Cash tab.
+    // Imports classify expenses and reference existing payments; they never create cash movements.
     const kasIds = [];
 
     const log = {
       id: genId(),
       importedAt: new Date().toISOString(),
+      reconciliation: { holderId: review.holderId, controls: uploadModal.controls, amounts: review.amounts, reason: uploadModal.reason || "", warnings: review.warnings, sourceFormat: parsed.structured ? "structured-v1" : "legacy", acknowledged: true },
       fileName,
       monthYear,
       truckPlate: parsed.truckPlate || "—",
@@ -968,7 +1131,7 @@ function KinKinApp() {
                   </div>
                 </div>
 
-                {/* Trips preview — editable (functional state updates to avoid stale closure) */}
+                {/* Source trip preview */}
                 {uploadModal.parsed.trips.length > 0 && (() => {
                   const newCount = uploadModal.parsed.trips.filter(t => !t._isDuplicate).length;
                   const skipCount = uploadModal.parsed.trips.length - newCount;
@@ -978,7 +1141,7 @@ function KinKinApp() {
                       Trips ({uploadModal.parsed.trips.length}) —{" "}
                       <span style={{ color: "#34d399" }}>{newCount} new or updated</span>
                       {skipCount > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>, {skipCount} unchanged (will skip)</span>}
-                      <span style={{ color: "#c8a86b", fontWeight: 400 }}> — all fields editable below</span>
+                      <span style={{ color: "#c8a86b", fontWeight: 400 }}> — correct transaction fields in the source file</span>
                     </summary>
                     <div style={{ background: "#0c1420", borderRadius: 4, maxHeight: 300, overflowY: "auto", marginTop: 6 }}>
                       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
@@ -1011,12 +1174,12 @@ function KinKinApp() {
                             const rowStyle = t._isDuplicate ? { borderBottom: "1px solid rgba(255,255,255,0.08)", opacity: 0.4, background: "#1e2d3e" } : { borderBottom: "1px solid rgba(255,255,255,0.08)" };
                             return (
                               <tr key={i} style={rowStyle}>
-                                <td style={{ padding: "4px 4px" }}><input type="date" value={t.date || ""} onChange={(e) => updateTrip("date", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.invNo || ""} placeholder="Inv #" onChange={(e) => updateTrip("invNo", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.destination || ""} onChange={(e) => updateTrip("destination", e.target.value)} style={iStyle} disabled={t._isDuplicate} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.nopol || ""} onChange={(e) => updateTrip("nopol", e.target.value)} style={{ ...iStyle, color: "#c8a86b" }} disabled={t._isDuplicate} /></td>
-                                <td style={{ padding: "4px 4px" }}><input value={t.contNo || ""} onChange={(e) => updateTrip("contNo", e.target.value)} style={{ ...iStyle, color: "rgba(255,255,255,0.45)" }} disabled={t._isDuplicate} /></td>
-                                <td style={{ padding: "4px 4px" }}><input type="number" value={t.jual ?? ""} onChange={(e) => updateTrip("jual", e.target.value)} style={{ ...iStyle, textAlign: "right" }} disabled={t._isDuplicate} /></td>
+                                <td style={{ padding: "4px 4px" }}><input type="date" value={t.date || ""} onChange={(e) => updateTrip("date", e.target.value)} style={iStyle} disabled={true} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.invNo || ""} placeholder="Inv #" onChange={(e) => updateTrip("invNo", e.target.value)} style={iStyle} disabled={true} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.destination || ""} onChange={(e) => updateTrip("destination", e.target.value)} style={iStyle} disabled={true} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.nopol || ""} onChange={(e) => updateTrip("nopol", e.target.value)} style={{ ...iStyle, color: "#c8a86b" }} disabled={true} /></td>
+                                <td style={{ padding: "4px 4px" }}><input value={t.contNo || ""} onChange={(e) => updateTrip("contNo", e.target.value)} style={{ ...iStyle, color: "rgba(255,255,255,0.45)" }} disabled={true} /></td>
+                                <td style={{ padding: "4px 4px" }}><input type="number" value={t.jual ?? ""} onChange={(e) => updateTrip("jual", e.target.value)} style={{ ...iStyle, textAlign: "right" }} disabled={true} /></td>
                                 <td style={{ padding: "4px 8px", textAlign: "right", color: (t.profit || 0) >= 0 ? "#34d399" : "#f87171", whiteSpace: "nowrap" }}>
                                   {t._isDuplicate ? <span style={{ color: "#bbb", fontSize: 10 }}>skip</span> : fmt(t.profit || 0)}
                                   {t._importAction === "update" && <div style={{ color: "#fbbf24", fontSize: 10 }}>Cost: {fmt(t._previousTotal)} → {fmt(t.total)}</div>}
@@ -1031,75 +1194,33 @@ function KinKinApp() {
                   );
                 })()}
 
-                {/* Expenses preview — editable */}
-                {uploadModal.parsed.expenses.length > 0 && (() => {
-                  const newCount = uploadModal.parsed.expenses.filter(e => !e._isDuplicate).length;
-                  const skipCount = uploadModal.parsed.expenses.length - newCount;
-                  return (
-                  <details style={{ marginBottom: 14 }}>
-                    <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: 600, padding: "8px 0" }}>
-                      Additional Expenses ({uploadModal.parsed.expenses.length}) —{" "}
-                      <span style={{ color: "#34d399" }}>{newCount} new or updated</span>
-                      {skipCount > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>, {skipCount} unchanged (will skip)</span>}
-                    </summary>
-                    <div style={{ background: "#0c1420", borderRadius: 4, maxHeight: 260, overflowY: "auto", marginTop: 6 }}>
-                      <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr style={{ color: "rgba(255,255,255,0.7)", background: "#1e2d3e", position: "sticky", top: 0 }}>
-                            <th style={{ textAlign: "left", padding: "6px 8px" }}>DESCRIPTION</th>
-                            <th style={{ textAlign: "left", padding: "6px 8px" }}>CATEGORY</th>
-                            <th style={{ textAlign: "right", padding: "6px 8px" }}>AMOUNT</th>
-                            <th style={{ textAlign: "center", padding: "6px 8px" }}>PETTY CASH?</th>
-                            <th style={{ padding: "6px 8px" }}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {uploadModal.parsed.expenses.map((e, i) => {
-                            const iStyle = { padding: "4px 6px", background: "#1e2d3e", border: "1px solid rgba(255,255,255,0.08)", color: "#e2e8f0", fontSize: 11, fontFamily: "inherit", width: "100%", borderRadius: 3, outline: "none" };
-                            const updateExp = (field, val) => {
-                              setUploadModal((prev) => {
-                                const updated = prev.parsed.expenses.map((exp, idx) => idx === i ? { ...exp, [field]: val } : exp);
-                                return { ...prev, parsed: { ...prev.parsed, expenses: updated } };
-                              });
-                            };
-                            const removeExp = () => {
-                              setUploadModal((prev) => ({
-                                ...prev,
-                                parsed: { ...prev.parsed, expenses: prev.parsed.expenses.filter((_, idx) => idx !== i) }
-                              }));
-                            };
-                            if (e._isDuplicate) {
-                              return (
-                                <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", opacity: 0.35, background: "#1e2d3e" }}>
-                                  <td style={{ padding: "4px 8px", color: "rgba(255,255,255,0.25)", fontSize: 11 }}>{e.description}</td>
-                                  <td style={{ padding: "4px 8px", color: "#bbb", fontSize: 11 }}>{e.category}</td>
-                                  <td style={{ padding: "4px 8px", textAlign: "right", color: "#bbb", fontSize: 11 }}>{fmt(e.amount)}</td>
-                                  <td colSpan={2} style={{ padding: "4px 8px", textAlign: "center", color: "#bbb", fontSize: 10 }}>already imported — skip</td>
-                                </tr>
-                              );
-                            }
-                            return (
-                              <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                                <td style={{ padding: "4px 4px" }}><input value={e.description} onChange={(ev) => updateExp("description", ev.target.value)} style={iStyle} /></td>
-                                <td style={{ padding: "4px 4px" }}>
-                                  <select value={e.category} onChange={(ev) => updateExp("category", ev.target.value)} style={{ ...iStyle, cursor: "pointer" }}>
-                                    {["Fuel","Toll","Repair","Spare Parts","Garage","Salary","Office Rent","Utilities","Admin","Insurance","Marketing","Other"].map((c) => <option key={c}>{c}</option>)}
-                                  </select>
-                                </td>
-                                <td style={{ padding: "4px 4px" }}><input type="number" value={e.amount} onChange={(ev) => updateExp("amount", Number(ev.target.value))} style={{ ...iStyle, textAlign: "right", color: "#f87171" }} /></td>
-                                <td style={{ padding: "4px 4px", textAlign: "center" }}>
-                                  <input type="checkbox" checked={e.usePettyCash !== false} onChange={(ev) => updateExp("usePettyCash", ev.target.checked)} style={{ width: "auto", cursor: "pointer", accentColor: "#c8a86b" }} />
-                                </td>
-                                <td style={{ padding: "4px 4px", textAlign: "center" }}><button onClick={removeExp} style={{ background: "transparent", border: "1px solid #c0392b44", color: "#f87171", fontSize: 11, padding: "2px 6px", borderRadius: 3, cursor: "pointer" }}>✕</button></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                  );
-                })()}
+                <details style={{ marginBottom: 14 }}>
+                  <summary>Expense payment sources ({uploadModal.parsed.expenses.length})</summary>
+                  <p>Source values are read-only. Correct amounts and dates in the workbook. For legacy sheets, classify who paid each expense here.</p>
+                  <div style={{ maxHeight: 260, overflow: "auto" }}>
+                    {uploadModal.parsed.expenses.map((e, i) => <div key={i} style={{ padding: 8, borderBottom: "1px solid #334155" }}>
+                      <span>{e.date} · {e.description} · {fmt(e.amount)} · {importReview?.plan.expensePlan[i]?.action || "review"} </span>
+                      <select aria-label={`Payment source ${i + 1}`} disabled={uploadModal.parsed.structured} value={e.paidBy || (e.usePettyCash === false ? "main_cash" : "petty_cash")} onChange={(ev) => setUploadModal((prev) => ({ ...prev, acknowledged: false, parsed: { ...prev.parsed, expenses: prev.parsed.expenses.map((x, j) => j === i ? { ...x, paidBy: ev.target.value, holderId: "", cashEntryId: "" } : x) } }))}>
+                        <option value="petty_cash">Petty cash</option><option value="main_cash">Main cash</option><option value="personal_advance">Personal advance</option>
+                      </select>
+                      {(e.paidBy === "main_cash" || (!e.paidBy && e.usePettyCash === false)) && <input aria-label={`Cash entry ID ${i + 1}`} placeholder="Existing cash entry ID" disabled={uploadModal.parsed.structured} value={e.cashEntryId || ""} onChange={(ev) => setUploadModal((prev) => ({ ...prev, acknowledged: false, parsed: { ...prev.parsed, expenses: prev.parsed.expenses.map((x, j) => j === i ? { ...x, cashEntryId: ev.target.value } : x) } }))} />}
+                    </div>)}
+                  </div>
+                </details>
+                {importReview && <section aria-label="Import reconciliation" style={{ padding: 16, background: "#142234", marginBottom: 14 }}>
+                  <h3>Reconcile before importing</h3>
+                  <p>{uploadModal.controls?.sourceRef || "No control sheet found"} · Coverage through {uploadModal.controls?.through || "unknown"}</p>
+                  <label>Petty-cash holder <select aria-label="Reconciliation holder" value={importReview.holderId} onChange={(ev) => setUploadModal({ ...uploadModal, holderId: ev.target.value, acknowledged: false })}><option value="">Select holder</option>{pettyHolders.filter((h) => h.active).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>
+                  {importReview.amounts && <table style={{ width: "100%", margin: "12px 0" }}>
+                    <thead><tr><th>Control</th><th>Sheet</th><th>Website after import</th><th>Difference</th></tr></thead>
+                    <tbody>{[["Opening", "opening", "priorOpening"], ["Transfers", "transfers", "actualTransfers"], ["Spending", "spending", "afterSpending"], ["Closing", "closing", "afterClosing"]].map(([label, source, after]) => <tr key={label}><td>{label}</td><td>{fmt(importReview.amounts[source])}</td><td>{fmt(importReview.amounts[after])}</td><td>{fmt(importReview.amounts[after] - importReview.amounts[source])}</td></tr>)}</tbody>
+                  </table>}
+                  <p>{["add", "update", "skip"].map((action) => `${action}: ${[...importReview.plan.tripPlan, ...importReview.plan.expensePlan].filter((p) => p.action === action).length}`).join(" · ")}</p>
+                  {importReview.errors.map((message) => <p role="alert" key={message} style={{ color: "#f87171" }}>{message}</p>)}
+                  {importReview.warnings.map((message) => <p key={message} style={{ color: "#fbbf24" }}>{message}</p>)}
+                  <label>Review / correction reason {importReview.warnings.length > 0 && "(at least 10 characters required)"}<textarea aria-label="Review reason" value={uploadModal.reason || ""} onChange={(ev) => setUploadModal({ ...uploadModal, reason: ev.target.value, acknowledged: false })} /></label>
+                  <label style={{ display: "block", marginTop: 12 }}><input type="checkbox" style={{ width: "auto" }} checked={!!uploadModal.acknowledged} onChange={(ev) => setUploadModal({ ...uploadModal, acknowledged: ev.target.checked })} /> I checked the source, payment classifications and reconciliation totals.</label>
+                </section>}
 
                 <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 4, padding: 12, fontSize: 11, color: "#e2e8f0", marginBottom: 14 }}>
                   This import will be saved as a log entry. You can delete the whole batch later if uploaded wrongly — from Settings → Import History.
@@ -1112,7 +1233,7 @@ function KinKinApp() {
                   <button onClick={cancelGlobalImport} style={{ background: "transparent", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)", padding: "10px 20px", borderRadius: 4, fontSize: 12, cursor: "pointer" }}>
                     Cancel
                   </button>
-                  <button onClick={confirmGlobalImport} style={{ background: "#34d399", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  <button disabled={!importReview?.ready} onClick={confirmGlobalImport} style={{ background: "#34d399", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                     Confirm Import ({uploadModal.parsed.trips.length + uploadModal.parsed.expenses.length} entries)
                   </button>
                 </div>
