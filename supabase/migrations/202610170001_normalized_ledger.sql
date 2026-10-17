@@ -318,7 +318,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.kinkin_state FROM anon, authen
 -- Tables/backup stay inaccessible to API roles. Only the two validated RPCs are exposed.
 REVOKE ALL ON ALL TABLES IN SCHEMA kinkin_ledger FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA kinkin_ledger FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.kinkin_load_ledger() TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.kinkin_save_ledger(jsonb, bigint) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.kinkin_load_ledger() TO anon;
+GRANT EXECUTE ON FUNCTION public.kinkin_save_ledger(jsonb, bigint) TO anon;
 NOTIFY pgrst, 'reload schema';
 COMMIT;
