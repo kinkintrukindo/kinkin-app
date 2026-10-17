@@ -572,31 +572,43 @@ function downloadExcel(filename, sheetData) {
 
 
 // ── Supabase persistence ──────────────────────────────────────────────────────
-const STORE_KEY = "kinkin_v1";
-
-async function loadState() {
-  try {
-    const { data, error } = await supabase
-      .from("kinkin_state")
-      .select("value")
-      .eq("key", STORE_KEY)
-      .single();
-    if (error || !data) return null;
-    return data.value;
-  } catch { return null; }
+// All persistence goes through one revision-checked database transaction.
+function createLedgerStorage(client) {
+  let revision = null;
+  let lastSaved = null;
+  let queue = Promise.resolve();
+  let failure = null;
+  const serialize = (value) => JSON.stringify(value, (_key, v) => v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((key) => [key, v[key]])) : v);
+  return {
+    async load() {
+      const { data, error } = await client.rpc("kinkin_load_ledger");
+      if (error) throw new Error(error.message || "Unable to load the ledger");
+      if (!data?.value || !Number.isSafeInteger(data.revision)) throw new Error("Ledger migration is unavailable or returned an invalid revision.");
+      revision = data.revision;
+      lastSaved = serialize(data.value);
+      return data.value;
+    },
+    save(state) {
+      const snapshot = serialize(state);
+      const operation = queue.then(async () => {
+        if (failure) throw failure;
+        if (revision === null) throw new Error("Load the ledger before saving.");
+        if (snapshot === lastSaved) return;
+        const { data, error } = await client.rpc("kinkin_save_ledger", { p_state: JSON.parse(snapshot), p_expected_revision: revision });
+        if (error) throw new Error(error.code === "40001" ? "Another session changed the ledger. Export your unsaved work, then reload and reconcile it." : error.message || "Unable to save the ledger");
+        if (!Number.isSafeInteger(data) || data !== revision + 1) throw new Error("Save outcome is uncertain. Export your unsaved work and reload before continuing.");
+        revision = data;
+        lastSaved = snapshot;
+      }).catch((error) => { failure = error; throw error; });
+      // A failure stops later queued writes; no blind retry after an ambiguous response.
+      queue = operation.catch(() => {});
+      return operation;
+    },
+  };
 }
-
-async function saveState(state) {
-  try {
-    await supabase
-      .from("kinkin_state")
-      .upsert({ key: STORE_KEY, value: state, updated_at: new Date().toISOString() });
-  } catch (e) {
-    console.warn("Storage save failed:", e);
-  }
-}
-
-
+const ledgerStorage = createLedgerStorage(supabase);
+const loadState = () => ledgerStorage.load();
+const saveState = (state) => ledgerStorage.save(state);
 
 // ── CATEGORY COLORS ────────────────────────────────────────────────────────────
 const CAT_COLOR = {
@@ -658,6 +670,8 @@ function KinKinApp() {
   const [activityLog, setActivityLog] = useState([]);
   const [cashBackfillDone, setCashBackfillDone] = useState(false);
   const [appPassword, setAppPassword] = useState(APP_PASSWORD);
+  const [storageError, setStorageError] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saveStatus, setSaveStatus] = useState("saved"); // "saved" | "saving" | "error"
   const [fabOpen, setFabOpen] = useState(false);
   const [fabMode, setFabMode] = useState(null); // "cash-in"|"cash-out"|"expense"|"trip"
@@ -714,6 +728,10 @@ function KinKinApp() {
       }
       _skipSave.current = false;
       setAppLoading(false);
+    }).catch((error) => {
+      setStorageError(error.message);
+      setLoadFailed(true);
+      setAppLoading(false);
     });
   }, []);
 
@@ -726,7 +744,7 @@ function KinKinApp() {
     setSaveStatus("saving");
     saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides })
       .then(() => setSaveStatus("saved"))
-      .catch(() => setSaveStatus("error"));
+      .catch((error) => { setSaveStatus("error"); setStorageError(error.message); });
   }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides]);
 
   // Step 1: User picks a file — open modal asking for month/year
@@ -948,6 +966,20 @@ function KinKinApp() {
 
   const trucks = [...new Set([...trips.map((t) => t.nopol), ...expenses.map((e) => e.truck)])].filter(Boolean);
 
+  if (loadFailed || storageError) return (
+    <main style={{ padding: 32, color: "#e2e8f0", background: "#0c1420", minHeight: "100vh" }}>
+      <h2>{loadFailed ? "Ledger could not be loaded" : "Changes have not been saved"}</h2>
+      <p role="alert" style={{ margin: "16px 0" }}>{storageError}</p>
+      <p>Editing is paused to protect your records. {loadFailed ? "Check the connection and migration status, then reload." : "Download your unsaved work before reloading. Compare it with the latest ledger before making changes again."}</p>
+      {!loadFailed && <button onClick={() => {
+        const snapshot = { trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, loanMonthOverrides };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }));
+        const link = document.createElement("a"); link.href = url; link.download = `kinkin-unsaved-${Date.now()}.json`; link.click(); URL.revokeObjectURL(url);
+      }}>Download unsaved work</button>}
+      <button onClick={() => window.location.reload()}>Reload ledger</button>
+    </main>
+  );
+
   if (appLoading) return (
     <div style={{ minHeight: "100vh", background: "#0c1420", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
       <img src="/logo-light.png" alt="Kin Kin Trukindo" style={{ height: 80, width: "auto", objectFit: "contain", opacity: 0.85 }} />
@@ -1018,18 +1050,6 @@ function KinKinApp() {
           </>
         )}
         <div style={{ flex: 1 }} />
-        <button
-          onClick={() => setConfirmModal({
-            title: "Reset all data?",
-            message: "This will permanently delete all trips, expenses, cash entries, loans, assets, capital, and import history from this device.",
-            warning: "This cannot be undone.",
-            onConfirm: async () => { await supabase.from("kinkin_state").delete().eq("key", STORE_KEY); window.location.reload(); },
-          })}
-          style={{ display: "none" }}
-          title="Clear all data"
-        >
-          Reset
-        </button>
       </div>
 
       {/* Mobile bottom navigation */}
