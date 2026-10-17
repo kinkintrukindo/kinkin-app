@@ -558,6 +558,7 @@ function KinKinApp() {
     if (!uploadModal) return;
     const { file, monthYear } = uploadModal;
     setImporting(true);
+    setUploadModal((current) => ({ ...current, error: "" }));
     try {
       const data = await file.arrayBuffer();
       const fileName = file.name.toLowerCase();
@@ -597,6 +598,7 @@ function KinKinApp() {
         },
       });
     } catch (err) {
+      setUploadModal((current) => ({ ...current, error: err.message }));
       showToast("Import failed: " + err.message, "error");
     }
     setImporting(false);
@@ -879,6 +881,8 @@ function KinKinApp() {
               </button>
             </div>
 
+            {uploadModal.error && <div role="alert" style={{ color: "#f87171", marginBottom: 16, fontSize: 13 }}>{uploadModal.error}</div>}
+
             {!uploadModal.previewReady ? (
               <>
                 {/* Step 1: Confirm month/year */}
@@ -892,7 +896,7 @@ function KinKinApp() {
                   />
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 10, lineHeight: 1.6 }}>
                     The system will use this period to:<br />
-                    • Fill in dates for entries that don&apos;t have one<br />
+                    • Validate trip dates against the selected month<br />
                     • Date the additional expenses (PENGELUARAN TAMBAHAN)<br />
                     • Label this import in the log
                   </div>
@@ -1421,7 +1425,7 @@ function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProf
   const [kpiPopup, setKpiPopup] = useState(null);
   const truckStats = trucks.map((t) => {
     const tTrips = trips.filter((x) => x.nopol === t);
-    const tExp = expenses.filter((x) => x.truck === t);
+    const tExp = expenses.filter((x) => x.truck === t && x.expenseType !== "driver");
     return {
       nopol: t,
       trips: tTrips.length,
@@ -3833,8 +3837,8 @@ function BusinessMetrics({ trips, expenses, kas, loans, loanPayments, assets, ca
       buckets[bk].revenue  += t.jual  || 0;
       buckets[bk].cogs     += t.total || 0;
     }
-    // Expenses
-    for (const e of expenses) {
+    // Driver expenses mirror trip costs and must not be deducted twice.
+    for (const e of expenses.filter((x) => x.expenseType !== "driver")) {
       const bk = getBucket(e.date);
       if (!bk) continue;
       if (!buckets[bk]) buckets[bk] = { period: bk, revenue: 0, cogs: 0, truckOps: 0, overhead: 0 };

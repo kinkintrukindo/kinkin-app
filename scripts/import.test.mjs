@@ -85,3 +85,27 @@ test('repeated trip identifiers in one upload or database block import', () => {
   const plan = planMonthlyImport(a.trips, a.expenses, { trips: [...b.trips, ...a.trips], expenses: [...b.expenses, ...a.expenses] });
   assert.deepEqual(Array.from(plan.expensePlan, (e) => e.action), ['add', 'add', 'skip', 'skip']);
 });
+
+const profitTrips = [{ date: '2026-08-03', nopol: 'TEST-A', jual: 1500, total: 500, profit: 1000 }];
+const profitExpenses = [
+  { date: '2026-08-03', truck: 'TEST-A', expenseType: 'driver', amount: 500 },
+  { date: '2026-08-03', truck: 'TEST-A', expenseType: 'driver', amount: 500 },
+  { date: '2026-08-01', truck: 'TEST-A', expenseType: 'truck', amount: 100 },
+  { date: '2026-08-01', expenseType: 'overhead', amount: 50 },
+];
+
+test('truck profit does not deduct mirrored driver expenses or their duplicates', () => {
+  const start = source.indexOf('  const truckStats = trucks.map');
+  const calculation = source.slice(start, source.indexOf('  const expByCategory', start));
+  const rows = vm.runInNewContext(`${calculation}\ntruckStats;`, { trips: profitTrips, expenses: profitExpenses, trucks: ['TEST-A'] });
+  assert.equal(rows[0].profit, 900);
+});
+
+test('profit trend agrees with P&L after driver costs are counted once', () => {
+  const start = source.indexOf('  const buildTimeSeries = () =>');
+  const calculation = source.slice(start, source.indexOf('  const timeSeries =', start));
+  const rows = vm.runInNewContext(`${calculation}\nbuildTimeSeries();`, { trips: profitTrips, expenses: profitExpenses, chartGranularity: 'monthly' });
+  assert.equal(rows[0].grossProfit, 1000);
+  assert.equal(rows[0].overhead, 50);
+  assert.equal(rows[0].netProfit, 850);
+});
