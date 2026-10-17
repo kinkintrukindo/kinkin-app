@@ -109,3 +109,30 @@ test('profit trend agrees with P&L after driver costs are counted once', () => {
   assert.equal(rows[0].overhead, 50);
   assert.equal(rows[0].netProfit, 850);
 });
+
+const planTopupChange = vm.runInContext('planTopupChange', context);
+const topups = [{ id: 't1', kasId: 'c1', holderId: 'h1', date: '2026-09-08', amount: 5000000 }];
+const cashEntries = [{ id: 'c1', type: 'out', date: '2026-09-08', amount: 5000000 }, { id: 'receipt', type: 'in', amount: 100 }];
+test('top-up edits synchronize date and amount without changing customer receipts', () => {
+  const next = planTopupChange(topups, cashEntries, 't1', { date: '2026-09-09', amount: 2500000, note: 'Corrected', description: 'Petty cash top-up — test' });
+  assert.equal(next.topups[0].amount, 2500000);
+  assert.equal(next.cashEntries[0].amount, 2500000);
+  assert.equal(next.cashEntries[0].date, next.topups[0].date);
+  assert.equal(next.topups[0].kasId, 'c1');
+  assert.deepEqual(next.cashEntries[1], cashEntries[1]);
+  assert.equal(topups[0].amount, 5000000);
+});
+test('top-up deletion removes only the linked cash entry', () => {
+  const next = planTopupChange(topups, cashEntries, 't1', null);
+  assert.equal(next.topups.length, 0);
+  assert.equal(next.cashEntries.length, 1);
+  assert.equal(next.cashEntries[0].id, 'receipt');
+});
+test('missing, conflicting or reused cash links block mutations', () => {
+  assert.throws(() => planTopupChange([{ ...topups[0], kasId: undefined }], cashEntries, 't1', null), /linked/);
+  assert.throws(() => planTopupChange(topups, [{ ...cashEntries[0], amount: 1 }], 't1', null), /differ/);
+  assert.throws(() => planTopupChange([...topups, { ...topups[0], id: 't2' }], cashEntries, 't1', null), /linked/);
+});
+test('invalid top-up amounts do not mutate either ledger', () => {
+  for (const amount of [0, -1, NaN, Infinity]) assert.throws(() => planTopupChange(topups, cashEntries, 't1', { date: '2026-09-08', amount }), /positive/);
+});
