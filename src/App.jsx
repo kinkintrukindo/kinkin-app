@@ -5257,8 +5257,11 @@ function Settings({ activityLog, kas, expenses, trips, pettyHolders, pettyTopups
 function AuthPanel({ children }) {
   return <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#0c1420", color: "#e2e8f0", fontFamily: "Inter, sans-serif", padding: 24 }}>
     <section style={{ width: "100%", maxWidth: 400, boxSizing: "border-box", background: "#111e2e", border: "1px solid #c8a86b44", borderRadius: 16, padding: 32 }}>
-      <img src="/logo-light.png" alt="Kin Kin Trukindo" style={{ width: 140, background: "white", padding: 12, borderRadius: 10 }} />
-      <h1 style={{ fontSize: 22 }}>Admin dashboard</h1>{children}
+      <header style={{ textAlign: "center", marginBottom: 28 }}>
+        <img src="/logo-light.png" alt="Kin Kin Trukindo logo" style={{ width: 140, maxWidth: "100%", background: "white", padding: 12, borderRadius: 10, boxSizing: "border-box" }} />
+        <h1 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(18px, 5vw, 23px)", fontWeight: 800, letterSpacing: 1, lineHeight: 1.3, margin: "20px 0 6px", color: "#c8a86b" }}>KIN KIN TRUKINDO</h1>
+        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 500, margin: 0 }}>Admin Dashboard</p>
+      </header>{children}
       <div style={{ marginTop: 24 }}><CustomerWebsiteLink /></div>
     </section>
   </main>;
@@ -5285,7 +5288,7 @@ function LoginGate() {
     } catch (error) { setMessage(error.message); }
     finally { setBusy(false); setPassword(""); }
   }
-  return <AuthPanel><p>Use your approved individual account.</p><form onSubmit={submit}>
+  return <AuthPanel><h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 18, fontWeight: 600, margin: "0 0 20px" }}>{reset ? "Reset Password" : "Log In"}</h2><form onSubmit={submit}>
     <label>Email<input style={authInput} type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></label>
     {!reset && <label>Password<input style={authInput} type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>}
     <button style={authButton} disabled={busy}>{busy ? "Please wait…" : reset ? "Send reset link" : "Sign in"}</button>
