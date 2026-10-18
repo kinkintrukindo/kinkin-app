@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
-const create = vm.runInNewContext(`(${source.slice(source.indexOf('function createLedgerStorage('), source.indexOf('const ledgerStorage ='))})`);
+const create = vm.runInNewContext(`(${source.slice(source.indexOf('function createLedgerStorage('), source.indexOf('// ── CATEGORY COLORS'))})`);
 test('load failures are errors, not an empty ledger', async () => {
  const storage=create({rpc:async()=>({error:{message:'offline'}})});
  await assert.rejects(storage.load(),/offline/);await assert.rejects(storage.save({}),/Load the ledger/);
@@ -25,4 +25,11 @@ test('uncertain responses stop saves and never report success', async () => {
 test('database JSON key ordering does not create an unnecessary initial save', async () => {
  let writes=0;const storage=create({rpc:async(name)=>name==='kinkin_load_ledger'?{data:{value:{b:[{y:2,x:1}],a:1},revision:1}}:(writes++,{data:2})});
  await storage.load();await storage.save({a:1,b:[{x:1,y:2}]});assert.equal(writes,0);
+});
+test('ending a session cancels queued writes before another account can use them', async () => {
+ let writes=0;
+ const storage=create({rpc:async(name)=>name==='kinkin_load_ledger'?{data:{value:{},revision:1}}:(writes++,{data:2})});
+ await storage.load();const pending=storage.save({x:1});storage.close();
+ await assert.rejects(pending,/Session ended/);await assert.rejects(storage.save({x:2}),/Session ended/);
+ await assert.rejects(storage.load(),/Session ended/);assert.equal(writes,0);
 });

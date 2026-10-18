@@ -3,9 +3,12 @@ import * as XLSX from "xlsx";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 
+const invalidAuthLink = /error=|error_code=/.test(window.location.hash);
+const passwordLink = /type=(recovery|invite)/.test(window.location.hash);
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  { auth: { storage: window.sessionStorage } }
 );
 
 // ── Utility helpers ──────────────────────────────────────────────────────────
@@ -574,13 +577,16 @@ function downloadExcel(filename, sheetData) {
 // ── Supabase persistence ──────────────────────────────────────────────────────
 // All persistence goes through one revision-checked database transaction.
 function createLedgerStorage(client) {
+  let closed = false;
   let revision = null;
   let lastSaved = null;
   let queue = Promise.resolve();
   let failure = null;
   const serialize = (value) => JSON.stringify(value, (_key, v) => v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((key) => [key, v[key]])) : v);
   return {
+    close() { closed = true; },
     async load() {
+      if (closed) throw new Error("Session ended. Sign in again.");
       const { data, error } = await client.rpc("kinkin_load_ledger");
       if (error) throw new Error(error.message || "Unable to load the ledger");
       if (!data?.value || !Number.isSafeInteger(data.revision)) throw new Error("Ledger migration is unavailable or returned an invalid revision.");
@@ -591,6 +597,7 @@ function createLedgerStorage(client) {
     save(state) {
       const snapshot = serialize(state);
       const operation = queue.then(async () => {
+        if (closed) throw new Error("Session ended. Sign in again.");
         if (failure) throw failure;
         if (revision === null) throw new Error("Load the ledger before saving.");
         if (snapshot === lastSaved) return;
@@ -606,10 +613,6 @@ function createLedgerStorage(client) {
     },
   };
 }
-const ledgerStorage = createLedgerStorage(supabase);
-const loadState = () => ledgerStorage.load();
-const saveState = (state) => ledgerStorage.save(state);
-
 // ── CATEGORY COLORS ────────────────────────────────────────────────────────────
 const CAT_COLOR = {
   // Truck / operational
@@ -645,7 +648,8 @@ const TABS = [
   { key: "settings",  label: "Settings",        short: "Opts" },
 ];
 
-function KinKinApp() {
+function KinKinApp({ session, onSignOut }) {
+  const storage = useRef(null);
   const [tab, setTab] = useState("dashboard");
   const isMobile = useIsMobile();
   const [trips, setTrips] = useState([]);
@@ -669,7 +673,6 @@ function KinKinApp() {
   const [deleteGuardErr, setDeleteGuardErr] = useState(false);
   const [activityLog, setActivityLog] = useState([]);
   const [cashBackfillDone, setCashBackfillDone] = useState(false);
-  const [appPassword, setAppPassword] = useState(APP_PASSWORD);
   const [storageError, setStorageError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
   const [saveStatus, setSaveStatus] = useState("saved"); // "saved" | "saving" | "error"
@@ -681,7 +684,11 @@ function KinKinApp() {
   const _skipSave = useRef(true);
 
   useEffect(() => {
-    loadState().then((saved) => {
+    const currentStorage = createLedgerStorage(supabase);
+    storage.current = currentStorage;
+    let active = true;
+    currentStorage.load().then((saved) => {
+      if (!active) return;
       if (saved) {
         setTrips(saved.trips ?? []);
         setExpenses(saved.expenses ?? []);
@@ -695,7 +702,6 @@ function KinKinApp() {
         setLoanMonthOverrides(saved.loanMonthOverrides ?? {});
         setActivityLog(saved.activityLog ?? []);
         setCashBackfillDone(saved.cashBackfillDone ?? false);
-        if (saved.appPassword) { setAppPassword(saved.appPassword); _runtimePassword = saved.appPassword; }
 
         // One-time migration: create kas "out" entries for historical manually-added
         // truck and overhead expenses that were logged before the cash-deduction fix.
@@ -729,23 +735,22 @@ function KinKinApp() {
       _skipSave.current = false;
       setAppLoading(false);
     }).catch((error) => {
+      if (!active) return;
       setStorageError(error.message);
       setLoadFailed(true);
       setAppLoading(false);
     });
+    return () => { active = false; currentStorage.close(); };
   }, []);
-
-  // Keep module-level ref in sync so LoginGate always reads the current password
-  useEffect(() => { _runtimePassword = appPassword; }, [appPassword]);
 
   // Auto-save whenever any data changes
   useEffect(() => {
     if (_skipSave.current) return;
     setSaveStatus("saving");
-    saveState({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides })
+    storage.current.save({ trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, loanMonthOverrides })
       .then(() => setSaveStatus("saved"))
       .catch((error) => { setSaveStatus("error"); setStorageError(error.message); });
-  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, appPassword, loanMonthOverrides]);
+  }, [trips, expenses, kas, capital, loans, assets, loanPayments, importLogs, pettyHolders, pettyTopups, activityLog, cashBackfillDone, loanMonthOverrides]);
 
   // Step 1: User picks a file — open modal asking for month/year
   const handleGlobalImport = (e) => {
@@ -1302,22 +1307,22 @@ function KinKinApp() {
           <div style={{ background:"#162030",border:"1px solid rgba(248,113,113,0.4)",borderRadius:10,padding:24,maxWidth:400,width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.25)" }}>
             <h3 style={{ fontFamily:"'Montserrat',sans-serif",fontSize:16,color:"#f87171",fontWeight:700,marginBottom:10 }}>⚠ Confirm Deletion</h3>
             <p style={{ fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.5 }}>{deleteGuard.message}</p>
-            <p style={{ fontSize:12,color:"rgba(255,255,255,0.25)",marginBottom:8 }}>Enter admin code to proceed:</p>
+            <p style={{ fontSize:12,color:"rgba(255,255,255,0.25)",marginBottom:8 }}>Type DELETE to proceed:</p>
             <input
-              type="password" value={deleteGuardCode} autoFocus
+              type="text" value={deleteGuardCode} autoFocus
               onChange={(e) => { setDeleteGuardCode(e.target.value); setDeleteGuardErr(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") {
-                if (deleteGuardCode === appPassword) { deleteGuard.onConfirm(); setDeleteGuard(null); }
+                if (deleteGuardCode === "DELETE") { deleteGuard.onConfirm(); setDeleteGuard(null); }
                 else setDeleteGuardErr(true);
               }}}
               style={{ width:"100%",padding:"8px 10px",border:`1px solid ${deleteGuardErr?"#f87171":"rgba(255,255,255,0.08)"}`,borderRadius:4,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:deleteGuardErr?4:14 }}
-              placeholder="Admin code"
+              placeholder="Type DELETE"
             />
-            {deleteGuardErr && <p style={{ color:"#f87171",fontSize:11,marginBottom:10 }}>Incorrect code. Try again.</p>}
+            {deleteGuardErr && <p style={{ color:"#f87171",fontSize:11,marginBottom:10 }}>Type DELETE exactly.</p>}
             <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
               <button onClick={() => setDeleteGuard(null)} style={{ background:"transparent",color:"rgba(255,255,255,0.45)",border:"1px solid rgba(255,255,255,0.08)",padding:"9px 18px",borderRadius:4,fontSize:12,cursor:"pointer" }}>Cancel</button>
               <button onClick={() => {
-                if (deleteGuardCode === appPassword) { deleteGuard.onConfirm(); setDeleteGuard(null); }
+                if (deleteGuardCode === "DELETE") { deleteGuard.onConfirm(); setDeleteGuard(null); }
                 else setDeleteGuardErr(true);
               }} style={{ background:"#f87171",color:"#fff",border:"none",padding:"9px 20px",borderRadius:4,fontWeight:700,fontSize:13,cursor:"pointer" }}>Delete</button>
             </div>
@@ -1326,7 +1331,7 @@ function KinKinApp() {
       )}
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><CustomerWebsiteLink /></div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", marginBottom: 16 }}><span style={{ fontSize: 12 }}>{session.user.email}</span><button disabled={saveStatus === "saving"} onClick={async () => { storage.current?.close(); await onSignOut(); }} style={{ cursor: "pointer", padding: "8px 12px" }}>Sign out</button><CustomerWebsiteLink /></div>
         {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} assets={assets} loanMonthOverrides={loanMonthOverrides} setLoanMonthOverrides={setLoanMonthOverrides} globalFileRef={globalFileRef} importing={importing} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
@@ -1334,7 +1339,7 @@ function KinKinApp() {
         {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} setExpenses={setExpenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
-        {tab === "settings" && <Settings appPassword={appPassword} setAppPassword={setAppPassword} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
+        {tab === "settings" && <Settings activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
       </div>
 
       {/* ── GLOBAL FAB ── */}
@@ -4952,7 +4957,7 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
-function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast, importLogs, undoImport, resetAll }) {
+function Settings({ activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast, importLogs, undoImport, resetAll }) {
   const [curPwd, setCurPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confPwd, setConfPwd] = useState("");
@@ -4968,12 +4973,12 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
   const [resetPwd, setResetPwd] = useState("");
   const [resetErr, setResetErr] = useState("");
 
-  function handleChangePwd(e) {
+  async function handleChangePwd(e) {
     e.preventDefault();
-    if (curPwd !== appPassword) { setPwdErr("Current password is incorrect."); return; }
-    if (newPwd.length < 4) { setPwdErr("New password must be at least 4 characters."); return; }
+    if (newPwd.length < 12) { setPwdErr("New password must be at least 12 characters."); return; }
     if (newPwd !== confPwd) { setPwdErr("New passwords do not match."); return; }
-    setAppPassword(newPwd);
+    const { error } = await supabase.auth.updateUser({ password: newPwd, current_password: curPwd });
+    if (error) { setPwdErr(error.message); return; }
     setCurPwd(""); setNewPwd(""); setConfPwd(""); setPwdErr("");
     showToast("Password updated!");
   }
@@ -5201,14 +5206,14 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
       {undoTarget && (
         <div style={{ background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.3)", borderRadius:8, padding:16, marginBottom:16 }}>
           <div style={{ fontSize:13, color:"#f87171", fontWeight:700, marginBottom:10 }}>Confirm undo import</div>
-          <input type="password" placeholder="Enter admin code" value={undoPwd} onChange={e => setUndoPwd(e.target.value)}
+          <input type="text" placeholder="Type UNDO" value={undoPwd} onChange={e => setUndoPwd(e.target.value)}
             style={{ width:"100%", padding:"8px 10px", background:"#0f1c2a", border:`1px solid ${undoErr?"#f87171":"rgba(255,255,255,0.12)"}`, borderRadius:4, color:"#e2e8f0", fontSize:12, boxSizing:"border-box", marginBottom:8, fontFamily:"inherit" }} />
           {undoErr && <div style={{ fontSize:11, color:"#f87171", marginBottom:8 }}>{undoErr}</div>}
           <div style={{ display:"flex", gap:8 }}>
             <button onClick={() => { setUndoTarget(null); setUndoPwd(""); setUndoErr(""); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.5)", padding:"7px 16px", borderRadius:4, fontSize:12, cursor:"pointer" }}>Cancel</button>
             <button onClick={() => {
-              if (undoPwd === appPassword) { undoImport(undoTarget); setUndoTarget(null); setUndoPwd(""); setUndoErr(""); showToast("Import undone!"); }
-              else setUndoErr("Incorrect code");
+              if (undoPwd === "UNDO") { undoImport(undoTarget); setUndoTarget(null); setUndoPwd(""); setUndoErr(""); showToast("Import undone!"); }
+              else setUndoErr("Type UNDO exactly");
             }} style={{ background:"#f87171", border:"none", color:"#fff", padding:"7px 16px", borderRadius:4, fontSize:12, fontWeight:700, cursor:"pointer" }}>Confirm Undo</button>
           </div>
         </div>
@@ -5228,14 +5233,14 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
         </div>
         {showReset && (
           <div style={{ background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.3)", borderRadius:8, padding:16, marginTop:12 }}>
-            <div style={{ fontSize:13, color:"#f87171", fontWeight:700, marginBottom:10 }}>Type admin code to confirm full reset</div>
-            <input type="password" placeholder="Admin code" value={resetPwd} onChange={e => setResetPwd(e.target.value)}
+            <div style={{ fontSize:13, color:"#f87171", fontWeight:700, marginBottom:10 }}>Type RESET to confirm full reset</div>
+            <input type="text" placeholder="Type RESET" value={resetPwd} onChange={e => setResetPwd(e.target.value)}
               style={{ width:"100%", padding:"8px 10px", background:"#0f1c2a", border:`1px solid ${resetErr?"#f87171":"rgba(255,255,255,0.12)"}`, borderRadius:4, color:"#e2e8f0", fontSize:12, boxSizing:"border-box", marginBottom:8, fontFamily:"inherit" }} />
             {resetErr && <div style={{ fontSize:11, color:"#f87171", marginBottom:8 }}>{resetErr}</div>}
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={() => { setShowReset(false); setResetPwd(""); setResetErr(""); }} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.5)", padding:"7px 16px", borderRadius:4, fontSize:12, cursor:"pointer" }}>Cancel</button>
               <button onClick={() => {
-                if (resetPwd !== appPassword) { setResetErr("Incorrect code"); return; }
+                if (resetPwd !== "RESET") { setResetErr("Type RESET exactly"); return; }
                 resetAll();
                 showToast("All data has been reset.", "error");
                 setShowReset(false); setResetPwd(""); setResetErr("");
@@ -5248,101 +5253,105 @@ function Settings({ appPassword, setAppPassword, activityLog, kas, expenses, tri
   );
 }
 
-const APP_PASSWORD = "808880";
-
-// Module-level ref so LoginGate can always read the current runtime password
-// without needing prop threading through App → LoginGate.
-let _runtimePassword = APP_PASSWORD;
-
-function LoginGate({ onSuccess }) {
-  const [pwd, setPwd] = useState("");
-  const [err, setErr] = useState("");
-  const [focused, setFocused] = useState(false);
-
-  function submit(e) {
-    e.preventDefault();
-    if (pwd === _runtimePassword) {
-      setErr("");
-      onSuccess();
-    } else {
-      setErr("Invalid code");
-      setPwd("");
-    }
-  }
-
-  return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0c1420", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: "24px" }}>
-      <form onSubmit={submit} style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", alignItems: "center", background: "#111e2e", borderRadius: 16, padding: "48px 36px 40px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,168,107,0.15)", border: "none" }}>
-        {/* Logo on white card */}
-        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", marginBottom: 32, boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
-          <img src="/logo-light.png" alt="Kin Kin Trukindo, Ltd." style={{ height: 88, width: "auto", objectFit: "contain", display: "block" }} />
-        </div>
-        {/* Brand name */}
-        <h1 style={{ margin: "0 0 4px 0", fontFamily: "'Montserrat', sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: 1, color: "#e2e8f0", textAlign: "center" }}>
-          Kin Kin Trukindo
-        </h1>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#c8a86b", letterSpacing: 3, textTransform: "uppercase", marginBottom: 32 }}>
-          Freight &amp; Logistics
-        </div>
-        {/* Divider */}
-        <div style={{ width: "100%", height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 24 }} />
-        <p style={{ margin: "0 0 14px 0", color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", textAlign: "center" }}>
-          Authorization Required
-        </p>
-        <input
-          type="password"
-          value={pwd}
-          onChange={(e) => setPwd(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          autoFocus
-          placeholder="Enter code"
-          style={{
-            width: "100%",
-            padding: "13px 16px",
-            background: "#0c1420",
-            border: `1.5px solid ${focused ? "#c8a86b" : "rgba(255,255,255,0.1)"}`,
-            borderRadius: 8,
-            color: "#e2e8f0",
-            fontSize: 16,
-            textAlign: "center",
-            letterSpacing: 4,
-            outline: "none",
-            boxSizing: "border-box",
-            transition: "border-color 0.15s ease",
-            fontFamily: "monospace",
-          }}
-        />
-        {err && <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, textAlign: "center", fontWeight: 600 }}>{err}</div>}
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            marginTop: 16,
-            padding: "13px",
-            background: "linear-gradient(135deg, #c8a86b 0%, #b8945a 100%)",
-            color: "#0c1420",
-            border: "none",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: 800,
-            letterSpacing: 2,
-            fontFamily: "'Montserrat', sans-serif",
-            cursor: "pointer",
-            textTransform: "uppercase",
-            boxShadow: "0 4px 16px rgba(200,168,107,0.3)",
-          }}
-        >
-          Authorize
-        </button>
-        <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}><CustomerWebsiteLink /></div>
-      </form>
-    </div>
-  );
+// Authentication grants access only after the database verifies owner membership.
+function AuthPanel({ children }) {
+  return <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#0c1420", color: "#e2e8f0", fontFamily: "Inter, sans-serif", padding: 24 }}>
+    <section style={{ width: "100%", maxWidth: 400, boxSizing: "border-box", background: "#111e2e", border: "1px solid #c8a86b44", borderRadius: 16, padding: 32 }}>
+      <img src="/logo-light.png" alt="Kin Kin Trukindo" style={{ width: 140, background: "white", padding: 12, borderRadius: 10 }} />
+      <h1 style={{ fontSize: 22 }}>Admin dashboard</h1>{children}
+      <div style={{ marginTop: 24 }}><CustomerWebsiteLink /></div>
+    </section>
+  </main>;
 }
-
+const authInput = { display: "block", width: "100%", boxSizing: "border-box", margin: "8px 0 18px", padding: 12, borderRadius: 6, border: "1px solid #536176", background: "#0c1420", color: "white", fontSize: 16 };
+const authButton = { padding: "12px 18px", background: "#c8a86b", color: "#0c1420", border: 0, borderRadius: 6, cursor: "pointer", fontWeight: 700 };
+function LoginGate() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState(invalidAuthLink ? "This sign-in link is invalid or expired. Request a new password reset link." : "");
+  const [busy, setBusy] = useState(false);
+  const [reset, setReset] = useState(false);
+  async function submit(event) {
+    event.preventDefault(); setBusy(true); setMessage("");
+    try {
+      if (reset) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/admin.html` });
+        if (error) throw error;
+        setMessage("If this address has an account, a password reset link will arrive by email.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (error) throw new Error("Unable to sign in. Check your email and password, or reset your password.");
+      }
+    } catch (error) { setMessage(error.message); }
+    finally { setBusy(false); setPassword(""); }
+  }
+  return <AuthPanel><p>Use your approved individual account.</p><form onSubmit={submit}>
+    <label>Email<input style={authInput} type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></label>
+    {!reset && <label>Password<input style={authInput} type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>}
+    <button style={authButton} disabled={busy}>{busy ? "Please wait…" : reset ? "Send reset link" : "Sign in"}</button>
+    {message && <p role="status">{message}</p>}
+  </form><button disabled={busy} onClick={() => { setReset(!reset); setMessage(""); }} style={{ ...authButton, background: "transparent", color: "#c8a86b", paddingLeft: 0, marginTop: 12 }}>{reset ? "Back to sign in" : "Forgot password?"}</button></AuthPanel>;
+}
+function SetAccountPassword({ onComplete, onSignOut }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  return <AuthPanel><h2>Set your password</h2><form onSubmit={async e => {
+    e.preventDefault();
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    setBusy(true); setError("");
+    try {
+      const { error: failure } = await supabase.auth.updateUser({ password });
+      if (failure) throw failure;
+      setPassword(""); setConfirm(""); onComplete();
+    } catch (failure) { setError(failure.message); }
+    finally { setBusy(false); }
+  }}>
+    <label>New password<input style={authInput} required minLength={12} type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} /></label>
+    <label>Confirm password<input style={authInput} required minLength={12} type="password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
+    <p>Use at least 12 characters. A password manager can generate and save it.</p>
+    {error && <p role="alert">{error}</p>}<button style={authButton} disabled={busy}>{busy ? "Saving…" : "Save password"}</button>
+  </form><button style={{ ...authButton, marginTop: 16 }} onClick={onSignOut}>Cancel and sign out</button></AuthPanel>;
+}
 export default function App() {
-  const [authed, setAuthed] = useState(false);
-  if (!authed) return <LoginGate onSuccess={() => setAuthed(true)} />;
-  return <KinKinApp />;
+  const [session, setSession] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [recovery, setRecovery] = useState(passwordLink);
+  const [member, setMember] = useState(null);
+  const [accessError, setAccessError] = useState("");
+  const previousUser = useRef(null);
+  const userId = session?.user.id;
+  useEffect(() => {
+    let active = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!active) return;
+      if (previousUser.current !== nextSession?.user.id) {
+        setMember(null); setAccessError(""); previousUser.current = nextSession?.user.id;
+      }
+      setSession(nextSession); setReady(true);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+      if (event === "SIGNED_OUT") { setMember(null); setRecovery(false); }
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    if (userId) supabase.rpc("kinkin_current_member").then(({ data, error }) => {
+      if (!active) return;
+      if (error || !data?.user_id) setAccessError("This account does not have dashboard access. Contact the owner.");
+      else setMember(data);
+    }).catch(() => { if (active) setAccessError("Unable to verify access. Please sign out and try again."); });
+    return () => { active = false; };
+  }, [userId]);
+  async function signOut() {
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) { setAccessError("Sign out failed. Please try again."); return; }
+    setSession(null); setMember(null); setRecovery(false);
+  }
+  if (!ready) return <AuthPanel><p>Checking session…</p></AuthPanel>;
+  if (!session) return <LoginGate />;
+  if (recovery) return <SetAccountPassword onComplete={() => { window.history.replaceState(null, "", window.location.pathname); setRecovery(false); }} onSignOut={signOut} />;
+  if (accessError || !member || member.user_id !== session.user.id) return <AuthPanel><p role="status">{accessError || "Checking dashboard access…"}</p><button style={authButton} onClick={signOut}>Sign out</button></AuthPanel>;
+  return <KinKinApp key={session.user.id} session={session} onSignOut={signOut} />;
 }
