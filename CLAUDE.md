@@ -9,7 +9,7 @@ This file is the single source of truth for any AI assistant or developer workin
 An internal business management tool for **Kin Kin Trukindo, Ltd.**, a small freight and logistics company in Indonesia. It tracks trips, expenses, cash flow, loans, and fleet assets for a two-truck operation. The interface is in English but all monetary values are in Indonesian Rupiah (IDR).
 
 Live URL: [kinkintrukindo.com](https://kinkintrukindo.com)
-App password: stored as `APP_PASSWORD` constant in `src/App.jsx`
+Authentication: Supabase Auth, owner membership enforced by database RPCs. See `docs/authentication.md`.
 
 ---
 
@@ -22,7 +22,7 @@ App password: stored as `APP_PASSWORD` constant in `src/App.jsx`
 | Styling | Inline styles everywhere — no CSS framework, no CSS modules |
 | Charts | Recharts (line, bar) + hand-rolled SVG pie chart in Expenses |
 | Excel I/O | `xlsx` library — import and export |
-| Database | Supabase (single JSONB row, key `kinkin_v1` in table `kinkin_state`) |
+| Database | Supabase (private normalized ledger tables, revision-checked RPCs) |
 | Deployment | Vercel, production domain `kinkintrukindo.com` |
 | Fonts | Montserrat (headings) + Inter (body), loaded from Google Fonts |
 
@@ -32,7 +32,7 @@ App password: stored as `APP_PASSWORD` constant in `src/App.jsx`
 
 **Everything lives in one file: `src/App.jsx` (~4100 lines).**
 
-There is no routing, no state management library, no component library. All state lives in `KinKinApp` (the root component) and is passed down as props. All persistence is through two async functions: `loadState()` and `saveState()`.
+There is no routing, no state management library, no component library. All state lives in `KinKinApp` (the root component) and is passed down as props. Persistence uses a per-session `createLedgerStorage` instance.
 
 ```
 App (login gate)
@@ -48,21 +48,11 @@ App (login gate)
     └── Reports
 ```
 
-### Persistence Pattern
+### Persistence and authentication
 
-```js
-// Load on mount
-loadState()  →  supabase.from("kinkin_state").select("value").eq("key", "kinkin_v1")
+`createLedgerStorage` calls `kinkin_load_ledger` / `kinkin_save_ledger` and serializes revision-checked writes. Each authenticated app mount owns a new storage instance. Logout closes queued writes and unmounts accounting state. The database enforces active, confirmed owner membership using `auth.uid()` on every RPC. Anonymous callers and unapproved accounts cannot access the ledger or frozen legacy snapshot.
 
-// Save on every state change (debounced by React's render cycle)
-saveState()  →  supabase.from("kinkin_state").upsert({ key: "kinkin_v1", value: entireState })
-```
-
-The entire app state is serialized as one JSON blob. There are no relational queries. The `_skipSave` ref prevents a redundant write on the initial load.
-
-### Login
-
-`LoginGate` wraps the entire app. It checks the entered password against `APP_PASSWORD` (a hardcoded constant in `src/App.jsx`). There is no Supabase Auth — authentication is purely client-side. This is acceptable for a private, single-company internal tool.
+Passwords are managed by Supabase Auth, never stored in ledger JSON or source. Auth tokens use sessionStorage, with per-tab persistence across reloads. Sign out explicitly on shared devices. Recovery and invitation links open the set-password screen. Destructive-action text confirmations prevent accidents; database authorization is the security boundary.
 
 ---
 
@@ -305,8 +295,8 @@ Computed on every render from the full ledger. Not stored.
 | `categorizeExpense(desc)` | Auto-classify expense description to a category |
 | `downloadExcel(filename, sheetData)` | Write an xlsx file to disk |
 | `fingerprint(trip)` | Create deduplication key for a trip |
-| `loadState()` | Read app state from Supabase |
-| `saveState(state)` | Upsert app state to Supabase |
+| `storage.load()` | Read authorized ledger state |
+| `storage.save(state)` | Atomically save authorized state with revision checks |
 
 ---
 
@@ -335,19 +325,7 @@ vercel --prod
 node scripts/seed.mjs
 ```
 
-**Supabase table:**
-```sql
--- Table
-create table kinkin_state (
-  key text primary key,
-  value jsonb,
-  updated_at timestamptz default now()
-);
-
--- RLS policy (allows anon key to read/write)
-create policy "allow all" on kinkin_state
-  for all to anon using (true) with check (true);
-```
+**Supabase schema:** apply versioned migrations under `supabase/migrations/`. Never recreate the former anonymous allow-all policy. See `docs/supabase-migration.md` and `docs/authentication.md`.
 
 ---
 
