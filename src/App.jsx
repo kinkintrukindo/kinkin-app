@@ -1326,6 +1326,7 @@ function KinKinApp() {
       )}
 
       <div style={{ padding: isMobile ? "16px 12px" : 24, paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom))" : 24 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><CustomerWebsiteLink /></div>
         {tab === "dashboard" && <Dashboard trips={trips} expenses={expenses} kas={kas} trucks={trucks} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} grossProfit={grossProfit} netProfit={netProfit} kasBalance={kasBalance} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalAssetsValue={totalAssetsValue} loans={loans} loanPayments={loanPayments} assets={assets} loanMonthOverrides={loanMonthOverrides} setLoanMonthOverrides={setLoanMonthOverrides} globalFileRef={globalFileRef} importing={importing} />}
         {tab === "trips" && <Trips trips={trips} setTrips={setTrips} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "expenses" && <Expenses expenses={expenses} setExpenses={setExpenses} trucks={trucks} pettyHolders={pettyHolders} setPettyTopups={setPettyTopups} pettyTopups={pettyTopups} setKas={setKas} kas={kas} showToast={showToast} guardedDelete={guardedDelete} logActivity={logActivity} />}
@@ -1583,6 +1584,10 @@ function OperationalProfitTable({ trips, expenses, loans, assets, loanMonthOverr
       )}
     </div>
   );
+}
+
+function CustomerWebsiteLink() {
+  return <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", minHeight: 42, border: "1px solid rgba(200,168,107,0.35)", borderRadius: 8, color: "#c8a86b", background: "rgba(200,168,107,0.06)", fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}><span aria-hidden="true">←</span> Customer website</a>;
 }
 
 function Dashboard({ trips, expenses, trucks, totalRevenue, grossProfit, netProfit, kasBalance, tripCosts, truckOpsExpenses, overheadExpenses, totalCapitalInjected, totalLoanPrincipalRemaining, totalAssetsValue, loans, loanPayments, assets, loanMonthOverrides, setLoanMonthOverrides, globalFileRef, importing, kas }) {
@@ -5330,6 +5335,7 @@ function LoginGate({ onSuccess }) {
         >
           Authorize
         </button>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}><CustomerWebsiteLink /></div>
       </form>
     </div>
   );
