@@ -1,5 +1,7 @@
 # Workbook import and reconciliation
 
+Monthly CSV or workbook trip sheets can be imported without a Kas/Month Control tab. Matching, date, fleet, payment-source and duplicate checks still run. The import is recorded as `not_reconciled` with null control amounts; missing cash balances are never assumed to be zero. When a control tab is supplied, all existing cash checks remain mandatory. A routine upload does not need permanent IDs or a written reason; ambiguous matches still block saving, and actual warnings or edits to previously reconciled months require a reason.
+
 The workbook remains the source of truth. Correct source dates, plates and amounts in Excel, then upload again. The preview no longer edits source values. Imports preserve records absent from the upload; they do not delete them automatically.
 
 ## Recommended workbook format

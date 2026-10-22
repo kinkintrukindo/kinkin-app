@@ -229,14 +229,12 @@ function buildImportReview({ trips, expenses, pettyTopups, kas, pettyHolders, as
   }
   const cashIds = prepared.expenses.filter((e) => e.cashEntryId).map((e) => e.cashEntryId);
   if (new Set(cashIds).size !== cashIds.length) errors.push("A main-cash payment is linked to multiple imported expenses.");
-  if (!parsed.structured) warnings.push("Legacy sheet has no permanent transaction IDs. Matching uses existing values; correct legacy ambiguities before saving.");
   try { plan = planMonthlyImport(trips, expenses, prepared); } catch (e) { errors.push(e.message); }
   const projectedTrips = [...trips.map((t) => { const p = plan.tripPlan.find((p) => p.before?.id === t.id); return p?.action === "update" ? { ...t, ...p.incoming, id: t.id } : t; }), ...plan.tripPlan.filter((p) => p.action === "add").map((p) => p.incoming)];
   const projectedExpenses = [...expenses.map((e) => { const p = plan.expensePlan.find((p) => p.before?.id === e.id); return p?.action === "update" ? { ...e, ...p.incoming, id: e.id } : e; }), ...plan.expensePlan.filter((p) => p.action === "add").map((p) => p.incoming)];
   for (const p of plan.expensePlan) if (p.incoming.cashEntryId && (pettyTopups.some((t) => t.kasId === p.incoming.cashEntryId) || expenses.some((e) => e.id !== p.before?.id && e.cashEntryId === p.incoming.cashEntryId))) errors.push("Main-cash payment is already allocated to another expense or top-up.");
   let amounts = null;
-  if (!controls) errors.push("A Month Control or KAS sheet is required. Missing controls cannot be treated as zero.");
-  else try {
+  if (controls) try {
     if (!validImportDate(controls.through) || !controls.through.startsWith(month)) throw new Error("Enter a coverage-through date within the selected month.");
     const opening = importNumber(controls.opening, "Opening balance"), transfers = importNumber(controls.transfers, "Transfers"), spending = importNumber(controls.spending, "KAS spending"), closing = importNumber(controls.closing, "Closing balance");
     if (transfers < 0 || spending < 0) throw new Error("Transfer and spending totals cannot be negative.");
@@ -271,9 +269,9 @@ function buildImportReview({ trips, expenses, pettyTopups, kas, pettyHolders, as
     const missingExpenses = expenses.filter((e) => matchesHolder(e) && inPeriod(e) && !plan.expensePlan.some((p) => p.before?.id === e.id));
     if (missingTrips.length || missingExpenses.length) warnings.push(`${missingTrips.length} website trips and ${missingExpenses.length} holder expenses are absent from this upload and will be retained.`);
     if (closing < 0) warnings.push("Negative closing balance: explain the advance, funding gap or timing difference.");
-    const priorApproval = importLogs.find((l) => l.monthYear === month && l.reconciliation?.holderId === selected);
-    if (priorApproval && [...plan.tripPlan, ...plan.expensePlan].some((p) => p.action !== "skip")) warnings.push("This changes a previously reconciled month. Record a correction reason.");
   } catch (e) { errors.push(e.message); }
+  const priorApproval = importLogs.find((l) => l.monthYear === month && l.reconciliation?.holderId === selected && l.reconciliation?.amounts);
+  if (priorApproval && [...plan.tripPlan, ...plan.expensePlan].some((p) => p.action !== "skip")) warnings.push("This changes a previously reconciled month. Record a correction reason.");
   const uniqueWarnings = [...new Set(warnings)];
   return { errors: [...new Set(errors)], warnings: uniqueWarnings, plan, amounts, holderId: selected, projectedTrips, projectedExpenses, ready: !errors.length && acknowledged && (!uniqueWarnings.length || reason.trim().length >= 10) };
 }
@@ -829,7 +827,7 @@ function KinKinApp({ session, onSignOut }) {
     const { parsed, monthYear, fileName } = uploadModal;
 
     const review = buildImportReview({ trips, expenses, pettyTopups, kas, pettyHolders, assets, parsed, month: monthYear, controls: uploadModal.controls, holderId: uploadModal.holderId, importLogs, reason: uploadModal.reason, acknowledged: uploadModal.acknowledged });
-    if (!review.ready) { showToast("Resolve reconciliation errors and acknowledge the review before saving.", "error"); return; }
+    if (!review.ready) { showToast("Resolve the listed issues and confirm your review before saving.", "error"); return; }
     const plan = review.plan;
     const clean = ({ _isDuplicate, _importAction, _previousTotal, usePettyCash, ...value }) => {
       void _isDuplicate; void _importAction; void _previousTotal; void usePettyCash;
@@ -860,7 +858,7 @@ function KinKinApp({ session, onSignOut }) {
     const log = {
       id: genId(),
       importedAt: new Date().toISOString(),
-      reconciliation: { holderId: review.holderId, controls: uploadModal.controls, amounts: review.amounts, reason: uploadModal.reason || "", warnings: review.warnings, sourceFormat: parsed.structured ? "structured-v1" : "legacy", acknowledged: true },
+      reconciliation: { status: review.amounts ? "reconciled" : "not_reconciled", holderId: review.holderId, controls: uploadModal.controls, amounts: review.amounts, reason: uploadModal.reason || "", warnings: review.warnings, sourceFormat: parsed.structured ? "structured-v1" : "legacy", acknowledged: true },
       fileName,
       monthYear,
       truckPlate: parsed.truckPlate || "—",
@@ -1233,8 +1231,8 @@ function KinKinApp({ session, onSignOut }) {
                   </div>
                 </details>
                 {importReview && <section aria-label="Import reconciliation" style={{ padding: 16, background: "#142234", marginBottom: 14 }}>
-                  <h3>Reconcile before importing</h3>
-                  <p>{uploadModal.controls?.sourceRef || "No control sheet found"} · Coverage through {uploadModal.controls?.through || "unknown"}</p>
+                  <h3>{uploadModal.controls ? "Review cash reconciliation" : "Review import"}</h3>
+                  <p>{uploadModal.controls ? `${uploadModal.controls.sourceRef} · Coverage through ${uploadModal.controls.through}` : "Import trips and expenses now. Cash balances are not reconciled by this upload; reconcile them separately with your Kas sheet."}</p>
                   <label>Petty-cash holder <select aria-label="Reconciliation holder" value={importReview.holderId} onChange={(ev) => setUploadModal({ ...uploadModal, holderId: ev.target.value, acknowledged: false })}><option value="">Select holder</option>{pettyHolders.filter((h) => h.active).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>
                   {importReview.amounts && <table style={{ width: "100%", margin: "12px 0" }}>
                     <thead><tr><th>Control</th><th>Sheet</th><th>Website after import</th><th>Difference</th></tr></thead>
@@ -1243,8 +1241,8 @@ function KinKinApp({ session, onSignOut }) {
                   <p>{["add", "update", "skip"].map((action) => `${action}: ${[...importReview.plan.tripPlan, ...importReview.plan.expensePlan].filter((p) => p.action === action).length}`).join(" · ")}</p>
                   {importReview.errors.map((message) => <p role="alert" key={message} style={{ color: "#f87171" }}>{message}</p>)}
                   {importReview.warnings.map((message) => <p key={message} style={{ color: "#fbbf24" }}>{message}</p>)}
-                  <label>Review / correction reason {importReview.warnings.length > 0 && "(at least 10 characters required)"}<textarea aria-label="Review reason" value={uploadModal.reason || ""} onChange={(ev) => setUploadModal({ ...uploadModal, reason: ev.target.value, acknowledged: false })} /></label>
-                  <label style={{ display: "block", marginTop: 12 }}><input type="checkbox" style={{ width: "auto" }} checked={!!uploadModal.acknowledged} onChange={(ev) => setUploadModal({ ...uploadModal, acknowledged: ev.target.checked })} /> I checked the source, payment classifications and reconciliation totals.</label>
+                  {importReview.warnings.length > 0 && <label>Review / correction reason (at least 10 characters required)<textarea aria-label="Review reason" value={uploadModal.reason || ""} onChange={(ev) => setUploadModal({ ...uploadModal, reason: ev.target.value, acknowledged: false })} /></label>}
+                  <label style={{ display: "block", marginTop: 12 }}><input type="checkbox" style={{ width: "auto" }} checked={!!uploadModal.acknowledged} onChange={(ev) => setUploadModal({ ...uploadModal, acknowledged: ev.target.checked })} /> {uploadModal.controls ? "I checked the source, payment classifications and reconciliation totals." : "I reviewed the trips, expenses and payment sources."}</label>
                 </section>}
 
                 <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 4, padding: 12, fontSize: 11, color: "#e2e8f0", marginBottom: 14 }}>
