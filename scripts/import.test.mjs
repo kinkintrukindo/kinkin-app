@@ -159,7 +159,7 @@ test('control blank, arithmetic, source detail, opening and funding mismatches b
  for(const controls of [{spending:''},{closing:401},{spending:101,closing:399},{opening:1,closing:401},{transfers:600,closing:500}]){
   const a=reviewInput();const r=buildImportReview({...a,controls:{...a.controls,...controls}});assert.equal(r.ready,false);assert.ok(r.errors.length);
  }
- assert.equal(buildImportReview({...reviewInput(),controls:null}).ready,false);
+ assert.equal(buildImportReview({...reviewInput(),controls:null}).ready,true);
 });
 test('duplicate permanent IDs, malformed dates and missing trip references fail parsing',()=>{
  for(const mutate of [s=>s[1].rows.push([...s[1].rows[1]]),s=>s[0].rows[1][1]='2026-02-30',s=>s[1].rows[1][2]='missing',s=>s[1].rows[1][6]='oops']){
@@ -191,9 +191,24 @@ test('transfer date mismatch and reused cash links block even with equal totals'
  assert.equal(buildImportReview(a).ready,true);
  assert.equal(buildImportReview({...a,expenses:[{id:'other',cashEntryId:'k2'}]}).ready,false);
 });
-test('negative balances and legacy matching require a recorded reason',()=>{
+test('negative balances require a reason but legacy format alone does not',()=>{
  const a=reviewInput();a.pettyTopups=[];a.kas=[];a.controls={...a.controls,transfers:0,closing:-100};
  assert.equal(buildImportReview(a).ready,false);assert.equal(buildImportReview({...a,reason:'Owner advance pending reconciliation'}).ready,true);
  const b=reviewInput();b.parsed.structured=false;
- assert.equal(buildImportReview(b).ready,false);assert.equal(buildImportReview({...b,reason:'Reviewed source and legacy matches'}).ready,true);
+ assert.equal(buildImportReview(b).ready,true);assert.equal(buildImportReview(b).warnings.length,0);
+});
+
+test('trip-only imports remain unreconciled and repeat without duplicates',()=>{
+ const a=reviewInput();a.controls=null;a.parsed.structured=false;
+ const first=buildImportReview(a);assert.equal(first.ready,true);assert.equal(first.amounts,null);assert.equal(first.warnings.length,0);
+ const trips=first.projectedTrips.map((t,i)=>({...t,id:`trip-${i}`}));
+ const expenses=first.projectedExpenses.map((e,i)=>({...e,id:`expense-${i}`}));
+ const second=buildImportReview({...a,trips,expenses,importLogs:[{monthYear:a.month,reconciliation:{holderId:'h1',amounts:null,status:'not_reconciled'}}]});
+ assert.equal(second.ready,true);assert.ok([...second.plan.tripPlan,...second.plan.expensePlan].every(p=>p.action==='skip'));
+ assert.equal(buildImportReview({...a,acknowledged:false}).ready,false);
+});
+test('trip-only edits to a reconciled month still require a reason',()=>{
+ const a=reviewInput();a.controls=null;a.importLogs=[{monthYear:a.month,reconciliation:{holderId:'h1',amounts:{closing:400}}}];
+ assert.equal(buildImportReview(a).ready,false);
+ assert.equal(buildImportReview({...a,reason:'Corrected source trip costs'}).ready,true);
 });
