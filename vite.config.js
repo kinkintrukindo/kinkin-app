@@ -8,6 +8,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
+        orders: resolve(__dirname, 'orders.html'),
         main: resolve(__dirname, 'index.html'),   // public marketing site
         admin: resolve(__dirname, 'admin.html'),  // internal admin app
       },
