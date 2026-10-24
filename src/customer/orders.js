@@ -1,3 +1,4 @@
+import { lookupCopy, supportedLanguage } from './lookup-copy.mjs';
 const form = document.querySelector('#lookup');
 const input = document.querySelector('#container');
 const result = document.querySelector('#result');
@@ -7,6 +8,35 @@ const count = document.querySelector('#count');
 result.querySelector('tbody').replaceChildren();
 empty.replaceChildren();
 let generation = 0;
+let language = supportedLanguage(new URLSearchParams(location.search).get('lang'));
+let statusKey = '';
+let resultRows = null;
+const copy = () => lookupCopy[language];
+function setStatus(key) { statusKey = key; empty.textContent = copy()[key]; }
+function updateUrl() {
+  const params = new URLSearchParams(location.search);
+  params.set('lang', language);
+  history.replaceState(null, '', `${location.pathname}?${params}`);
+}
+function localize() {
+  const t = copy();
+  document.documentElement.lang = language;
+  document.title = t.title;
+  document.querySelectorAll('[data-copy]').forEach(el => { el.textContent = t[el.dataset.copy]; });
+  input.placeholder = t.placeholder;
+  document.querySelector('#back-link').textContent = t.back;
+  document.querySelector('#back-link').href = `/?lang=${language}`;
+  document.querySelector('.brand').href = `/?lang=${language}`;
+  document.querySelectorAll('th').forEach((el, i) => { el.textContent = t.columns[i]; });
+  document.querySelector('#lookup-language').value = language;
+  if (statusKey) empty.textContent = t[statusKey];
+  if (resultRows) count.textContent = t.found(resultRows.length);
+  result.querySelectorAll('button').forEach(button => { button.textContent = button.dataset.pending === 'true' ? t.pending : t.download; });
+}
+document.querySelector('#lookup-language').addEventListener('change', event => {
+  language = supportedLanguage(event.target.value); updateUrl(); localize();
+});
+localize();
 const normalize = value => value.replace(/[\s-]/g, '').toUpperCase();
 async function search() {
   const current = ++generation;
@@ -16,12 +46,13 @@ async function search() {
   result.hidden = true;
   empty.hidden = false;
   count.textContent = '';
+  resultRows = null;
   if (!/^[A-Z0-9]{6,20}$/.test(container)) {
-    empty.textContent = 'Please enter your full container number.';
+    setStatus('invalid');
     return;
   }
-  empty.textContent = 'Finding your journey…';
-  history.replaceState(null, '', `${location.pathname}?container=${encodeURIComponent(container)}`);
+  setStatus('loading');
+  history.replaceState(null, '', `${location.pathname}?container=${encodeURIComponent(container)}&lang=${language}`);
   try {
     const url = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -34,8 +65,9 @@ async function search() {
     const rows = await response.json();
     if (current !== generation) return;
     if (!Array.isArray(rows)) throw new Error('Invalid response');
-    count.textContent = `${rows.length} ${rows.length === 1 ? 'journey' : 'journeys'} found`;
-    empty.textContent = 'No journey found. Check your container number or contact us for help.';
+    resultRows = rows;
+    count.textContent = copy().found(rows.length);
+    setStatus('empty');
     empty.hidden = rows.length > 0;
     result.hidden = rows.length === 0;
     const tbody = result.querySelector('tbody');
@@ -47,7 +79,7 @@ async function search() {
       }
       const td = document.createElement('td');
       const button = document.createElement('button');
-      button.className = 'download'; button.textContent = journey.invoice ? '↓ Download invoice' : 'Invoice pending';
+      button.className = 'download'; button.dataset.pending = String(!journey.invoice); button.textContent = journey.invoice ? copy().download : copy().pending;
       button.disabled = !journey.invoice;
       button.addEventListener('click', async () => {
         button.disabled = true;
@@ -60,14 +92,14 @@ async function search() {
           const link = document.createElement('a'); const href = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
           link.href = href; link.download = `Invoice-${journey.container}-${journey.date}.pdf`; link.click();
           setTimeout(() => URL.revokeObjectURL(href), 30000);
-        } catch { empty.hidden = false; empty.textContent = 'We could not create your invoice. Please try again or contact us.'; }
+        } catch { empty.hidden = false; setStatus('downloadError'); }
         finally { button.disabled = false; }
       });
       td.append(button); tr.append(td); tbody.append(tr);
     }
   } catch {
     if (current !== generation) return;
-    empty.textContent = 'Order lookup is currently unavailable. Please try again later or contact us on WhatsApp.';
+    setStatus('unavailable');
   }
 }
 form.addEventListener('submit', event => { event.preventDefault(); search(); });
