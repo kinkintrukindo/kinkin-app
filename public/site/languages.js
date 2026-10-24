@@ -19,6 +19,12 @@ const translations=[
 
 ['header nav a',['我们的旅程','服务','我们的车队'],['운송 여정','서비스','차량 소개']],
 ['.nav-cta','联系我们 ↗','문의하기 ↗'],
+['.nav-track','货运查询','운송 조회'],
+['#track-journey .eyebrow','订单查询','주문 조회'],
+['#track-title','与我们一起追踪您的运输旅程','고객의 운송 여정을 함께 확인하세요'],
+['#track-journey .track-copy p','查询您的运输详情。','운송 상세 정보를 확인하세요.'],
+['.track-form label','集装箱编号','컨테이너 번호'],
+['.track-form button','查询订单 →','주문 조회 →'],
 ['.hero-top .eyebrow','印度尼西亚集装箱运输','인도네시아 컨테이너 운송'],
 ['.hero h1 span',['从每一片海域，','直达您的门前。'],['모든 바다에서,','고객의 문 앞까지.']],
 ['.hero-lower p','跨越群岛。<br>精准、可靠，<br>全程透明。','인도네시아 전역으로.<br>정확하고 믿을 수 있는,<br>투명한 운송 서비스.'],
@@ -48,8 +54,14 @@ const translations=[
 ['.contact-bottom>a','返回顶部 ↑','맨 위로 ↑'],
 ['footer span:last-child','泗水 · 印度尼西亚','수라바야 · 인도네시아'],
 ];
+const trackingInput=document.querySelector('#track-container');
+const trackingPlaceholder=trackingInput.getAttribute('placeholder');
 const saved=new Map();translations.forEach(([selector])=>document.querySelectorAll(selector).forEach(el=>saved.set(el,el.innerHTML)));
 const fleetCopy={zh:[['重型集装箱底盘 · 6×2','专为重载40英尺集装箱设计，充足扭矩适合重箱与长途运输。','20英尺及40英尺集装箱 ↗'],['中重型集装箱卡车 · 4×2','灵活节油，适用于城市港口道路及20英尺集装箱的狭窄配送路线。','20英尺集装箱 ↗']],ko:[['대형 컨테이너 섀시 · 6×2','적재된 40피트 컨테이너와 장거리 운송을 위한 강력한 토크를 제공합니다.','20피트 및 40피트 컨테이너 ↗'],['중대형 컨테이너 트럭 · 4×2','민첩하고 연료 효율이 뛰어나며, 도심 항만과 좁은 20피트 컨테이너 운송 경로에 적합합니다.','20피트 컨테이너 ↗']]};
 function localizeFleet(){const l=document.documentElement.lang;const n=typeof current==='number'?current:0;if(l==='en'){const f=fleet[n];document.querySelector('#fleet-type').textContent=f.type;document.querySelector('#fleet-desc').textContent=f.description;document.querySelector('#capacity').textContent=f.capacity}else{const copy=fleetCopy[l][n];['fleet-type','fleet-desc','capacity'].forEach((id,i)=>document.getElementById(id).textContent=copy[i])}}
-function languageChange(l){document.documentElement.lang=l;translations.forEach(([sel,zh,ko])=>document.querySelectorAll(sel).forEach((el,i)=>{const value=l==='zh'?zh:ko;el.innerHTML=l==='en'?saved.get(el):Array.isArray(value)?value[i]:value}));document.querySelector('.hero').dataset.sceneLabel=l==='en'?'AT THE WAREHOUSE · PREPARING YOUR CARGO':l==='zh'?'仓库作业 · 为您的货物做好准备':'창고 작업 · 화물 운송 준비';document.querySelector('.contact').dataset.sceneLabel=l==='en'?'LOADED. CONNECTED. ONWARD.':l==='zh'?'装载就绪，无缝衔接，继续前行。':'적재 완료. 연결 완료. 다음 여정으로.';document.querySelector('#previous').ariaLabel=l==='en'?'Previous truck':l==='zh'?'上一辆车':'이전 차량';document.querySelector('#next').ariaLabel=l==='en'?'Next truck':l==='zh'?'下一辆车':'다음 차량';localizeFleet();try{localStorage.setItem('kinkin-language',l)}catch{};document.querySelector('#language').value=l;window.localizeRestored?.(l)}
-document.querySelector('#language').onchange=e=>languageChange(e.target.value);['previous','next'].forEach(id=>document.getElementById(id).addEventListener('click',localizeFleet));let initial='en';try{initial=localStorage.getItem('kinkin-language')||'en'}catch{}languageChange(['en','zh','ko'].includes(initial)?initial:'en');
+function languageChange(l){document.documentElement.lang=l;const languageUrl=new URL(window.location.href);languageUrl.searchParams.set('lang',l);window.history.replaceState(null,'',languageUrl);
+trackingInput.placeholder=l==='zh'?'请输入集装箱编号':l==='ko'?'컨테이너 번호를 입력하세요':trackingPlaceholder;
+document.querySelector('.nav-track').href='/orders.html?lang='+l;
+document.querySelector('.track-form input[name=lang]').value=l;
+translations.forEach(([sel,zh,ko])=>document.querySelectorAll(sel).forEach((el,i)=>{const value=l==='zh'?zh:ko;el.innerHTML=l==='en'?saved.get(el):Array.isArray(value)?value[i]:value}));document.querySelector('.hero').dataset.sceneLabel=l==='en'?'AT THE WAREHOUSE · PREPARING YOUR CARGO':l==='zh'?'仓库作业 · 为您的货物做好准备':'창고 작업 · 화물 운송 준비';document.querySelector('.contact').dataset.sceneLabel=l==='en'?'LOADED. CONNECTED. ONWARD.':l==='zh'?'装载就绪，无缝衔接，继续前行。':'적재 완료. 연결 완료. 다음 여정으로.';document.querySelector('#previous').ariaLabel=l==='en'?'Previous truck':l==='zh'?'上一辆车':'이전 차량';document.querySelector('#next').ariaLabel=l==='en'?'Next truck':l==='zh'?'下一辆车':'다음 차량';localizeFleet();try{localStorage.setItem('kinkin-language',l)}catch{};document.querySelector('#language').value=l;window.localizeRestored?.(l)}
+document.querySelector('#language').onchange=e=>languageChange(e.target.value);['previous','next'].forEach(id=>document.getElementById(id).addEventListener('click',localizeFleet));let initial='en';try{initial=localStorage.getItem('kinkin-language')||'en'}catch{}const requestedLanguage=new URLSearchParams(window.location.search).get('lang');if(['en','zh','ko'].includes(requestedLanguage))initial=requestedLanguage;languageChange(['en','zh','ko'].includes(initial)?initial:'en');
