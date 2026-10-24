@@ -28,3 +28,20 @@ The public anonymous key is an application identifier, not a password. Never shi
 `npm test` includes session-close write cancellation and revision consistency. `npm run build` validates production compilation. `supabase/test-auth.sql` runs on an isolated PostgreSQL fixture with two auth users and a pre-migration snapshot: anonymous/outsider denial, direct-access denial, self-promotion denial, owner read/write, conflict handling, unchanged financial data, password stripping, revocation, unconfirmed email and bans. All test writes roll back.
 
 Local browser QA uses a mock auth endpoint, never production financial writes. Real invitation delivery, password creation, and live owner sign-in require user participation and must be verified separately.
+
+### Authorized email settings
+
+Apply `202610240002_dashboard_access.sql` before deploying the updated admin UI.
+Owners manage the list in Settings → Dashboard Access. Added addresses receive full
+ledger access (including edit, import and delete), but cannot manage authorization.
+The existing owner membership cannot be removed through this screen. Adding an
+address does not send mail. The user selects **Email me a sign-in link** on the
+login page and verifies their own mailbox. Supabase email signups and email delivery
+must be enabled, and the production `/admin.html` callback must be allowed.
+Unapproved signups cannot read or write the ledger. Removing an approved address
+blocks subsequent ledger requests even for an existing session; previously viewed
+information cannot be recalled from the user's browser. No service-role key is used.
+
+For a disposable PostgreSQL database only, run
+`psql -v ON_ERROR_STOP=1 -f scripts/sql/dashboard-access.test.sql`.
+The fixture creates mock auth tables and roles; never run it in production.

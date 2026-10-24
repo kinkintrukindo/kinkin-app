@@ -646,7 +646,7 @@ const TABS = [
   { key: "settings",  label: "Settings",        short: "Opts" },
 ];
 
-function KinKinApp({ session, onSignOut }) {
+function KinKinApp({ session, onSignOut, member }) {
   const storage = useRef(null);
   const [tab, setTab] = useState("dashboard");
   const isMobile = useIsMobile();
@@ -1337,7 +1337,7 @@ function KinKinApp({ session, onSignOut }) {
         {tab === "petty" && <PettyCash pettyHolders={pettyHolders} setPettyHolders={setPettyHolders} pettyTopups={pettyTopups} setPettyTopups={setPettyTopups} expenses={expenses} setExpenses={setExpenses} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "fleet" && <Fleet loans={loans} setLoans={setLoans} assets={assets} setAssets={setAssets} loanPayments={loanPayments} setLoanPayments={setLoanPayments} capital={capital} setCapital={setCapital} totalCapitalInjected={totalCapitalInjected} kas={kas} setKas={setKas} showToast={showToast} confirmModal={confirmModal} setConfirmModal={setConfirmModal} guardedDelete={guardedDelete} logActivity={logActivity} />}
         {tab === "reports" && <Reports trips={trips} expenses={expenses} kas={kas} capital={capital} loans={loans} assets={assets} loanPayments={loanPayments} grossProfit={grossProfit} netProfit={netProfit} totalRevenue={totalRevenue} totalExpenses={totalExpenses} truckOpsExpenses={truckOpsExpenses} overheadExpenses={overheadExpenses} tripCosts={tripCosts} totalCapitalInjected={totalCapitalInjected} totalLoanPrincipalRemaining={totalLoanPrincipalRemaining} totalLoanPaymentsMade={totalLoanPaymentsMade} totalAssetsValue={totalAssetsValue} />}
-        {tab === "settings" && <Settings activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
+        {tab === "settings" && <Settings isOwner={member?.role === "owner"} activityLog={activityLog} kas={kas} expenses={expenses} trips={trips} pettyHolders={pettyHolders} pettyTopups={pettyTopups} loans={loans} loanPayments={loanPayments} kasBalance={kasBalance} showToast={showToast} importLogs={importLogs} undoImport={undoImport} resetAll={resetAll} />}
       </div>
 
       {/* ── GLOBAL FAB ── */}
@@ -4955,7 +4955,52 @@ function Reports({ trips, expenses, kas, capital, loans, assets, loanPayments, g
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
-function Settings({ activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast, importLogs, undoImport, resetAll }) {
+function DashboardAccess() {
+  const [emails, setEmails] = useState([]);
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [message, setMessage] = useState("");
+  const [remove, setRemove] = useState(null);
+  async function refresh() {
+    const { data, error } = await supabase.rpc("kinkin_list_dashboard_access");
+    if (error) throw error;
+    setEmails(data || []); setLoaded(true);
+  }
+  useEffect(() => { refresh().catch(() => setMessage("Access settings could not be loaded. Check the connection and database migration, then retry.")); }, []);
+  async function save(address, allowed) {
+    setBusy(true); setMessage("");
+    try {
+      const { error } = await supabase.rpc("kinkin_set_dashboard_access", { p_email: address.trim().toLowerCase(), p_allowed: allowed });
+      if (error) throw error;
+      setEmail(""); setRemove(null);
+      await refresh();
+      setMessage(allowed ? "Email authorized. They can select ‘Email me a sign-in link’ on the login page. No invitation was sent." : "Dashboard access removed.");
+    } catch (error) { setMessage(error.message || "Could not update access. Please retry."); }
+    finally { setBusy(false); }
+  }
+  return <section style={{ background: "#162030", border: "1px solid #c8a86b55", borderRadius: 8, padding: 22, marginBottom: 20 }}>
+    <h3 style={{ marginTop: 0, color: "#c8a86b" }}>Dashboard Access</h3>
+    <p style={{ fontSize: 13, lineHeight: 1.6 }}>Authorize individual email addresses. Added users can view, edit, import, and delete accounting records. Only the owner can manage access.</p>
+    <form onSubmit={e => { e.preventDefault(); save(email, true); }}>
+      <label htmlFor="access-email">Email address</label>
+      <input id="access-email" type="email" required maxLength={254} value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" style={authInput} />
+      <button style={authButton} disabled={busy || !loaded}>Add authorized email</button>
+    </form>
+    {!loaded && <button style={{ ...authButton, marginTop: 12 }} disabled={busy} onClick={() => { setBusy(true); refresh().catch(() => setMessage("Could not load access settings.")).finally(() => setBusy(false)); }}>Retry loading</button>}
+    <ul style={{ padding: 0, listStyle: "none" }}>{emails.map(entry => <li key={entry.email} style={{ padding: "14px 0", borderBottom: "1px solid #ffffff18", display: "flex", gap: 12, justifyContent: "space-between", flexWrap: "wrap" }}>
+      <div style={{ overflowWrap: "anywhere" }}>{entry.email}<small style={{ display: "block", opacity: .65, marginTop: 4 }}>{entry.role === "owner" ? "Owner · protected" : entry.status}</small></div>
+      {entry.role !== "owner" && <button style={{ ...authButton, background: "#4b2430", color: "#fecaca" }} disabled={busy} onClick={() => setRemove(entry.email)}>Remove</button>}
+    </li>)}</ul>
+    {remove && <div role="alertdialog" aria-label="Remove dashboard access" style={{ padding: 16, border: "1px solid #f87171", borderRadius: 6 }}>
+      <p>Remove access for {remove}? Their next request to load or save records will be blocked.</p>
+      <button style={authButton} disabled={busy} onClick={() => save(remove, false)}>Remove access</button>{" "}<button style={authButton} disabled={busy} onClick={() => setRemove(null)}>Cancel</button>
+    </div>}
+    {message && <p role="status" style={{ fontSize: 13 }}>{message}</p>}
+  </section>;
+}
+
+function Settings({ isOwner, activityLog, kas, expenses, trips, pettyHolders, pettyTopups, loans, loanPayments, kasBalance, showToast, importLogs, undoImport, resetAll }) {
   const [curPwd, setCurPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confPwd, setConfPwd] = useState("");
@@ -5048,6 +5093,7 @@ function Settings({ activityLog, kas, expenses, trips, pettyHolders, pettyTopups
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      {isOwner && <DashboardAccess />}
       {/* Section A — Change Password */}
       <div style={card}>
         <h3 style={sectionTitle}>Change Password</h3>
@@ -5272,6 +5318,16 @@ function LoginGate() {
   const [message, setMessage] = useState(invalidAuthLink ? "This sign-in link is invalid or expired. Request a new password reset link." : "");
   const [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false);
+  async function emailLink() {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setMessage("Enter your email address first."); return; }
+    setBusy(true); setMessage("");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { emailRedirectTo: `${window.location.origin}/admin.html`, shouldCreateUser: true } });
+      if (error) throw error;
+      setMessage("Check your inbox for a sign-in link. Dashboard access requires owner approval.");
+    } catch { setMessage("Could not send a sign-in link. Please try again later or contact the owner."); }
+    finally { setBusy(false); }
+  }
   async function submit(event) {
     event.preventDefault(); setBusy(true); setMessage("");
     try {
@@ -5291,7 +5347,7 @@ function LoginGate() {
     {!reset && <label>Password<input style={authInput} type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>}
     <button style={authButton} disabled={busy}>{busy ? "Please wait…" : reset ? "Send reset link" : "Sign in"}</button>
     {message && <p role="status">{message}</p>}
-  </form><button disabled={busy} onClick={() => { setReset(!reset); setMessage(""); }} style={{ ...authButton, background: "transparent", color: "#c8a86b", paddingLeft: 0, marginTop: 12 }}>{reset ? "Back to sign in" : "Forgot password?"}</button></AuthPanel>;
+  </form>{!reset && <button type="button" disabled={busy} style={{ ...authButton, marginTop: 12 }} onClick={emailLink}>Email me a sign-in link</button>}<button disabled={busy} onClick={() => { setReset(!reset); setMessage(""); }} style={{ ...authButton, background: "transparent", color: "#c8a86b", paddingLeft: 0, marginTop: 12 }}>{reset ? "Back to sign in" : "Forgot password?"}</button></AuthPanel>;
 }
 function SetAccountPassword({ onComplete, onSignOut }) {
   const [password, setPassword] = useState("");
@@ -5354,5 +5410,5 @@ export default function App() {
   if (!session) return <LoginGate />;
   if (recovery) return <SetAccountPassword onComplete={() => { window.history.replaceState(null, "", window.location.pathname); setRecovery(false); }} onSignOut={signOut} />;
   if (accessError || !member || member.user_id !== session.user.id) return <AuthPanel><p role="status">{accessError || "Checking dashboard access…"}</p><button style={authButton} onClick={signOut}>Sign out</button></AuthPanel>;
-  return <KinKinApp key={session.user.id} session={session} onSignOut={signOut} />;
+  return <KinKinApp key={session.user.id} session={session} onSignOut={signOut} member={member} />;
 }
